@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="FunctorFlow.jl">
+
+<title>JEPA as Categorical World Model</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="jepa-world-models_files/libs/clipboard/clipboard.min.js"></script>
+<script src="jepa-world-models_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="jepa-world-models_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="jepa-world-models_files/libs/quarto-html/popper.min.js"></script>
+<script src="jepa-world-models_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="jepa-world-models_files/libs/quarto-html/anchor.min.js"></script>
+<link href="jepa-world-models_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="jepa-world-models_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="jepa-world-models_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="jepa-world-models_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="jepa-world-models_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#part-1-coalgebra-world-models-as-state-transitions" id="toc-part-1-coalgebra-world-models-as-state-transitions" class="nav-link" data-scroll-target="#part-1-coalgebra-world-models-as-state-transitions">Part 1: Coalgebra — World Models as State Transitions</a></li>
+  <li><a href="#part-2-jepa-block-prediction-in-embedding-space" id="toc-part-2-jepa-block-prediction-in-embedding-space" class="nav-link" data-scroll-target="#part-2-jepa-block-prediction-in-embedding-space">Part 2: JEPA Block — Prediction in Embedding Space</a></li>
+  <li><a href="#part-3-jepa-execution-the-obstruction-loss" id="toc-part-3-jepa-execution-the-obstruction-loss" class="nav-link" data-scroll-target="#part-3-jepa-execution-the-obstruction-loss">Part 3: JEPA Execution — The Obstruction Loss</a></li>
+  <li><a href="#part-4-kan-jepa-merging-ket-and-jepa" id="toc-part-4-kan-jepa-merging-ket-and-jepa" class="nav-link" data-scroll-target="#part-4-kan-jepa-merging-ket-and-jepa">Part 4: KAN-JEPA — Merging KET and JEPA</a></li>
+  <li><a href="#part-5-hierarchical-jepa-h-jepa" id="toc-part-5-hierarchical-jepa-h-jepa" class="nav-link" data-scroll-target="#part-5-hierarchical-jepa-h-jepa">Part 5: Hierarchical JEPA (H-JEPA)</a></li>
+  <li><a href="#part-6-energy-based-cost-module" id="toc-part-6-energy-based-cost-module" class="nav-link" data-scroll-target="#part-6-energy-based-cost-module">Part 6: Energy-Based Cost Module</a>
+  <ul class="collapse">
+  <li><a href="#energy-function-implementations" id="toc-energy-function-implementations" class="nav-link" data-scroll-target="#energy-function-implementations">Energy Function Implementations</a></li>
+  <li><a href="#vicreg-regularization" id="toc-vicreg-regularization" class="nav-link" data-scroll-target="#vicreg-regularization">VICReg Regularization</a></li>
+  </ul></li>
+  <li><a href="#part-7-lean-4-proof-certificates" id="toc-part-7-lean-4-proof-certificates" class="nav-link" data-scroll-target="#part-7-lean-4-proof-certificates">Part 7: Lean 4 Proof Certificates</a></li>
+  <li><a href="#part-8-ema-update-collapse-prevention" id="toc-part-8-ema-update-collapse-prevention" class="nav-link" data-scroll-target="#part-8-ema-update-collapse-prevention">Part 8: EMA Update (Collapse Prevention)</a></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="jepa-world-models.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="../../jepa-world-models.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">JEPA as Categorical World Model</h1>
+<p class="subtitle lead">Joint Embedding Predictive Architecture via Coalgebras</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>FunctorFlow.jl </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p><strong>JEPA</strong> (Joint Embedding Predictive Architecture) is LeCun’s proposed framework for building world models that predict in <em>representation space</em> rather than <em>observation space</em>. The key insight is that predicting pixel-by-pixel is intractable, but predicting <em>embeddings</em> of future states is feasible.</p>
+<p>FunctorFlow.jl reveals that JEPA is fundamentally a <strong>coalgebraic construction</strong>:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>JEPA Component</th>
+<th>Categorical Analog</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Encoder</td>
+<td>Coalgebra morphism</td>
+</tr>
+<tr class="even">
+<td>Predictor</td>
+<td>Endofunctor dynamics</td>
+</tr>
+<tr class="odd">
+<td>Target encoder (EMA)</td>
+<td>Frozen reference coalgebra</td>
+</tr>
+<tr class="even">
+<td>Prediction loss</td>
+<td>Obstruction to commutativity</td>
+</tr>
+<tr class="odd">
+<td>World model</td>
+<td>F-coalgebra (X → F(X))</td>
+</tr>
+<tr class="even">
+<td>Optimal representation</td>
+<td>Final coalgebra (Lambek’s lemma)</td>
+</tr>
+</tbody>
+</table>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="part-1-coalgebra-world-models-as-state-transitions" class="level2">
+<h2 class="anchored" data-anchor-id="part-1-coalgebra-world-models-as-state-transitions">Part 1: Coalgebra — World Models as State Transitions</h2>
+<p>A <strong>coalgebra</strong> is a pair (X, α : X → F(X)): a state space equipped with a transition structure. This is the categorical formalization of a world model.</p>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a simple world model diagram</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>D <span class="op">=</span> <span class="fu">world_model_block</span>(;</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=:</span>SimpleWorldModel,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    observation_object<span class="op">=:</span>Pixels,</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    latent_object<span class="op">=:</span>Embedding,</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    encoder_name<span class="op">=:</span>encode,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    dynamics_name<span class="op">=:</span>predict_next,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    decoder_name<span class="op">=:</span>decode,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Objects: "</span>, <span class="fu">join</span>(<span class="fu">keys</span>(D.objects), <span class="st">", "</span>))</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Operations: "</span>, <span class="fu">join</span>(<span class="fu">keys</span>(D.operations), <span class="st">", "</span>))</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>()</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co"># The coalgebra structure</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>coalgebras <span class="op">=</span> <span class="fu">get_coalgebras</span>(D)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (name, c) <span class="kw">in</span> coalgebras</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(c)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Objects: Pixels, Embedding
+Operations: encode, predict_next, decode, encode_then_predict, autoencoder
+
+Coalgebra(:coalgebra, Embedding →_{identity} Embedding)</code></pre>
+</div>
+</div>
+<p>The coalgebra declares that <code>predict_next</code> is the world model dynamics: given a latent state, it produces the next latent state.</p>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Bind concrete implementations</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(D, <span class="op">:</span>encode, x <span class="op">-&gt;</span> x <span class="op">./</span> <span class="fl">255.0</span>)           <span class="co"># normalize</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(D, <span class="op">:</span>predict_next, x <span class="op">-&gt;</span> x <span class="op">.+</span> <span class="fl">0.01</span>)      <span class="co"># simple drift</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(D, <span class="op">:</span>decode, x <span class="op">-&gt;</span> x <span class="op">.*</span> <span class="fl">255.0</span>)            <span class="co"># denormalize</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>compiled <span class="op">=</span> <span class="fu">compile_to_callable</span>(D)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled, <span class="fu">Dict</span>(</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Pixels <span class="op">=&gt;</span> [<span class="fl">128.0</span>, <span class="fl">64.0</span>, <span class="fl">200.0</span>],</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Encoded:  "</span>, <span class="fu">round</span>.(result.values[<span class="op">:</span>encode]; digits<span class="op">=</span><span class="fl">4</span>))</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Predicted:"</span>, <span class="fu">round</span>.(result.values[<span class="op">:</span>predict_next]; digits<span class="op">=</span><span class="fl">4</span>))</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Decoded:  "</span>, <span class="fu">round</span>.(result.values[<span class="op">:</span>autoencoder]; digits<span class="op">=</span><span class="fl">4</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Encoded:  [0.502, 0.251, 0.7843]
+Predicted:[0.512, 0.261, 0.7943]
+Decoded:  [128.0, 64.0, 200.0]</code></pre>
+</div>
+</div>
+</section>
+<section id="part-2-jepa-block-prediction-in-embedding-space" class="level2">
+<h2 class="anchored" data-anchor-id="part-2-jepa-block-prediction-in-embedding-space">Part 2: JEPA Block — Prediction in Embedding Space</h2>
+<p>The JEPA block encodes the fundamental prediction-in-embedding pattern as a FunctorFlow diagram:</p>
+<pre><code>Observation ──encoder_ctx──→ ContextRepr ──predictor──→ PredictedRepr
+Target ────── encoder_tgt──→ TargetRepr
+                                    ↕
+                           prediction_loss (obstruction)</code></pre>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a JEPA block</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>D_jepa <span class="op">=</span> <span class="fu">jepa_block</span>(;</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=:</span>ImageJEPA,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    observation_object<span class="op">=:</span>Context,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    target_object<span class="op">=:</span>MaskedRegion,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    context_repr<span class="op">=:</span>CtxEmb,</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    target_repr<span class="op">=:</span>TgtEmb,</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    comparator<span class="op">=:</span>l2,</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"=== JEPA Diagram: </span><span class="sc">$</span>(D_jepa.name)<span class="st"> ==="</span>)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Objects:"</span>)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (name, obj) <span class="kw">in</span> D_jepa.objects</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>(name)<span class="st"> :: </span><span class="sc">$</span>(obj.kind)<span class="st">"</span>)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Morphisms:"</span>)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (name, op) <span class="kw">in</span> D_jepa.operations</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> op isa Morphism</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>        role <span class="op">=</span> <span class="fu">get</span>(op.metadata, <span class="op">:</span>role, <span class="op">:</span>unknown)</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>        net <span class="op">=</span> <span class="fu">get</span>(op.metadata, <span class="op">:</span>network, <span class="op">:</span>none)</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>        detach <span class="op">=</span> <span class="fu">get</span>(op.metadata, <span class="op">:</span>detach, <span class="cn">false</span>)</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>(name)<span class="st">: </span><span class="sc">$</span>(op.source)<span class="st"> -&gt; </span><span class="sc">$</span>(op.target)<span class="st"> [role=</span><span class="sc">$</span>(role)<span class="st">, net=</span><span class="sc">$</span>(net)<span class="st">, detach=</span><span class="sc">$</span>(detach)<span class="st">]"</span>)</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> op isa Composition</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>(name)<span class="st">: </span><span class="sc">$</span>(op.source)<span class="st"> → </span><span class="sc">$</span>(op.target)<span class="st"> [chain=</span><span class="sc">$</span>(op.chain)<span class="st">]"</span>)</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Losses:"</span>)</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (name, loss) <span class="kw">in</span> D_jepa.losses</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>(name)<span class="st">: paths=</span><span class="sc">$</span>(loss.paths)<span class="st">, comparator=</span><span class="sc">$</span>(loss.comparator)<span class="st">"</span>)</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Coalgebra:"</span>)</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (name, c) <span class="kw">in</span> <span class="fu">get_coalgebras</span>(D_jepa)</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  "</span>, c)</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>=== JEPA Diagram: ImageJEPA ===
+
+Objects:
+  Context :: observation
+  MaskedRegion :: observation
+  CtxEmb :: representation
+  TgtEmb :: representation
+
+Morphisms:
+  context_encoder: Context -&gt; CtxEmb [role=encoder, net=online, detach=false]
+  target_encoder: MaskedRegion -&gt; TgtEmb [role=encoder, net=target, detach=true]
+  predictor: CtxEmb -&gt; TgtEmb [role=predictor, net=none, detach=false]
+  prediction_path: Context → TgtEmb [chain=[:context_encoder, :predictor]]
+
+Losses:
+  prediction_loss: paths=[(:prediction_path, :target_encoder)], comparator=l2
+
+Coalgebra:
+  Coalgebra(:jepa_dynamics, CtxEmb →_{identity} CtxEmb)</code></pre>
+</div>
+</div>
+</section>
+<section id="part-3-jepa-execution-the-obstruction-loss" class="level2">
+<h2 class="anchored" data-anchor-id="part-3-jepa-execution-the-obstruction-loss">Part 3: JEPA Execution — The Obstruction Loss</h2>
+<p>The prediction loss IS an obstruction loss: it measures how far the encoder-predictor square is from commuting.</p>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Bind implementations: encoders as linear scaling</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(D_jepa, <span class="op">:</span>context_encoder, x <span class="op">-&gt;</span> x <span class="op">.*</span> <span class="fl">0.5</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(D_jepa, <span class="op">:</span>target_encoder, x <span class="op">-&gt;</span> x <span class="op">.*</span> <span class="fl">0.5</span>)  <span class="co"># same encoder (EMA would make it close)</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(D_jepa, <span class="op">:</span>predictor, identity)  <span class="co"># trivial predictor</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>compiled_jepa <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_jepa)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Case 1: Context and target are the same → perfect prediction</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>result1 <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_jepa, <span class="fu">Dict</span>(</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Context <span class="op">=&gt;</span> [<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>],</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>MaskedRegion <span class="op">=&gt;</span> [<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>],  <span class="co"># same input</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Case 1 (same input): loss = "</span>, <span class="fu">round</span>(result1.losses[<span class="op">:</span>prediction_loss]; digits<span class="op">=</span><span class="fl">6</span>))</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Predicted: "</span>, result1.values[<span class="op">:</span>prediction_path])</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Target:    "</span>, result1.values[<span class="op">:</span>target_encoder])</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Case 2: Different context and target → non-zero loss</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>result2 <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_jepa, <span class="fu">Dict</span>(</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Context <span class="op">=&gt;</span> [<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>],</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>MaskedRegion <span class="op">=&gt;</span> [<span class="fl">4.0</span>, <span class="fl">5.0</span>, <span class="fl">6.0</span>],  <span class="co"># different!</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Case 2 (different input): loss = "</span>, <span class="fu">round</span>(result2.losses[<span class="op">:</span>prediction_loss]; digits<span class="op">=</span><span class="fl">6</span>))</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Predicted: "</span>, result2.values[<span class="op">:</span>prediction_path])</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Target:    "</span>, result2.values[<span class="op">:</span>target_encoder])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Case 1 (same input): loss = 0.0
+  Predicted: [0.5, 1.0, 1.5]
+  Target:    [0.5, 1.0, 1.5]
+
+Case 2 (different input): loss = 2.598076
+  Predicted: [0.5, 1.0, 1.5]
+  Target:    [2.0, 2.5, 3.0]</code></pre>
+</div>
+</div>
+<p>When the loss is zero, the JEPA square commutes — the encoder is an <strong>exact coalgebra morphism</strong>.</p>
+</section>
+<section id="part-4-kan-jepa-merging-ket-and-jepa" class="level2">
+<h2 class="anchored" data-anchor-id="part-4-kan-jepa-merging-ket-and-jepa">Part 4: KAN-JEPA — Merging KET and JEPA</h2>
+<p>KAN-JEPA uses a left Kan extension (Σ) as the predictor, merging the KET attention pattern with JEPA’s embedding-space prediction:</p>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>D_kan <span class="op">=</span> <span class="fu">kan_jepa_block</span>(;</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=:</span>KanJEPA_Demo,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    observation_object<span class="op">=:</span>Tokens,</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    target_object<span class="op">=:</span>MaskedTokens,</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    context_repr<span class="op">=:</span>TokenEmb,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    target_repr<span class="op">=:</span>MaskedEmb,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    relation_object<span class="op">=:</span>Neighborhood,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    reducer<span class="op">=:</span>mean,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"=== KAN-JEPA Diagram ==="</span>)</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (name, op) <span class="kw">in</span> D_kan.operations</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> op isa KanExtension</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"  Σ(</span><span class="sc">$</span>(op.source)<span class="st">; along=</span><span class="sc">$</span>(op.along)<span class="st">) → </span><span class="sc">$</span>(op.target)<span class="st">  [</span><span class="sc">$</span>(op.reducer)<span class="st">]"</span>)</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> op isa Morphism</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>        role <span class="op">=</span> <span class="fu">get</span>(op.metadata, <span class="op">:</span>role, <span class="op">:</span>unknown)</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>(name)<span class="st">: </span><span class="sc">$</span>(op.source)<span class="st"> → </span><span class="sc">$</span>(op.target)<span class="st"> [</span><span class="sc">$</span>(role)<span class="st">]"</span>)</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">This is the natural fusion:"</span>)</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  KET's attention = left-Kan aggregation (Σ)"</span>)</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  JEPA's loss = obstruction to commutativity"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>=== KAN-JEPA Diagram ===
+  context_encoder: Tokens → TokenEmb [encoder]
+  target_encoder: MaskedTokens → MaskedEmb [encoder]
+  Σ(TokenEmb; along=Neighborhood) → MaskedEmb  [mean]
+
+This is the natural fusion:
+  KET's attention = left-Kan aggregation (Σ)
+  JEPA's loss = obstruction to commutativity</code></pre>
+</div>
+</div>
+</section>
+<section id="part-5-hierarchical-jepa-h-jepa" class="level2">
+<h2 class="anchored" data-anchor-id="part-5-hierarchical-jepa-h-jepa">Part 5: Hierarchical JEPA (H-JEPA)</h2>
+<p>H-JEPA uses multiple abstraction levels for multi-scale prediction. Fine levels handle short-range details; coarse levels handle long-range abstract planning.</p>
+<div id="14" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>D_hjepa <span class="op">=</span> <span class="fu">hjepa_block</span>(;</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=:</span>MultiScaleJEPA,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    levels<span class="op">=</span>[<span class="op">:</span>fine, <span class="op">:</span>medium, <span class="op">:</span>coarse],</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"=== H-JEPA: 3 Abstraction Levels ==="</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Objects per level:"</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> level <span class="kw">in</span> [<span class="op">:</span>fine, <span class="op">:</span>medium, <span class="op">:</span>coarse]</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    obs <span class="op">=</span> <span class="fu">Symbol</span>(<span class="st">"</span><span class="sc">$</span>(level)<span class="st">__Obs_</span><span class="sc">$</span>(level)<span class="st">"</span>)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    repr <span class="op">=</span> <span class="fu">Symbol</span>(<span class="st">"</span><span class="sc">$</span>(level)<span class="st">__CtxRepr_</span><span class="sc">$</span>(level)<span class="st">"</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>(level)<span class="st">: </span><span class="sc">$</span>(obs)<span class="st"> → </span><span class="sc">$</span>(repr)<span class="st">"</span>)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Abstraction morphisms:"</span>)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (name, op) <span class="kw">in</span> D_hjepa.operations</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> op isa Morphism <span class="op">&amp;&amp;</span> <span class="fu">get</span>(op.metadata, <span class="op">:</span>role, <span class="cn">nothing</span>) <span class="op">==</span> <span class="op">:</span>abstraction</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>        from <span class="op">=</span> op.metadata[<span class="op">:</span>from_level]</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>        to <span class="op">=</span> op.metadata[<span class="op">:</span>to_level]</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>(name)<span class="st">: </span><span class="sc">$</span>(from)<span class="st"> → </span><span class="sc">$</span>(to)<span class="st">"</span>)</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Ports:"</span>)</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (name, p) <span class="kw">in</span> D_hjepa.ports</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>(name)<span class="st"> (</span><span class="sc">$</span>(p.direction)<span class="st">): </span><span class="sc">$</span>(p.ref)<span class="st">"</span>)</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>=== H-JEPA: 3 Abstraction Levels ===
+
+Objects per level:
+  fine: fine__Obs_fine → fine__CtxRepr_fine
+  medium: medium__Obs_medium → medium__CtxRepr_medium
+  coarse: coarse__Obs_coarse → coarse__CtxRepr_coarse
+
+Abstraction morphisms:
+  abstract_fine_to_medium: fine → medium
+  abstract_medium_to_coarse: medium → coarse
+
+Ports:
+  input (INPUT): fine__Obs_fine
+  fine_repr (OUTPUT): fine__CtxRepr_fine
+  coarse_repr (OUTPUT): coarse__CtxRepr_coarse</code></pre>
+</div>
+</div>
+</section>
+<section id="part-6-energy-based-cost-module" class="level2">
+<h2 class="anchored" data-anchor-id="part-6-energy-based-cost-module">Part 6: Energy-Based Cost Module</h2>
+<p>The energy function measures compatibility in representation space. The cost module decomposes into intrinsic (immutable) and trainable components:</p>
+<p><span class="math display">\[C(s) = \sum_i u_i \cdot \text{IC}_i(s) + \sum_j v_j \cdot \text{TC}_j(s)\]</span></p>
+<div id="16" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build an energy block with VICReg-style regularization</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>D_energy <span class="op">=</span> <span class="fu">energy_block</span>(;</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=:</span>JEPAEnergy,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    energy_type<span class="op">=:</span>l2,</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    variance_weight<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    covariance_weight<span class="op">=</span><span class="fl">0.1</span>,</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    collapse_strategy<span class="op">=</span>VICREG,</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>cost_mods <span class="op">=</span> <span class="fu">get_cost_modules</span>(D_energy)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>cm <span class="op">=</span> cost_mods[<span class="op">:</span>cost]</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"=== Energy-Based Cost Module ==="</span>)</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Intrinsic costs:"</span>)</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ic <span class="kw">in</span> cm.intrinsic_costs</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  "</span>, ic)</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Collapse prevention: VICReg (variance + covariance regularization)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>=== Energy-Based Cost Module ===
+Intrinsic costs:
+  IntrinsicCost(:prediction_cost, type=prediction, weight=1.0)
+  IntrinsicCost(:variance_cost, type=variance, weight=0.5)
+  IntrinsicCost(:covariance_cost, type=covariance, weight=0.1)
+
+Collapse prevention: VICReg (variance + covariance regularization)</code></pre>
+</div>
+</div>
+<section id="energy-function-implementations" class="level3">
+<h3 class="anchored" data-anchor-id="energy-function-implementations">Energy Function Implementations</h3>
+<div id="18" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> [<span class="fl">1.0</span>, <span class="fl">0.5</span>, <span class="op">-</span><span class="fl">0.3</span>, <span class="fl">0.8</span>]</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> [<span class="fl">0.9</span>, <span class="fl">0.6</span>, <span class="op">-</span><span class="fl">0.2</span>, <span class="fl">0.7</span>]</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"L2 energy:       "</span>, <span class="fu">round</span>(<span class="fu">energy_l2</span>(x, y); digits<span class="op">=</span><span class="fl">6</span>))</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Cosine energy:   "</span>, <span class="fu">round</span>(<span class="fu">energy_cosine</span>(x, y); digits<span class="op">=</span><span class="fl">6</span>))</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Smooth L1:       "</span>, <span class="fu">round</span>(<span class="fu">energy_smooth_l1</span>(x, y); digits<span class="op">=</span><span class="fl">6</span>))</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Self-similarity should give zero energy</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Self-similarity:"</span>)</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  L2(x, x) =     "</span>, <span class="fu">energy_l2</span>(x, x))</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Cosine(x, x) = "</span>, <span class="fu">round</span>(<span class="fu">energy_cosine</span>(x, x); digits<span class="op">=</span><span class="fl">10</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>L2 energy:       0.04
+Cosine energy:   0.007994
+Smooth L1:       0.02
+
+Self-similarity:
+  L2(x, x) =     0.0
+  Cosine(x, x) = 5.1e-9</code></pre>
+</div>
+</div>
+</section>
+<section id="vicreg-regularization" class="level3">
+<h3 class="anchored" data-anchor-id="vicreg-regularization">VICReg Regularization</h3>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Random</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Random</span>.<span class="fu">seed!</span>(<span class="fl">42</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Good representations: diverse (high variance, low correlation)</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>Z_good <span class="op">=</span> <span class="fu">randn</span>(<span class="fl">4</span>, <span class="fl">10</span>)  <span class="co"># 4 dims, 10 samples</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>var_good <span class="op">=</span> <span class="fu">variance_regularization</span>(Z_good; gamma<span class="op">=</span><span class="fl">1.0</span>)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>cov_good <span class="op">=</span> <span class="fu">covariance_regularization</span>(Z_good)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Collapsed representations: all identical</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>Z_bad <span class="op">=</span> <span class="fu">ones</span>(<span class="fl">4</span>, <span class="fl">10</span>)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>var_bad <span class="op">=</span> <span class="fu">variance_regularization</span>(Z_bad; gamma<span class="op">=</span><span class="fl">1.0</span>)</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>cov_bad <span class="op">=</span> <span class="fu">covariance_regularization</span>(Z_bad)</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Diverse representations:"</span>)</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Variance penalty:   "</span>, <span class="fu">round</span>(var_good; digits<span class="op">=</span><span class="fl">4</span>))</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Covariance penalty: "</span>, <span class="fu">round</span>(cov_good; digits<span class="op">=</span><span class="fl">4</span>))</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Collapsed representations:"</span>)</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Variance penalty:   "</span>, <span class="fu">round</span>(var_bad; digits<span class="op">=</span><span class="fl">4</span>), <span class="st">" (high = BAD)"</span>)</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Covariance penalty: "</span>, <span class="fu">round</span>(cov_bad; digits<span class="op">=</span><span class="fl">4</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diverse representations:
+  Variance penalty:   0.4483
+  Covariance penalty: 0.7101
+
+Collapsed representations:
+  Variance penalty:   3.96 (high = BAD)
+  Covariance penalty: 0.0</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="part-7-lean-4-proof-certificates" class="level2">
+<h2 class="anchored" data-anchor-id="part-7-lean-4-proof-certificates">Part 7: Lean 4 Proof Certificates</h2>
+<p>FunctorFlow.jl can generate Lean 4 proof certificates for JEPA diagrams, formally verifying the categorical structure:</p>
+<div id="22" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>D_proof <span class="op">=</span> <span class="fu">jepa_block</span>(; name<span class="op">=:</span>ProvedJEPA)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_energy_function!</span>(D_proof, <span class="op">:</span>compat;</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>                     domain<span class="op">=</span>[<span class="op">:</span>ContextRepr, <span class="op">:</span>TargetRepr], energy_type<span class="op">=:</span>l2)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_bisimulation!</span>(D_proof, <span class="op">:</span>enc_equiv;</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>                  coalgebra_a<span class="op">=:</span>jepa_dynamics,</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>                  coalgebra_b<span class="op">=:</span>jepa_dynamics,</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>                  relation<span class="op">=:</span>predictor)</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>cert <span class="op">=</span> <span class="fu">render_jepa_certificate</span>(D_proof)</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(cert)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>-- Auto-generated by FunctorFlow.jl
+namespace FunctorFlowProofs.Generated.ProvedJEPA
+
+open FunctorFlowProofs in
+
+def exportedDiagram : DiagramDecl := {
+  name := "ProvedJEPA",
+  objects := ["Observation", "Target", "ContextRepr", "TargetRepr"],
+  operations := [{ name := "context_encoder", kind := OperationKind.morphism, refs := ["Observation", "ContextRepr"] }, { name := "target_encoder", kind := OperationKind.morphism, refs := ["Target", "TargetRepr"] }, { name := "predictor", kind := OperationKind.morphism, refs := ["ContextRepr", "TargetRepr"] }, { name := "prediction_path", kind := OperationKind.composition, refs := ["context_encoder", "predictor", "Observation", "TargetRepr"] }],
+  ports := [{ name := "context_input", ref := "Observation", kind := "object", portType := "observation", direction := "input" }, { name := "target_input", ref := "Target", kind := "object", portType := "observation", direction := "input" }, { name := "context_embedding", ref := "ContextRepr", kind := "object", portType := "representation", direction := "output" }, { name := "target_embedding", ref := "TargetRepr", kind := "object", portType := "representation", direction := "output" }, { name := "prediction", ref := "prediction_path", kind := "operation", portType := "representation", direction := "output" }, { name := "loss", ref := "prediction_loss", kind := "loss", portType := "loss", direction := "output" }]
+}
+
+def exportedArtifact : LoweringArtifact := {
+  diagram := exportedDiagram,
+  resolvedRefs := true,
+  portsClosed := true
+}
+
+theorem exportedArtifact_checks : exportedArtifact.check = true := by native_decide
+
+theorem exportedArtifact_sound : exportedArtifact.Sound :=
+  LoweringArtifact.sound_of_check exportedArtifact_checks
+
+
+-- Coalgebra declarations
+def coalgebra_jepa_dynamics : CoalgebraDecl := {
+  name := "jepa_dynamics",
+  state := "ContextRepr",
+  transition := "predictor",
+  functorType := "identity"
+}
+
+-- JEPA prediction-as-obstruction theorems
+/-- The JEPA prediction loss is an obstruction to commutativity
+    of the encoder/predictor square. When loss = 0, the square
+    commutes and the encoder is an exact coalgebra morphism. -/
+theorem jepa_prediction_loss_is_obstruction :
+    exportedArtifact.lossIsObstruction "prediction_loss" := by
+  exact LoweringArtifact.loss_obstruction_of_check exportedArtifact_checks
+
+/-- When the JEPA prediction loss is zero, the encoder-predictor
+    path commutes with the target encoder path, making the
+    encoder a coalgebra morphism (structure-preserving map). -/
+theorem jepa_exact_implies_coalgebra_morphism
+    (h : ∀ l ∈ exportedArtifact.losses, l.value = 0) :
+    exportedArtifact.CoalgebraExact := by
+  exact LoweringArtifact.coalgebra_exact_of_zero_loss h
+
+-- Bisimulation declarations
+def bisim_enc_equiv : BisimulationDecl := {
+  name := "enc_equiv",
+  coalgebraA := "jepa_dynamics",
+  coalgebraB := "jepa_dynamics",
+  relation := "predictor"
+}
+
+/-- Two coalgebras are bisimilar iff they map to the same element
+    in the final coalgebra — behavioral equivalence. -/
+theorem bisimilar_iff_final_coalgebra_equal
+    (A B : CoalgebraDecl) (R : BisimulationDecl)
+    (h : R.isBisimulation A B) :
+    A.finalImage = B.finalImage :=
+  CoalgebraDecl.bisim_implies_final_eq h
+
+-- Energy function declarations
+def energy_compat : EnergyDecl := {
+  name := "compat",
+  domain := ["ContextRepr", "TargetRepr"],
+  energyType := "l2"
+}
+
+/-- Energy functions are non-negative for L2 and cosine types. -/
+theorem energy_nonneg (e : EnergyDecl)
+    (h : e.energyType ∈ ["l2", "cosine"]) :
+    0 ≤ e.evaluate := by
+  exact EnergyDecl.nonneg_of_standard h
+
+end FunctorFlowProofs.Generated.ProvedJEPA</code></pre>
+</div>
+</div>
+<p>Key theorems generated: - <strong><code>jepa_prediction_loss_is_obstruction</code></strong>: The JEPA loss IS an obstruction to commutativity - <strong><code>jepa_exact_implies_coalgebra_morphism</code></strong>: Zero loss → encoder preserves structure - <strong><code>bisimilar_iff_final_coalgebra_equal</code></strong>: Bisimilar encoders are behaviorally equivalent - <strong><code>energy_nonneg</code></strong>: Energy functions are non-negative</p>
+</section>
+<section id="part-8-ema-update-collapse-prevention" class="level2">
+<h2 class="anchored" data-anchor-id="part-8-ema-update-collapse-prevention">Part 8: EMA Update (Collapse Prevention)</h2>
+<p>JEPA prevents representation collapse by using an exponential moving average (EMA) of the online encoder as the target encoder:</p>
+<div id="24" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate EMA training dynamics</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>target_params <span class="op">=</span> [<span class="dt">Float32</span>[<span class="fl">0.1</span>, <span class="fl">0.2</span>, <span class="fl">0.3</span>]]</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>online_params <span class="op">=</span> [<span class="dt">Float32</span>[<span class="fl">0.5</span>, <span class="fl">0.6</span>, <span class="fl">0.7</span>]]</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Before EMA:"</span>)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Target: "</span>, target_params[<span class="fl">1</span>])</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Online: "</span>, online_params[<span class="fl">1</span>])</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ema_update!</span>(target_params, online_params; decay<span class="op">=</span><span class="fl">0.99</span>)</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">After 5 EMA steps (decay=0.99):"</span>)</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Target: "</span>, <span class="fu">round</span>.(target_params[<span class="fl">1</span>]; digits<span class="op">=</span><span class="fl">4</span>))</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Online: "</span>, online_params[<span class="fl">1</span>], <span class="st">" (unchanged)"</span>)</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Target slowly tracks online → prevents collapse without negatives"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Before EMA:
+  Target: Float32[0.1, 0.2, 0.3]
+  Online: Float32[0.5, 0.6, 0.7]
+
+After 5 EMA steps (decay=0.99):
+  Target: Float32[0.1196, 0.2196, 0.3196]
+  Online: Float32[0.5, 0.6, 0.7] (unchanged)
+
+Target slowly tracks online → prevents collapse without negatives</code></pre>
+</div>
+</div>
+</section>
+<section id="summary" class="level2">
+<h2 class="anchored" data-anchor-id="summary">Summary</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Construction</th>
+<th>FunctorFlow Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Coalgebra</td>
+<td><code>Coalgebra</code></td>
+<td>World model (state → F(state))</td>
+</tr>
+<tr class="even">
+<td>Coalgebra morphism</td>
+<td><code>CoalgebraMorphism</code></td>
+<td>Structure-preserving encoder</td>
+</tr>
+<tr class="odd">
+<td>Final coalgebra</td>
+<td><code>FinalCoalgebraWitness</code></td>
+<td>Optimal representation (Lambek)</td>
+</tr>
+<tr class="even">
+<td>Bisimulation</td>
+<td><code>Bisimulation</code></td>
+<td>Behavioral equivalence of encoders</td>
+</tr>
+<tr class="odd">
+<td>JEPA block</td>
+<td><code>jepa_block()</code></td>
+<td>Encoder/predictor/target triple</td>
+</tr>
+<tr class="even">
+<td>KAN-JEPA</td>
+<td><code>kan_jepa_block()</code></td>
+<td>Σ-attention as JEPA predictor</td>
+</tr>
+<tr class="odd">
+<td>H-JEPA</td>
+<td><code>hjepa_block()</code></td>
+<td>Multi-scale nested coalgebras</td>
+</tr>
+<tr class="even">
+<td>Energy function</td>
+<td><code>EnergyFunction</code></td>
+<td>Compatibility measure in repr space</td>
+</tr>
+<tr class="odd">
+<td>Cost module</td>
+<td><code>CostModule</code></td>
+<td>IC + TC decomposition</td>
+</tr>
+<tr class="even">
+<td>EMA update</td>
+<td><code>ema_update!()</code></td>
+<td>Collapse prevention</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The key insight</strong>: JEPA’s prediction loss is an <em>obstruction to diagram commutativity</em>. Minimizing it drives the encoder toward being an exact coalgebra morphism — a structure-preserving map between the observation world model and the latent world model.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

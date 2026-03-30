@@ -1,0 +1,326 @@
+# Getting Started with FunctorFlow (Python)
+
+
+- [Introduction](#introduction)
+- [Setup](#setup)
+- [Core Concepts](#core-concepts)
+- [Your First Diagram](#your-first-diagram)
+- [Compositions](#compositions)
+- [Obstruction Loss](#obstruction-loss)
+- [Adding Kan Extensions](#adding-kan-extensions)
+- [Inspecting Diagrams](#inspecting-diagrams)
+- [Next Steps](#next-steps)
+
+## Introduction
+
+FunctorFlow is a categorical DSL and executable intermediate
+representation for building diagrammatic AI systems. Originally
+developed in Python by Sridhar Mahadevan, the library provides a
+principled way to compose computational operations using the language of
+category theory — objects represent typed interfaces, morphisms
+represent transformations, and Kan extensions provide universal
+aggregation and completion patterns.
+
+This vignette introduces the Python API. For the Julia port, see
+`getting-started.qmd`.
+
+## Setup
+
+``` python
+from FunctorFlow import (
+    Diagram,
+    Object,
+    Morphism,
+    compile_to_callable,
+)
+import json
+```
+
+## Core Concepts
+
+FunctorFlow is built on three core abstractions:
+
+- **Objects** (`Object`): Typed interfaces that represent data flowing
+  through a diagram. Each object has a name, a kind (e.g. `'input'`,
+  `'output'`, `'hidden_state'`), and an optional shape.
+- **Morphisms** (`Morphism`): Typed arrows from a source object to a
+  target object. Each morphism can be bound to a concrete implementation
+  — any Python callable.
+- **Diagrams** (`Diagram`): Mutable containers that hold objects,
+  morphisms, Kan extensions, and obstruction losses. Diagrams can be
+  compiled and executed.
+
+Let’s create each of these individually:
+
+``` python
+# A typed interface with kind and shape metadata
+x = Object("X", kind="input", shape="(n,)", description="Input vector")
+print(x)
+```
+
+    Object(name='X', kind='input', shape='(n,)', description='Input vector', metadata={})
+
+``` python
+# A typed transformation from X to Y
+f = Morphism("f", "X", "Y", description="Linear transform")
+print(f)
+```
+
+    Morphism(name='f', source='X', target='Y', description='Linear transform', implementation_key=None, metadata={})
+
+``` python
+# A mutable diagram container
+D = Diagram("MyFirstDiagram")
+print(D.summary())
+```
+
+    Diagram(MyFirstDiagram)
+      Objects: <none>
+      Operations: <none>
+      Losses: <none>
+      Ports: <none>
+
+## Your First Diagram
+
+Let’s build a simple diagram with two objects and one morphism, then
+compile and execute it.
+
+``` python
+D = Diagram("DoubleDiagram")
+
+# Add typed objects
+D.object("X", kind="input", description="Input value")
+D.object("Y", kind="output", description="Doubled value")
+
+# Add a morphism with an implementation bound inline
+D.morphism("double", "X", "Y",
+           implementation=lambda x: x * 2,
+           description="Doubles the input")
+
+# Compile the diagram
+compiled = compile_to_callable(D)
+
+# Execute with concrete inputs
+result = compiled.run({"X": 5})
+print("double(5) =", result.values["double"])
+```
+
+    double(5) = 10
+
+Note: in Python, morphism results are stored under the **morphism name**
+(e.g. `"double"`), not the target object name.
+
+We can also bind implementations after construction:
+
+``` python
+D2 = Diagram("SquareDiagram")
+D2.object("A", kind="input")
+D2.object("B", kind="output")
+D2.morphism("square", "A", "B")
+
+# Bind later
+D2.bind_morphism("square", lambda x: x ** 2)
+
+compiled2 = compile_to_callable(D2)
+result2 = compiled2.run({"A": 7})
+print("square(7) =", result2.values["square"])
+```
+
+    square(7) = 49
+
+## Compositions
+
+Morphisms can be composed sequentially using `D.compose()`. FunctorFlow
+validates that each morphism’s target matches the next morphism’s
+source, ensuring type safety in the composition chain.
+
+A natural pattern for composition uses self-morphisms — morphisms from
+an object to itself — which can be composed freely:
+
+``` python
+D3 = Diagram("Pipeline")
+D3.object("S", kind="state", description="Numeric state")
+
+D3.morphism("add_one", "S", "S",
+            implementation=lambda x: x + 1,
+            description="Increment by one")
+D3.morphism("triple", "S", "S",
+            implementation=lambda x: x * 3,
+            description="Multiply by three")
+
+# Compose the two morphisms into a named pipeline
+D3.compose("add_one", "triple", name="pipeline")
+
+compiled3 = compile_to_callable(D3)
+result3 = compiled3.run({"S": 4})
+print("add_one(4) =", result3.values["add_one"])
+print("triple(4) =", result3.values["triple"])
+print("pipeline(4) = triple(add_one(4)) =", result3.values["pipeline"])
+```
+
+    add_one(4) = 5
+    triple(4) = 12
+    pipeline(4) = triple(add_one(4)) = 15
+
+The composition executes by chaining through the morphism
+implementations starting from the source of the first morphism. Note: in
+Python, morphism results are stored under the morphism name only (not
+under the target object name), so compositions of self-morphisms
+(`S → S → S`) work naturally since the source is always available in the
+environment.
+
+## Obstruction Loss
+
+FunctorFlow can also measure how much two diagram paths fail to commute.
+An `ObstructionLoss` compares outputs of different paths and computes a
+scalar loss — the foundation of Diagrammatic Backpropagation.
+
+``` python
+D_obs = Diagram("CommutativityCheck")
+D_obs.object("S", kind="state")
+D_obs.morphism("f", "S", "S", implementation=lambda x: x + 1.0)
+D_obs.morphism("g", "S", "S", implementation=lambda x: x * 2.0)
+
+D_obs.compose("f", "g", name="fg")
+D_obs.compose("g", "f", name="gf")
+
+D_obs.obstruction_loss(paths=[("fg", "gf")], name="comm_loss", comparator="l2")
+
+compiled_obs = compile_to_callable(D_obs)
+result_obs = compiled_obs.run({"S": 3.0})
+print(f"f∘g(3) = {result_obs.values['fg']}, g∘f(3) = {result_obs.values['gf']}")
+print(f"Commutativity loss: {result_obs.losses['comm_loss']}")
+```
+
+    f∘g(3) = 8.0, g∘f(3) = 7.0
+    Commutativity loss: 1.0
+
+The loss is zero when the paths produce identical results (i.e. the
+diagram commutes).
+
+## Adding Kan Extensions
+
+Kan extensions are the crown jewel of FunctorFlow. A **left Kan
+extension** performs universal aggregation — it pushes forward values
+along a relation and reduces them. This single pattern subsumes
+attention, pooling, and message passing.
+
+``` python
+D4 = Diagram("AggregationDemo")
+D4.object("Values", kind="messages", description="Node values")
+D4.object("Incidence", kind="relation", description="Edge incidence")
+D4.object("Aggregated", kind="output")
+
+D4.left_kan(source="Values",
+            along="Incidence",
+            target="Aggregated",
+            name="aggregate",
+            reducer="sum")
+
+compiled4 = compile_to_callable(D4)
+
+# Values is a dict mapping source keys to values
+# Incidence maps target keys to their source neighborhoods
+result4 = compiled4.run({
+    "Values": {"a": 1, "b": 2, "c": 3},
+    "Incidence": {"x": ["a", "b"], "y": ["b", "c"]}
+})
+
+print("Aggregated:", result4.values["aggregate"])
+```
+
+    Aggregated: {'x': 3, 'y': 5}
+
+The `"sum"` reducer sums values within each neighborhood. Target `"x"`
+gets `1 + 2 = 3` and target `"y"` gets `2 + 3 = 5`.
+
+The dual concept is the **right Kan extension**, which performs
+universal completion — filling in missing values from compatible
+neighbors:
+
+``` python
+D5 = Diagram("CompletionDemo")
+D5.object("Partial", kind="partial")
+D5.object("Compat", kind="relation")
+D5.right_kan(source="Partial", along="Compat", name="complete",
+             reducer="first_non_null")
+
+compiled5 = compile_to_callable(D5)
+result5 = compiled5.run({
+    "Partial": {"a": None, "b": 42, "c": None},
+    "Compat": {"a": ["b", "c"], "c": ["b"]}
+})
+print("Completed:", result5.values["complete"])
+```
+
+    Completed: {'a': 42, 'c': 42}
+
+Here, `"a"` was `None` but got filled with `42` from its compatible
+neighbor `"b"`. Together, left and right Kan extensions form the
+predict-and-repair duality central to FunctorFlow.
+
+## Inspecting Diagrams
+
+FunctorFlow provides several ways to inspect diagram structure.
+
+``` python
+# IR serialization as a Python dict
+ir = D4.to_ir()
+d = ir.as_dict()
+print(json.dumps(d, indent=2)[:300], "...")
+```
+
+    {
+      "name": "AggregationDemo",
+      "objects": [
+        {
+          "name": "Values",
+          "kind": "messages",
+          "shape": null,
+          "description": "Node values",
+          "metadata": {}
+        },
+        {
+          "name": "Incidence",
+          "kind": "relation",
+          "shape": null,
+          "description": "Edge incide ...
+
+``` python
+# Inspect the IR components
+d = D4.to_ir().as_dict()
+print("Objects:", [obj["name"] for obj in d["objects"]])
+print("Operations:", [op["name"] for op in d["operations"]])
+```
+
+    Objects: ['Values', 'Incidence', 'Aggregated']
+    Operations: ['aggregate']
+
+``` python
+# Diagram summary
+print(D4.summary())
+```
+
+    Diagram(AggregationDemo)
+      Objects: Values, Incidence, Aggregated
+      Operations: aggregate
+      Losses: <none>
+      Ports: <none>
+
+Note: in Python, `DiagramIR.as_dict()` returns lists of dicts for
+objects and operations (not ordered dicts keyed by name as in Julia).
+Use `json.dumps(ir.as_dict())` for JSON serialization — the IR object
+itself has no `to_json()` method.
+
+## Next Steps
+
+Now that you understand the basics, explore the other vignettes:
+
+- **Macros and build_macro** — use pre-built architectural patterns
+  (KET, DB Square, etc.)
+- **Kan Extensions** — deep dive into aggregation and completion
+  patterns
+- **Block Library** — use pre-built architectural patterns (BASKET,
+  ROCKET, etc.)
+- **Diagram Composition** — compose sub-diagrams using ports and
+  adapters

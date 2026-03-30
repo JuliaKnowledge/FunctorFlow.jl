@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Simon Frost">
+
+<title>Block Library</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="block-library_files/libs/clipboard/clipboard.min.js"></script>
+<script src="block-library_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="block-library_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="block-library_files/libs/quarto-html/popper.min.js"></script>
+<script src="block-library_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="block-library_files/libs/quarto-html/anchor.min.js"></script>
+<link href="block-library_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="block-library_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="block-library_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="block-library_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="block-library_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#ket-block" id="toc-ket-block" class="nav-link" data-scroll-target="#ket-block">KET Block</a></li>
+  <li><a href="#db-square" id="toc-db-square" class="nav-link" data-scroll-target="#db-square">DB Square</a></li>
+  <li><a href="#gt-neighborhood" id="toc-gt-neighborhood" class="nav-link" data-scroll-target="#gt-neighborhood">GT Neighborhood</a></li>
+  <li><a href="#completion-block" id="toc-completion-block" class="nav-link" data-scroll-target="#completion-block">Completion Block</a></li>
+  <li><a href="#basket-workflow" id="toc-basket-workflow" class="nav-link" data-scroll-target="#basket-workflow">BASKET Workflow</a></li>
+  <li><a href="#rocket-repair" id="toc-rocket-repair" class="nav-link" data-scroll-target="#rocket-repair">ROCKET Repair</a></li>
+  <li><a href="#structured-lm-duality" id="toc-structured-lm-duality" class="nav-link" data-scroll-target="#structured-lm-duality">Structured LM Duality</a></li>
+  <li><a href="#democritus-gluing" id="toc-democritus-gluing" class="nav-link" data-scroll-target="#democritus-gluing">Democritus Gluing</a></li>
+  <li><a href="#basket-rocket-pipeline" id="toc-basket-rocket-pipeline" class="nav-link" data-scroll-target="#basket-rocket-pipeline">BASKET-ROCKET Pipeline</a></li>
+  <li><a href="#the-macro-registry" id="toc-the-macro-registry" class="nav-link" data-scroll-target="#the-macro-registry">The Macro Registry</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="block-library.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="block-library.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Block Library</h1>
+<p class="subtitle lead">Pre-built architectural patterns</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simon Frost </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>FunctorFlow provides a library of pre-built block builders — parameterized diagram constructors that encode common architectural patterns from categorical AI. Each block returns a <code>Diagram</code> with named objects, operations, and ports. You can customize them via configuration structs, bind concrete implementations, and compose them into larger pipelines.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="ket-block" class="level2">
+<h2 class="anchored" data-anchor-id="ket-block">KET Block</h2>
+<p>The <strong>KET</strong> (Kan Extension Template) block is the most fundamental pattern. It performs left-Kan aggregation over an incidence relation — the universal building block for attention, pooling, and message passing.</p>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>D_ket <span class="op">=</span> <span class="fu">ket_block</span>(; config<span class="op">=</span><span class="fu">KETBlockConfig</span>(reducer<span class="op">=:</span>sum))</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_ket)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :KETBlock ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>compiled <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_ket)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled, <span class="fu">Dict</span>(</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Values <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>a <span class="op">=&gt;</span> <span class="fl">1.0</span>, <span class="op">:</span>b <span class="op">=&gt;</span> <span class="fl">2.0</span>, <span class="op">:</span>c <span class="op">=&gt;</span> <span class="fl">3.0</span>),</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Incidence <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>x <span class="op">=&gt;</span> [<span class="op">:</span>a, <span class="op">:</span>b], <span class="op">:</span>y <span class="op">=&gt;</span> [<span class="op">:</span>b, <span class="op">:</span>c])</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"KET output: "</span>, result.values[<span class="op">:</span>aggregate])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>KET output: Dict(:y =&gt; 5.0, :x =&gt; 3.0)</code></pre>
+</div>
+</div>
+</section>
+<section id="db-square" class="level2">
+<h2 class="anchored" data-anchor-id="db-square">DB Square</h2>
+<p>The <strong>DB Square</strong> (Diagrammatic Backpropagation Square) measures the obstruction to commutativity of two morphisms. It computes <code>f∘g</code> and <code>g∘f</code> and reports the distance as a loss.</p>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>D_db <span class="op">=</span> <span class="fu">db_square</span>(;</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    first_impl<span class="op">=</span>x <span class="op">-&gt;</span> x <span class="op">+</span> <span class="fl">1.0</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    second_impl<span class="op">=</span>x <span class="op">-&gt;</span> x <span class="op">*</span> <span class="fl">2.0</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_db)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :DBSquare ⟨1 objects, 2 morphisms, 0 Kan, 1 losses⟩</code></pre>
+</div>
+</div>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>compiled_db <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_db)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>result_db <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_db, <span class="fu">Dict</span>(<span class="op">:</span>State <span class="op">=&gt;</span> <span class="fl">5.0</span>))</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"f∘g path: "</span>, result_db.values[<span class="op">:</span>p1])</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"g∘f path: "</span>, result_db.values[<span class="op">:</span>p2])</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Obstruction loss: "</span>, result_db.losses[<span class="op">:</span>obstruction])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>f∘g path: 12.0
+g∘f path: 11.0
+Obstruction loss: 1.0</code></pre>
+</div>
+</div>
+<p>The loss is zero only when <code>f</code> and <code>g</code> commute.</p>
+</section>
+<section id="gt-neighborhood" class="level2">
+<h2 class="anchored" data-anchor-id="gt-neighborhood">GT Neighborhood</h2>
+<p>The <strong>GT Neighborhood</strong> (Graph Transformer Neighborhood) block first lifts tokens to edge messages via a morphism, then aggregates them with a left Kan extension. This is the standard two-step pattern in graph neural networks.</p>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>D_gt <span class="op">=</span> <span class="fu">gt_neighborhood_block</span>()</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_gt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :GTNeighborhood ⟨4 objects, 1 morphisms, 1 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+<div id="14" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(D_gt, <span class="op">:</span>lift, x <span class="op">-&gt;</span> <span class="fu">Dict</span>(k <span class="op">=&gt;</span> v <span class="op">*</span> <span class="fl">10</span> <span class="cf">for</span> (k, v) <span class="kw">in</span> x))</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>compiled_gt <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_gt)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>result_gt <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_gt, <span class="fu">Dict</span>(</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Tokens <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>a <span class="op">=&gt;</span> <span class="fl">1</span>, <span class="op">:</span>b <span class="op">=&gt;</span> <span class="fl">2</span>, <span class="op">:</span>c <span class="op">=&gt;</span> <span class="fl">3</span>),</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Incidence <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>x <span class="op">=&gt;</span> [<span class="op">:</span>a, <span class="op">:</span>b], <span class="op">:</span>y <span class="op">=&gt;</span> [<span class="op">:</span>c])</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Lifted then aggregated: "</span>, result_gt.values[<span class="op">:</span>aggregate])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Lifted then aggregated: Dict(:y =&gt; 30, :x =&gt; 30)</code></pre>
+</div>
+</div>
+</section>
+<section id="completion-block" class="level2">
+<h2 class="anchored" data-anchor-id="completion-block">Completion Block</h2>
+<p>The <strong>Completion Block</strong> uses a right Kan extension for universal completion — filling in partial or missing data from compatible neighbors.</p>
+<div id="16" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>D_comp <span class="op">=</span> <span class="fu">completion_block</span>()</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_comp)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :CompletionBlock ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+<div id="18" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>compiled_comp <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_comp)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>result_comp <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_comp, <span class="fu">Dict</span>(</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>PartialValues <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>a <span class="op">=&gt;</span> <span class="cn">nothing</span>, <span class="op">:</span>b <span class="op">=&gt;</span> <span class="fl">42</span>, <span class="op">:</span>c <span class="op">=&gt;</span> <span class="cn">nothing</span>, <span class="op">:</span>d <span class="op">=&gt;</span> <span class="fl">7</span>),</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Compatibility <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>a <span class="op">=&gt;</span> [<span class="op">:</span>b, <span class="op">:</span>c], <span class="op">:</span>c <span class="op">=&gt;</span> [<span class="op">:</span>d])</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Completed: "</span>, result_comp.values[<span class="op">:</span>complete])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Completed: Dict{Any, Any}(:a =&gt; 42, :c =&gt; 7)</code></pre>
+</div>
+</div>
+</section>
+<section id="basket-workflow" class="level2">
+<h2 class="anchored" data-anchor-id="basket-workflow">BASKET Workflow</h2>
+<p>The <strong>BASKET</strong> (Bounded Aggregation via Sheaf-theoretic Kan Extension Templates) workflow block composes local plan fragments into a composed plan using left Kan with a <code>:concat</code> reducer.</p>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>D_basket <span class="op">=</span> <span class="fu">basket_workflow_block</span>()</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_basket)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :BASKETWorkflow ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+<div id="22" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>compiled_basket <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_basket)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>result_basket <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_basket, <span class="fu">Dict</span>(</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>PlanFragments <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>step1 <span class="op">=&gt;</span> <span class="st">"fetch data"</span>, <span class="op">:</span>step2 <span class="op">=&gt;</span> <span class="st">"clean data"</span>, <span class="op">:</span>step3 <span class="op">=&gt;</span> <span class="st">"train model"</span>),</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>WorkflowRelation <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>phase1 <span class="op">=&gt;</span> [<span class="op">:</span>step1, <span class="op">:</span>step2], <span class="op">:</span>phase2 <span class="op">=&gt;</span> [<span class="op">:</span>step3])</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Composed plan: "</span>, result_basket.values[<span class="op">:</span>compose_fragments])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Composed plan: Dict{Any, Any}(:phase1 =&gt; "fetch dataclean data", :phase2 =&gt; "train model")</code></pre>
+</div>
+</div>
+</section>
+<section id="rocket-repair" class="level2">
+<h2 class="anchored" data-anchor-id="rocket-repair">ROCKET Repair</h2>
+<p>The <strong>ROCKET</strong> (Robust Obstruction-Corrected Kan Extension Transform) repair block uses a right Kan extension to repair candidates using edit neighborhoods.</p>
+<div id="24" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>D_rocket <span class="op">=</span> <span class="fu">rocket_repair_block</span>()</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_rocket)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :ROCKETRepair ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+<div id="26" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>compiled_rocket <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_rocket)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>result_rocket <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_rocket, <span class="fu">Dict</span>(</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Candidates <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>a <span class="op">=&gt;</span> <span class="cn">nothing</span>, <span class="op">:</span>b <span class="op">=&gt;</span> <span class="st">"valid plan"</span>, <span class="op">:</span>c <span class="op">=&gt;</span> <span class="cn">nothing</span>),</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>EditNeighborhood <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>a <span class="op">=&gt;</span> [<span class="op">:</span>b], <span class="op">:</span>c <span class="op">=&gt;</span> [<span class="op">:</span>b])</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Repaired: "</span>, result_rocket.values[<span class="op">:</span>repair])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Repaired: Dict{Any, Any}(:a =&gt; "valid plan", :c =&gt; "valid plan")</code></pre>
+</div>
+</div>
+</section>
+<section id="structured-lm-duality" class="level2">
+<h2 class="anchored" data-anchor-id="structured-lm-duality">Structured LM Duality</h2>
+<p>The <strong>Structured LM Duality</strong> block runs parallel left-Kan (prediction) and right-Kan (completion/repair) branches from a shared input. This captures the predict-then-repair duality central to structured language modeling.</p>
+<div id="28" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>D_lm <span class="op">=</span> <span class="fu">structured_lm_duality</span>()</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_lm)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :StructuredLMDuality ⟨5 objects, 0 morphisms, 2 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+<div id="30" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>d_lm <span class="op">=</span> <span class="fu">as_dict</span>(<span class="fu">to_ir</span>(D_lm))</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(d_lm[<span class="st">"objects"</span>])))</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Operations: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(d_lm[<span class="st">"operations"</span>])))</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Ports: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(d_lm[<span class="st">"ports"</span>])))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Objects: [1, 2, 3, 4, 5]
+Operations: [1, 2]
+Ports: [1, 2, 3]</code></pre>
+</div>
+</div>
+</section>
+<section id="democritus-gluing" class="level2">
+<h2 class="anchored" data-anchor-id="democritus-gluing">Democritus Gluing</h2>
+<p>The <strong>Democritus Gluing</strong> block implements sheaf-theoretic local-to-global assembly. It uses a right Kan with <code>:set_union</code> reducer to glue local causal claims over overlap regions into a global relational state.</p>
+<div id="32" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>D_demo <span class="op">=</span> <span class="fu">democritus_gluing_block</span>()</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_demo)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :DemocritusGluing ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+<div id="34" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>compiled_demo <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_demo)</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>result_demo <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_demo, <span class="fu">Dict</span>(</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>LocalClaims <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>region1 <span class="op">=&gt;</span> <span class="fu">Set</span>([<span class="st">"A causes B"</span>]), <span class="op">:</span>region2 <span class="op">=&gt;</span> <span class="fu">Set</span>([<span class="st">"B causes C"</span>]), <span class="op">:</span>region3 <span class="op">=&gt;</span> <span class="fu">Set</span>([<span class="st">"A causes B"</span>, <span class="st">"C causes D"</span>])),</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>OverlapRegion <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span><span class="kw">global</span> <span class="op">=&gt;</span> [<span class="op">:</span>region1, <span class="op">:</span>region2, <span class="op">:</span>region3])</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Glued global state: "</span>, result_demo.values[<span class="op">:</span>glue])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Glued global state: Dict{Any, Any}(:global =&gt; Set(Any["A causes B", "B causes C", "C causes D"]))</code></pre>
+</div>
+</div>
+</section>
+<section id="basket-rocket-pipeline" class="level2">
+<h2 class="anchored" data-anchor-id="basket-rocket-pipeline">BASKET-ROCKET Pipeline</h2>
+<p>The <strong>BASKET-ROCKET Pipeline</strong> composes two stages: a BASKET draft phase (left Kan with <code>:concat</code>) followed by a ROCKET repair phase (right Kan with <code>:first_non_null</code>). This is a complete draft-then-repair workflow.</p>
+<div id="36" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>D_br <span class="op">=</span> <span class="fu">basket_rocket_pipeline</span>(;</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    config<span class="op">=</span><span class="fu">BasketRocketPipelineConfig</span>(</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>        rocket_config<span class="op">=</span><span class="fu">ROCKETRepairConfig</span>(reducer<span class="op">=:</span>concat)</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_br)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :BasketRocketPipeline ⟨5 objects, 0 morphisms, 2 Kan, 1 losses⟩</code></pre>
+</div>
+</div>
+<div id="38" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>result_br <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(D_br, <span class="fu">Dict</span>(</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>    D_br.ports[<span class="op">:</span>input].ref <span class="op">=&gt;</span> <span class="fu">Dict</span>(</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>collect <span class="op">=&gt;</span> <span class="st">"collect data</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>validate <span class="op">=&gt;</span> <span class="st">"validate schema</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>train <span class="op">=&gt;</span> <span class="st">"train model</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>deploy <span class="op">=&gt;</span> <span class="st">"deploy service</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>monitor <span class="op">=&gt;</span> <span class="st">"monitor drift</span><span class="sc">\n</span><span class="st">"</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>    D_br.ports[<span class="op">:</span>draft_relation].ref <span class="op">=&gt;</span> <span class="fu">Dict</span>(</span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>base <span class="op">=&gt;</span> [<span class="op">:</span>collect, <span class="op">:</span>train, <span class="op">:</span>deploy],</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>guardrails <span class="op">=&gt;</span> [<span class="op">:</span>validate],</span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>ops <span class="op">=&gt;</span> [<span class="op">:</span>monitor]</span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>    D_br.ports[<span class="op">:</span>repair_relation].ref <span class="op">=&gt;</span> <span class="fu">Dict</span>(</span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>execution_ready <span class="op">=&gt;</span> [<span class="op">:</span>base, <span class="op">:</span>guardrails, <span class="op">:</span>ops]</span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Draft candidates: "</span>, result_br.values[D_br.ports[<span class="op">:</span>draft].ref])</span>
+<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Repaired plan: "</span>, result_br.values[D_br.ports[<span class="op">:</span>output].ref])</span>
+<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Consistency loss: "</span>, result_br.losses[<span class="op">:</span>draft_repair_consistency])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Draft candidates: Dict{Any, Any}(:guardrails =&gt; "validate schema\n", :base =&gt; "collect data\ntrain model\ndeploy service\n", :ops =&gt; "monitor drift\n")
+Repaired plan: Dict{Any, Any}(:execution_ready =&gt; "collect data\ntrain model\ndeploy service\nvalidate schema\nmonitor drift\n")
+Consistency loss: 0.2857142857142857</code></pre>
+</div>
+</div>
+</section>
+<section id="the-macro-registry" class="level2">
+<h2 class="anchored" data-anchor-id="the-macro-registry">The Macro Registry</h2>
+<p>All blocks are registered in the <code>MACRO_LIBRARY</code> and can also be built by name using <code>build_macro</code>:</p>
+<div id="40" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Available macros: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(MACRO_LIBRARY)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Available macros: [:democritus_assembly, :ket, :topocoend, :basket_workflow, :db_square, :kan_jepa, :bisimulation_quotient, :gt_neighborhood, :structured_lm_duality, :world_model, :completion, :basket_rocket_pipeline, :rocket_repair, :democritus_gluing, :jepa, :hjepa, :energy, :horn_fill]</code></pre>
+</div>
+</div>
+<div id="42" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a block by name</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>D_from_registry <span class="op">=</span> <span class="fu">build_macro</span>(<span class="op">:</span>ket; reducer<span class="op">=:</span>mean)</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_from_registry)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :KETBlock ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+<div id="44" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>compiled_reg <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_from_registry)</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>result_reg <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_reg, <span class="fu">Dict</span>(</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Values <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>a <span class="op">=&gt;</span> <span class="fl">10.0</span>, <span class="op">:</span>b <span class="op">=&gt;</span> <span class="fl">20.0</span>),</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Incidence <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>x <span class="op">=&gt;</span> [<span class="op">:</span>a, <span class="op">:</span>b])</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Built from registry (mean): "</span>, result_reg.values[<span class="op">:</span>aggregate])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Built from registry (mean): Dict(:x =&gt; 15.0)</code></pre>
+</div>
+</div>
+<p>The macro registry provides a uniform interface for programmatic block construction — useful for meta-learning, architecture search, and pipeline generators.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
