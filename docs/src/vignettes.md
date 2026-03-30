@@ -1,39 +1,36 @@
 # Vignettes
 
-These links point to the rendered vignette artifacts that are copied into the
-Documenter site during deployment, so they work from `gh-pages` rather than
-pointing back into the repository tree.
+FunctorFlow.jl ships a set of longer worked examples that sit between a quick
+start and the API reference. These pages are published with the docs site, so
+the links below open the rendered HTML or PDF artifacts directly from
+`gh-pages`.
 
-<table>
-  <thead>
-    <tr>
-      <th>Topic</th>
-      <th>Julia HTML</th>
-      <th>PDF</th>
-      <th>Python HTML</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr><td>01 Getting Started</td><td><a href="01-getting-started/getting-started.html">HTML</a></td><td><a href="01-getting-started/getting-started.pdf">PDF</a></td><td><a href="01-getting-started/python/getting-started.html">Python</a></td></tr>
-    <tr><td>02 DSL Macros</td><td><a href="02-dsl-macros/dsl-macros.html">HTML</a></td><td><a href="02-dsl-macros/dsl-macros.pdf">PDF</a></td><td><a href="02-dsl-macros/python/dsl-macros.html">Python</a></td></tr>
-    <tr><td>03 Kan Extensions</td><td><a href="03-kan-extensions/kan-extensions.html">HTML</a></td><td><a href="03-kan-extensions/kan-extensions.pdf">PDF</a></td><td><a href="03-kan-extensions/python/kan-extensions.html">Python</a></td></tr>
-    <tr><td>04 Block Library</td><td><a href="04-block-library/block-library.html">HTML</a></td><td><a href="04-block-library/block-library.pdf">PDF</a></td><td><a href="04-block-library/python/block-library.html">Python</a></td></tr>
-    <tr><td>05 Composition</td><td><a href="05-composition/composition.html">HTML</a></td><td><a href="05-composition/composition.pdf">PDF</a></td><td><a href="05-composition/python/composition.html">Python</a></td></tr>
-    <tr><td>06 Obstruction Loss</td><td><a href="06-obstruction-loss/obstruction-loss.html">HTML</a></td><td><a href="06-obstruction-loss/obstruction-loss.pdf">PDF</a></td><td><a href="06-obstruction-loss/python/obstruction-loss.html">Python</a></td></tr>
-    <tr><td>07 Lux Neural Backend</td><td><a href="07-lux-neural-backend/lux-neural-backend.html">HTML</a></td><td><a href="07-lux-neural-backend/lux-neural-backend.pdf">PDF</a></td><td><a href="07-lux-neural-backend/python/neural-backend.html">Python</a></td></tr>
-    <tr><td>08 Universal Constructions</td><td><a href="08-universal-constructions/universal-constructions.html">HTML</a></td><td><a href="08-universal-constructions/universal-constructions.pdf">PDF</a></td><td>&mdash;</td></tr>
-    <tr><td>09 Causal Semantics</td><td><a href="09-causal-semantics/causal-semantics.html">HTML</a></td><td><a href="09-causal-semantics/causal-semantics.pdf">PDF</a></td><td>&mdash;</td></tr>
-    <tr><td>10 Topos Foundations</td><td><a href="10-topos-foundations/topos-foundations.html">HTML</a></td><td><a href="10-topos-foundations/topos-foundations.pdf">PDF</a></td><td>&mdash;</td></tr>
-    <tr><td>11 Canonical V1 Example</td><td><a href="11-canonical-v1-example/canonical-v1-example.html">HTML</a></td><td><a href="11-canonical-v1-example/canonical-v1-example.pdf">PDF</a></td><td>&mdash;</td></tr>
-    <tr><td>12 Sudoku Constraints</td><td><a href="12-sudoku-constraints/sudoku-constraints.html">HTML</a></td><td><a href="12-sudoku-constraints/sudoku-constraints.pdf">PDF</a></td><td>&mdash;</td></tr>
-    <tr><td>13 Predict-Detach</td><td><a href="13-predict-detach/predict-detach.html">HTML</a></td><td><a href="13-predict-detach/predict-detach.pdf">PDF</a></td><td>&mdash;</td></tr>
-    <tr><td>14 JEPA World Models</td><td><a href="14-jepa-world-models/jepa-world-models.html">HTML</a></td><td><a href="14-jepa-world-models/jepa-world-models.pdf">PDF</a></td><td>&mdash;</td></tr>
-    <tr><td>15 KET Language Model</td><td><a href="15-ket-language-model/ket-language-model.html">HTML</a></td><td><a href="15-ket-language-model/ket-language-model.pdf">PDF</a></td><td>&mdash;</td></tr>
-    <tr><td>16 Kan Duality</td><td><a href="16-kan-duality/kan-duality.html">HTML</a></td><td><a href="16-kan-duality/kan-duality.pdf">PDF</a></td><td>&mdash;</td></tr>
-    <tr><td>17 Causal JEPA</td><td><a href="17-causal-jepa/causal-jepa.html">HTML</a></td><td><a href="17-causal-jepa/causal-jepa.pdf">PDF</a></td><td>&mdash;</td></tr>
-    <tr><td>18 Neurosymbolic Pipelines</td><td><a href="18-neurosymbolic-pipelines/neurosymbolic-pipelines.html">HTML</a></td><td><a href="18-neurosymbolic-pipelines/neurosymbolic-pipelines.pdf">PDF</a></td><td>&mdash;</td></tr>
-  </tbody>
-</table>
+## Core walkthroughs
 
-If you want, this page can later be split into topical sections or enhanced with
-short abstracts for each vignette.
+- **01 Getting Started** - first steps with the package and diagram authoring. <a href="01-getting-started/getting-started.html">Julia HTML</a> | <a href="01-getting-started/getting-started.pdf">PDF</a> | <a href="01-getting-started/python/getting-started.html">Python HTML</a>
+- **02 DSL Macros** - macro-based diagram construction and notation. <a href="02-dsl-macros/dsl-macros.html">Julia HTML</a> | <a href="02-dsl-macros/dsl-macros.pdf">PDF</a> | <a href="02-dsl-macros/python/dsl-macros.html">Python HTML</a>
+- **03 Kan Extensions** - left and right Kan extensions in executable form. <a href="03-kan-extensions/kan-extensions.html">Julia HTML</a> | <a href="03-kan-extensions/kan-extensions.pdf">PDF</a> | <a href="03-kan-extensions/python/kan-extensions.html">Python HTML</a>
+- **04 Block Library** - reusable building blocks for common diagram patterns. <a href="04-block-library/block-library.html">Julia HTML</a> | <a href="04-block-library/block-library.pdf">PDF</a> | <a href="04-block-library/python/block-library.html">Python HTML</a>
+- **05 Composition** - composing larger systems from smaller categorical pieces. <a href="05-composition/composition.html">Julia HTML</a> | <a href="05-composition/composition.pdf">PDF</a> | <a href="05-composition/python/composition.html">Python HTML</a>
+- **06 Obstruction Loss** - constraint-style losses for structural guidance. <a href="06-obstruction-loss/obstruction-loss.html">Julia HTML</a> | <a href="06-obstruction-loss/obstruction-loss.pdf">PDF</a> | <a href="06-obstruction-loss/python/obstruction-loss.html">Python HTML</a>
+- **07 Lux Neural Backend** - compiling diagrams into trainable Lux models. <a href="07-lux-neural-backend/lux-neural-backend.html">Julia HTML</a> | <a href="07-lux-neural-backend/lux-neural-backend.pdf">PDF</a> | <a href="07-lux-neural-backend/python/neural-backend.html">Python HTML</a>
+
+## Categorical extensions
+
+- **08 Universal Constructions** - products, coproducts, pullbacks, and pushouts in practice. <a href="08-universal-constructions/universal-constructions.html">Julia HTML</a> | <a href="08-universal-constructions/universal-constructions.pdf">PDF</a>
+- **09 Causal Semantics** - categorical views of interventions and causal structure. <a href="09-causal-semantics/causal-semantics.html">Julia HTML</a> | <a href="09-causal-semantics/causal-semantics.pdf">PDF</a>
+- **10 Topos Foundations** - internal logic and topos-flavored foundations for the DSL. <a href="10-topos-foundations/topos-foundations.html">Julia HTML</a> | <a href="10-topos-foundations/topos-foundations.pdf">PDF</a>
+- **11 Canonical V1 Example** - a consolidated end-to-end example aligned with the V1 roadmap. <a href="11-canonical-v1-example/canonical-v1-example.html">Julia HTML</a> | <a href="11-canonical-v1-example/canonical-v1-example.pdf">PDF</a>
+- **12 Sudoku Constraints** - using diagrams and losses for structured discrete reasoning. <a href="12-sudoku-constraints/sudoku-constraints.html">Julia HTML</a> | <a href="12-sudoku-constraints/sudoku-constraints.pdf">PDF</a>
+- **13 Predict-Detach** - predictive objectives with detach-style training structure. <a href="13-predict-detach/predict-detach.html">Julia HTML</a> | <a href="13-predict-detach/predict-detach.pdf">PDF</a>
+
+## World models and neurosymbolic systems
+
+- **14 JEPA World Models** - diagrammatic world-model objectives inspired by JEPA. <a href="14-jepa-world-models/jepa-world-models.html">Julia HTML</a> | <a href="14-jepa-world-models/jepa-world-models.pdf">PDF</a>
+- **15 KET Language Model** - categorical sequence modeling and KET-style constructions. <a href="15-ket-language-model/ket-language-model.html">Julia HTML</a> | <a href="15-ket-language-model/ket-language-model.pdf">PDF</a>
+- **16 Kan Duality** - dual Kan constructions and their modeling consequences. <a href="16-kan-duality/kan-duality.html">Julia HTML</a> | <a href="16-kan-duality/kan-duality.pdf">PDF</a>
+- **17 Causal JEPA** - combining causal structure with JEPA-style objectives. <a href="17-causal-jepa/causal-jepa.html">Julia HTML</a> | <a href="17-causal-jepa/causal-jepa.pdf">PDF</a>
+- **18 Neurosymbolic Pipelines** - larger mixed symbolic-neural workflows built from diagrams. <a href="18-neurosymbolic-pipelines/neurosymbolic-pipelines.html">Julia HTML</a> | <a href="18-neurosymbolic-pipelines/neurosymbolic-pipelines.pdf">PDF</a>
+
+If you want, I can next add one-line abstracts and cross-links from each major
+docs page into the most relevant vignettes.
