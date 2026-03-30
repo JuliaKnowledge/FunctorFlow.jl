@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Simon Frost">
+
+<title>Predict-Detach Regimes</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="predict-detach_files/libs/clipboard/clipboard.min.js"></script>
+<script src="predict-detach_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="predict-detach_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="predict-detach_files/libs/quarto-html/popper.min.js"></script>
+<script src="predict-detach_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="predict-detach_files/libs/quarto-html/anchor.min.js"></script>
+<link href="predict-detach_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="predict-detach_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="predict-detach_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="predict-detach_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="predict-detach_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#the-synthetic-copy-task" id="toc-the-synthetic-copy-task" class="nav-link" data-scroll-target="#the-synthetic-copy-task">The Synthetic Copy Task</a></li>
+  <li><a href="#relation-masks" id="toc-relation-masks" class="nav-link" data-scroll-target="#relation-masks">Relation Masks</a></li>
+  <li><a href="#functorflow-diagram-structure" id="toc-functorflow-diagram-structure" class="nav-link" data-scroll-target="#functorflow-diagram-structure">FunctorFlow Diagram Structure</a></li>
+  <li><a href="#ket-model" id="toc-ket-model" class="nav-link" data-scroll-target="#ket-model">KET Model</a></li>
+  <li><a href="#loss-and-evaluation" id="toc-loss-and-evaluation" class="nav-link" data-scroll-target="#loss-and-evaluation">Loss and Evaluation</a></li>
+  <li><a href="#training-loop" id="toc-training-loop" class="nav-link" data-scroll-target="#training-loop">Training Loop</a></li>
+  <li><a href="#train-all-regimes" id="toc-train-all-regimes" class="nav-link" data-scroll-target="#train-all-regimes">Train All Regimes</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">Results</a></li>
+  <li><a href="#loss-curves" id="toc-loss-curves" class="nav-link" data-scroll-target="#loss-curves">Loss Curves</a></li>
+  <li><a href="#the-categorical-perspective" id="toc-the-categorical-perspective" class="nav-link" data-scroll-target="#the-categorical-perspective">The Categorical Perspective</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="predict-detach.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="../../predict-detach.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Predict-Detach Regimes</h1>
+<p class="subtitle lead">Comparing causal, noncausal, and predict-detach KET aggregation</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simon Frost </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>The <strong>predict-detach</strong> regime is a key insight from FunctorFlow: by varying the <strong>relation morphism</strong> in a Kan extension, we can switch between causal, noncausal, and predict-detach aggregation — three fundamentally different ways an architecture processes sequential data.</p>
+<p>This vignette:</p>
+<ol type="1">
+<li>Builds FunctorFlow diagrams for each regime</li>
+<li>Implements a KET model using FunctorFlow’s <code>KETAttentionLayer</code></li>
+<li>Trains all three regimes on a synthetic copy task</li>
+<li>Compares loss curves</li>
+</ol>
+<p>This is a Julia port of the Python <code>predict_detach_demo.py</code>.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Lux</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">LuxCore</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Random</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Statistics</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Optimisers</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Printf</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># CPU device; for Apple Silicon GPU, use `using Metal; const dev = Lux.gpu_device()`</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> dev <span class="op">=</span> identity</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Device: CPU"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="the-synthetic-copy-task" class="level2">
+<h2 class="anchored" data-anchor-id="the-synthetic-copy-task">The Synthetic Copy Task</h2>
+<p>We generate sequences where <code>seq[t+1] = seq[t + offset_k]</code> — the next token is a copy of the token <code>k</code> positions ahead. This means:</p>
+<ul>
+<li>A <strong>causal</strong> model (only sees past) cannot solve the task</li>
+<li>A <strong>noncausal</strong> model (sees the future) can look ahead and cheat</li>
+<li>The <strong>predict-detach</strong> regime uses predicted future tokens (detached from gradients)</li>
+</ul>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> VOCAB_SIZE <span class="op">=</span> <span class="fl">50</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> SEQ_LENGTH <span class="op">=</span> <span class="fl">16</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> OFFSET_K <span class="op">=</span> <span class="fl">5</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> EMBED_DIM <span class="op">=</span> <span class="fl">64</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> BATCH_SIZE <span class="op">=</span> <span class="fl">64</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> NUM_STEPS <span class="op">=</span> <span class="fl">100</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">make_copy_data</span>(n_seq; length<span class="op">=</span>SEQ_LENGTH, vocab_size<span class="op">=</span>VOCAB_SIZE,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>                        offset_k<span class="op">=</span>OFFSET_K, rng<span class="op">=</span><span class="bu">Random</span>.<span class="fu">default_rng</span>())</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    seqs <span class="op">=</span> <span class="fu">rand</span>(rng, <span class="fl">0</span><span class="op">:</span>vocab_size<span class="op">-</span><span class="fl">1</span>, length, n_seq)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_seq</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>length<span class="op">-</span>offset_k<span class="op">-</span><span class="fl">1</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            seqs[t<span class="op">+</span><span class="fl">1</span>, j] <span class="op">=</span> seqs[t<span class="op">+</span>offset_k, j]</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    seqs</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> <span class="bu">Random</span>.<span class="fu">MersenneTwister</span>(<span class="fl">42</span>)</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>train_data <span class="op">=</span> <span class="fu">make_copy_data</span>(<span class="fl">3000</span>; rng<span class="op">=</span>rng)</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>test_data <span class="op">=</span> <span class="fu">make_copy_data</span>(<span class="fl">500</span>; rng<span class="op">=</span>rng)</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Train: "</span>, <span class="fu">size</span>(train_data), <span class="st">"  Test: "</span>, <span class="fu">size</span>(test_data))</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Example: "</span>, train_data[<span class="op">:</span>, <span class="fl">1</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Train: (16, 3000)  Test: (16, 500)
+Example: [10, 35, 48, 37, 10, 5, 9, 18, 31, 45, 8, 18, 31, 45, 8, 45]</code></pre>
+</div>
+</div>
+</section>
+<section id="relation-masks" class="level2">
+<h2 class="anchored" data-anchor-id="relation-masks">Relation Masks</h2>
+<p>The key categorical insight: different <strong>relation morphisms</strong> define different neighborhoods for the Kan extension.</p>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">causal_mask</span>(len) <span class="op">=</span> <span class="fu">Float32</span>.([i <span class="op">&lt;=</span> j ? <span class="fl">1.0f0</span> <span class="op">:</span> <span class="fl">0.0f0</span> for i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>len, j <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>len])</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">noncausal_mask</span>(len) <span class="op">=</span> <span class="fu">ones</span>(<span class="dt">Float32</span>, len, len)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Causal mask (6×6):"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">display</span>(<span class="fu">causal_mask</span>(<span class="fl">6</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Causal mask (6×6):</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>6×6 Matrix{Float32}:
+ 1.0  1.0  1.0  1.0  1.0  1.0
+ 0.0  1.0  1.0  1.0  1.0  1.0
+ 0.0  0.0  1.0  1.0  1.0  1.0
+ 0.0  0.0  0.0  1.0  1.0  1.0
+ 0.0  0.0  0.0  0.0  1.0  1.0
+ 0.0  0.0  0.0  0.0  0.0  1.0</code></pre>
+</div>
+</div>
+</section>
+<section id="functorflow-diagram-structure" class="level2">
+<h2 class="anchored" data-anchor-id="functorflow-diagram-structure">FunctorFlow Diagram Structure</h2>
+<p>All three regimes share the same categorical blueprint — they differ only in the relation morphism and source object:</p>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>D_causal <span class="op">=</span> <span class="pp">@functorflow</span> CausalKET <span class="cf">begin</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    Tokens <span class="op">::</span><span class="dt"> messages</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    CausalRelation <span class="op">::</span><span class="dt"> relation</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="fu">Σ</span>(D_causal, <span class="op">:</span>Tokens; along<span class="op">=:</span>CausalRelation, reducer<span class="op">=:</span>ket_attention, name<span class="op">=:</span>agg)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>D_noncausal <span class="op">=</span> <span class="pp">@functorflow</span> NoncausalKET <span class="cf">begin</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    Tokens <span class="op">::</span><span class="dt"> messages</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    FullRelation <span class="op">::</span><span class="dt"> relation</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="fu">Σ</span>(D_noncausal, <span class="op">:</span>Tokens; along<span class="op">=:</span>FullRelation, reducer<span class="op">=:</span>ket_attention, name<span class="op">=:</span>agg)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>D_pd <span class="op">=</span> <span class="pp">@functorflow</span> PredictDetachKET <span class="cf">begin</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    PredictedTokens <span class="op">::</span><span class="dt"> predicted_messages</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    FullRelation <span class="op">::</span><span class="dt"> relation</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="fu">Σ</span>(D_pd, <span class="op">:</span>PredictedTokens; along<span class="op">=:</span>FullRelation, reducer<span class="op">=:</span>ket_attention, name<span class="op">=:</span>agg)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (name, D) <span class="kw">in</span> [(<span class="st">"Causal"</span>, D_causal), (<span class="st">"Noncausal"</span>, D_noncausal), (<span class="st">"Predict-Detach"</span>, D_pd)]</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    acs <span class="op">=</span> <span class="fu">to_acset</span>(D)</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"</span><span class="sc">$</span>name<span class="st">: </span><span class="sc">$</span>(<span class="fu">nparts</span>(acs, <span class="op">:</span>Node))<span class="st"> nodes, </span><span class="sc">$</span>(<span class="fu">nparts</span>(acs, <span class="op">:</span>Edge))<span class="st"> edges, </span><span class="sc">$</span>(<span class="fu">nparts</span>(acs, <span class="op">:</span>Kan))<span class="st"> Σ"</span>)</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Causal: 2 nodes, 0 edges, 1 Σ
+Noncausal: 2 nodes, 0 edges, 1 Σ
+Predict-Detach: 2 nodes, 0 edges, 1 Σ</code></pre>
+</div>
+</div>
+</section>
+<section id="ket-model" class="level2">
+<h2 class="anchored" data-anchor-id="ket-model">KET Model</h2>
+<p>We build a model using FunctorFlow’s <code>KETAttentionLayer</code> — the neural implementation of Σ (left Kan extension via scaled dot-product attention).</p>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> CopyModel <span class="op">&lt;:</span><span class="dt"> LuxCore.AbstractLuxContainerLayer{(:tok_emb, :pos_emb, :ket, :head)}</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    tok_emb<span class="op">::</span><span class="dt">Lux.Embedding</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    pos_emb<span class="op">::</span><span class="dt">Lux.Embedding</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    ket<span class="op">::</span><span class="dt">KETAttentionLayer</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    head<span class="op">::</span><span class="dt">Dense</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    offset_k<span class="op">::</span><span class="dt">Int</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">CopyModel</span>(; vocab<span class="op">=</span>VOCAB_SIZE, dim<span class="op">=</span>EMBED_DIM, seqlen<span class="op">=</span>SEQ_LENGTH, offset_k<span class="op">=</span>OFFSET_K)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">CopyModel</span>(</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>        Lux.<span class="fu">Embedding</span>(vocab <span class="op">=&gt;</span> dim),</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        Lux.<span class="fu">Embedding</span>(seqlen <span class="op">=&gt;</span> dim),</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">KETAttentionLayer</span>(dim; n_heads<span class="op">=</span><span class="fl">1</span>, name<span class="op">=:</span>ket_reducer),</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Dense</span>(dim <span class="op">=&gt;</span> vocab),</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>        offset_k</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>CopyModel</code></pre>
+</div>
+</div>
+<p>The forward pass selects the regime by choosing the mask and source:</p>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">NNlib</span>: softmax</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">forward</span>(m<span class="op">::</span><span class="dt">CopyModel</span>, token_ids, ps, st, regime<span class="op">::</span><span class="dt">Symbol</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    seq_len, batch <span class="op">=</span> <span class="fu">size</span>(token_ids)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    tok, st_t <span class="op">=</span> m.<span class="fu">tok_emb</span>(token_ids <span class="op">.+</span> <span class="fl">1</span>, ps.tok_emb, st.tok_emb)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    pos_ids <span class="op">=</span> <span class="fu">repeat</span>(<span class="fl">1</span><span class="op">:</span>seq_len, <span class="fl">1</span>, batch) <span class="op">|&gt;</span> dev</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    pos, st_p <span class="op">=</span> m.<span class="fu">pos_emb</span>(pos_ids, ps.pos_emb, st.pos_emb)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    hidden <span class="op">=</span> tok <span class="op">.+</span> pos</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> regime <span class="op">==</span> <span class="op">:</span>causal</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>        mask <span class="op">=</span> <span class="fu">causal_mask</span>(seq_len) <span class="op">|&gt;</span> dev</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>        source <span class="op">=</span> hidden</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> regime <span class="op">==</span> <span class="op">:</span>leaky_noncausal</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>        mask <span class="op">=</span> <span class="fu">noncausal_mask</span>(seq_len) <span class="op">|&gt;</span> dev</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>        source <span class="op">=</span> hidden</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> regime <span class="op">==</span> <span class="op">:</span>predict_detach</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>        mask <span class="op">=</span> <span class="fu">noncausal_mask</span>(seq_len) <span class="op">|&gt;</span> dev</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>        logits0, _ <span class="op">=</span> m.<span class="fu">head</span>(hidden, ps.head, st.head)</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>        source <span class="op">=</span> <span class="fu">predict_detach_source</span>(logits0, ps.tok_emb.weight; position_bias<span class="op">=</span>pos)</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">error</span>(<span class="st">"Unknown regime: </span><span class="sc">$</span>regime<span class="st">"</span>)</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>    pooled, st_k <span class="op">=</span> m.<span class="fu">ket</span>((source, mask), ps.ket, st.ket)</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Offset-k leak for noncausal regimes (Zygote-safe: pad + slice, no mutation)</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> regime <span class="kw">in</span> (<span class="op">:</span>leaky_noncausal, <span class="op">:</span>predict_detach) <span class="op">&amp;&amp;</span> seq_len <span class="op">&gt;</span> m.offset_k</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>        d <span class="op">=</span> <span class="fu">size</span>(source, <span class="fl">1</span>)</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>        pad <span class="op">=</span> <span class="fu">zeros</span>(<span class="dt">Float32</span>, d, m.offset_k, batch) <span class="op">|&gt;</span> dev</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>        leak <span class="op">=</span> <span class="fu">cat</span>(pad, source[<span class="op">:</span>, m.offset_k<span class="op">+</span><span class="fl">1</span><span class="op">:</span>seq_len, <span class="op">:</span>]; dims<span class="op">=</span><span class="fl">2</span>)</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>        pooled <span class="op">=</span> pooled <span class="op">.+</span> leak</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>    logits, st_h <span class="op">=</span> m.<span class="fu">head</span>(pooled, ps.head, st.head)</span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>    new_st <span class="op">=</span> (tok_emb<span class="op">=</span>st_t, pos_emb<span class="op">=</span>st_p, ket<span class="op">=</span>st_k, head<span class="op">=</span>st_h)</span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>    logits, new_st</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>forward (generic function with 1 method)</code></pre>
+</div>
+</div>
+</section>
+<section id="loss-and-evaluation" class="level2">
+<h2 class="anchored" data-anchor-id="loss-and-evaluation">Loss and Evaluation</h2>
+<div id="14" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">xent_loss</span>(logits, oh)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Cross-entropy via one-hot multiply</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    mx <span class="op">=</span> <span class="fu">maximum</span>(logits; dims<span class="op">=</span><span class="fl">1</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    lse <span class="op">=</span> mx <span class="op">.+</span> <span class="fu">log</span>.(<span class="fu">sum</span>(<span class="fu">exp</span>.(logits <span class="op">.-</span> mx); dims<span class="op">=</span><span class="fl">1</span>))</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    lp <span class="op">=</span> logits <span class="op">.-</span> lse</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    n_tokens <span class="op">=</span> <span class="fu">prod</span>(<span class="fu">size</span>(logits)[<span class="fl">2</span><span class="op">:</span><span class="kw">end</span>])</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">-sum</span>(lp <span class="op">.*</span> oh) <span class="op">/</span> n_tokens</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">make_onehot</span>(targets_cpu, vocab)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Build one-hot on CPU via broadcasting (no mutation)</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Float32</span>.(<span class="fu">collect</span>(<span class="fl">1</span><span class="op">:</span>vocab) <span class="op">.==</span> <span class="fu">reshape</span>(targets_cpu <span class="op">.+</span> <span class="fl">1</span>, <span class="fl">1</span>, <span class="fu">size</span>(targets_cpu)<span class="op">...</span>)) <span class="op">|&gt;</span> dev</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">eval_model</span>(model, ps, st, data, regime)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="fu">min</span>(<span class="fu">size</span>(data, <span class="fl">2</span>), BATCH_SIZE)</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    batch_cpu <span class="op">=</span> data[<span class="op">:</span>, <span class="fl">1</span><span class="op">:</span>n]</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    batch <span class="op">=</span> batch_cpu <span class="op">|&gt;</span> dev</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    logits, _ <span class="op">=</span> <span class="fu">forward</span>(model, batch[<span class="fl">1</span><span class="op">:</span><span class="kw">end</span><span class="op">-</span><span class="fl">1</span>, <span class="op">:</span>], ps, st, regime)</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    targets_cpu <span class="op">=</span> batch_cpu[<span class="fl">2</span><span class="op">:</span><span class="kw">end</span>, <span class="op">:</span>]</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>    logits_cpu <span class="op">=</span> <span class="fu">Array</span>(logits)</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    preds <span class="op">=</span> [ci[<span class="fl">1</span>] <span class="op">-</span> <span class="fl">1</span> for ci <span class="kw">in</span> <span class="fu">dropdims</span>(<span class="fu">argmax</span>(logits_cpu; dims<span class="op">=</span><span class="fl">1</span>); dims<span class="op">=</span><span class="fl">1</span>)]</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    acc <span class="op">=</span> <span class="fu">Float64</span>(<span class="fu">sum</span>(preds <span class="op">.==</span> targets_cpu)) <span class="op">/</span> <span class="fu">length</span>(targets_cpu)</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>    oh <span class="op">=</span> <span class="fu">make_onehot</span>(targets_cpu, VOCAB_SIZE)</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>    loss <span class="op">=</span> <span class="fu">Float64</span>(<span class="fu">xent_loss</span>(logits, oh))</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>    (loss<span class="op">=</span>loss, acc<span class="op">=</span>acc)</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>eval_model (generic function with 1 method)</code></pre>
+</div>
+</div>
+</section>
+<section id="training-loop" class="level2">
+<h2 class="anchored" data-anchor-id="training-loop">Training Loop</h2>
+<div id="16" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Zygote</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">train_regime</span>(regime<span class="op">::</span><span class="dt">Symbol</span>, train_data, test_data; seed<span class="op">=</span><span class="fl">0</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    rng_t <span class="op">=</span> <span class="bu">Random</span>.<span class="fu">MersenneTwister</span>(seed)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    model <span class="op">=</span> <span class="fu">CopyModel</span>()</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    ps, st <span class="op">=</span> Lux.<span class="fu">setup</span>(rng_t, model)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    ps <span class="op">=</span> ps <span class="op">|&gt;</span> dev; st <span class="op">=</span> st <span class="op">|&gt;</span> dev</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    opt <span class="op">=</span> Optimisers.<span class="fu">setup</span>(Optimisers.<span class="fu">Adam</span>(<span class="fl">2f-3</span>), ps)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    losses <span class="op">=</span> <span class="dt">Float64</span>[]</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    mask <span class="op">=</span> (regime <span class="op">==</span> <span class="op">:</span>causal ? <span class="fu">causal_mask</span>(SEQ_LENGTH<span class="op">-</span><span class="fl">1</span>) <span class="op">:</span> <span class="fu">noncausal_mask</span>(SEQ_LENGTH<span class="op">-</span><span class="fl">1</span>)) <span class="op">|&gt;</span> dev</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    posids <span class="op">=</span> <span class="fu">repeat</span>(<span class="fl">1</span><span class="op">:</span>SEQ_LENGTH<span class="op">-</span><span class="fl">1</span>, <span class="fl">1</span>, BATCH_SIZE) <span class="op">|&gt;</span> dev</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> step <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>NUM_STEPS</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>        idx <span class="op">=</span> <span class="fu">rand</span>(rng_t, <span class="fl">1</span><span class="op">:</span><span class="fu">size</span>(train_data, <span class="fl">2</span>), BATCH_SIZE)</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>        batch_cpu <span class="op">=</span> train_data[<span class="op">:</span>, idx]</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>        ids <span class="op">=</span> batch_cpu[<span class="fl">1</span><span class="op">:</span><span class="kw">end</span><span class="op">-</span><span class="fl">1</span>, <span class="op">:</span>] <span class="op">|&gt;</span> dev</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>        oh <span class="op">=</span> <span class="fu">make_onehot</span>(batch_cpu[<span class="fl">2</span><span class="op">:</span><span class="kw">end</span>, <span class="op">:</span>], VOCAB_SIZE)</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        <span class="kw">function</span> <span class="fu">loss_fn</span>(ps_)</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>            tok, _ <span class="op">=</span> model.<span class="fu">tok_emb</span>(ids <span class="op">.+</span> <span class="fl">1</span>, ps_.tok_emb, st.tok_emb)</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>            pos, _ <span class="op">=</span> model.<span class="fu">pos_emb</span>(posids, ps_.pos_emb, st.pos_emb)</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>            hidden <span class="op">=</span> tok <span class="op">.+</span> pos</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>            source <span class="op">=</span> hidden</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> regime <span class="op">==</span> <span class="op">:</span>predict_detach</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>                lg0, _ <span class="op">=</span> model.<span class="fu">head</span>(hidden, ps_.head, st.head)</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>                source <span class="op">=</span> <span class="fu">predict_detach_source</span>(lg0, ps_.tok_emb.weight; position_bias<span class="op">=</span>pos)</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>            <span class="cf">end</span></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>            pooled, _ <span class="op">=</span> model.<span class="fu">ket</span>((source, mask), ps_.ket, st.ket)</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> regime <span class="kw">in</span> (<span class="op">:</span>leaky_noncausal, <span class="op">:</span>predict_detach)</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>                sl <span class="op">=</span> SEQ_LENGTH <span class="op">-</span> <span class="fl">1</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>                d <span class="op">=</span> <span class="fu">size</span>(source, <span class="fl">1</span>)</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>                pad <span class="op">=</span> <span class="fu">zeros</span>(<span class="dt">Float32</span>, d, model.offset_k, BATCH_SIZE) <span class="op">|&gt;</span> dev</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>                leak <span class="op">=</span> <span class="fu">cat</span>(pad, source[<span class="op">:</span>, model.offset_k<span class="op">+</span><span class="fl">1</span><span class="op">:</span>sl, <span class="op">:</span>]; dims<span class="op">=</span><span class="fl">2</span>)</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>                pooled <span class="op">=</span> pooled <span class="op">.+</span> leak</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>            <span class="cf">end</span></span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>            logits, _ <span class="op">=</span> model.<span class="fu">head</span>(pooled, ps_.head, st.head)</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>            <span class="fu">xent_loss</span>(logits, oh)</span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>        lv, back <span class="op">=</span> Zygote.<span class="fu">pullback</span>(loss_fn, ps)</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>        gs <span class="op">=</span> <span class="fu">back</span>(<span class="fu">one</span>(lv))[<span class="fl">1</span>]</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>        opt, ps <span class="op">=</span> Optimisers.<span class="fu">update</span>(opt, ps, gs)</span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>        <span class="fu">push!</span>(losses, <span class="fu">Float64</span>(lv))</span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> step <span class="op">%</span> <span class="fl">25</span> <span class="op">==</span> <span class="fl">0</span></span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>            <span class="pp">@printf</span>(<span class="st">"  [%s] step %3d: loss=%.4f</span><span class="sc">\n</span><span class="st">"</span>, regime, step, lv)</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>    ev <span class="op">=</span> <span class="fu">eval_model</span>(model, ps, st, test_data, regime)</span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>    (losses<span class="op">=</span>losses, eval_loss<span class="op">=</span>ev.loss, eval_acc<span class="op">=</span>ev.acc)</span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Training functions ready."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Training functions ready.</code></pre>
+</div>
+</div>
+</section>
+<section id="train-all-regimes" class="level2">
+<h2 class="anchored" data-anchor-id="train-all-regimes">Train All Regimes</h2>
+<div id="18" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="fu">Dict</span><span class="dt">{Symbol, Any}</span>()</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> regime <span class="kw">in</span> [<span class="op">:</span>causal, <span class="op">:</span>leaky_noncausal, <span class="op">:</span>predict_detach]</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">═══ Training </span><span class="sc">$</span>regime<span class="st"> ═══"</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    results[regime] <span class="op">=</span> <span class="fu">train_regime</span>(regime, train_data, test_data)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> results[regime]</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@printf</span>(<span class="st">"  Final: train_loss=%.4f  eval_loss=%.4f  eval_acc=%.1f%%</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>            r.losses[<span class="kw">end</span>], r.eval_loss, <span class="fl">100</span><span class="op">*</span>r.eval_acc)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+═══ Training causal ═══
+  [causal] step  25: loss=3.9895
+  [causal] step  50: loss=3.9276
+  [causal] step  75: loss=3.9004
+  [causal] step 100: loss=3.8126
+  Final: train_loss=3.8126  eval_loss=3.7957  eval_acc=11.7%
+
+═══ Training leaky_noncausal ═══
+  [leaky_noncausal] step  25: loss=4.0391
+  [leaky_noncausal] step  50: loss=3.8386
+  [leaky_noncausal] step  75: loss=3.5201
+  [leaky_noncausal] step 100: loss=2.2552
+  Final: train_loss=2.2552  eval_loss=2.1012  eval_acc=62.6%
+
+═══ Training predict_detach ═══
+  [predict_detach] step  25: loss=4.0350
+  [predict_detach] step  50: loss=3.9376
+  [predict_detach] step  75: loss=3.9525
+  [predict_detach] step 100: loss=3.9528
+  Final: train_loss=3.9528  eval_loss=3.9310  eval_acc=2.0%</code></pre>
+</div>
+</div>
+</section>
+<section id="results" class="level2">
+<h2 class="anchored" data-anchor-id="results">Results</h2>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"╔══════════════════╦═════════════╦═══════════╦══════════╗"</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"║ Regime           ║ Train Loss  ║ Eval Loss ║ Eval Acc ║"</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"╠══════════════════╬═════════════╬═══════════╬══════════╣"</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> regime <span class="kw">in</span> [<span class="op">:</span>causal, <span class="op">:</span>leaky_noncausal, <span class="op">:</span>predict_detach]</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> results[regime]</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    name <span class="op">=</span> <span class="fu">rpad</span>(<span class="fu">string</span>(regime), <span class="fl">16</span>)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    tl <span class="op">=</span> <span class="pp">@sprintf</span>(<span class="st">"%.4f"</span>, r.losses[<span class="kw">end</span>])</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    el <span class="op">=</span> <span class="pp">@sprintf</span>(<span class="st">"%.4f"</span>, r.eval_loss)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    ea <span class="op">=</span> <span class="pp">@sprintf</span>(<span class="st">"%.1f%%"</span>, <span class="fl">100</span><span class="op">*</span>r.eval_acc)</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"║ </span><span class="sc">$</span>name<span class="st"> ║ </span><span class="sc">$</span>tl<span class="st">      ║ </span><span class="sc">$</span>el<span class="st">    ║ </span><span class="sc">$</span>ea<span class="st">    ║"</span>)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"╚══════════════════╩═════════════╩═══════════╩══════════╝"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>╔══════════════════╦═════════════╦═══════════╦══════════╗
+║ Regime           ║ Train Loss  ║ Eval Loss ║ Eval Acc ║
+╠══════════════════╬═════════════╬═══════════╬══════════╣
+║ causal           ║ 3.8126      ║ 3.7957    ║ 11.7%    ║
+║ leaky_noncausal  ║ 2.2552      ║ 2.1012    ║ 62.6%    ║
+║ predict_detach   ║ 3.9528      ║ 3.9310    ║ 2.0%    ║
+╚══════════════════╩═════════════╩═══════════╩══════════╝</code></pre>
+</div>
+</div>
+</section>
+<section id="loss-curves" class="level2">
+<h2 class="anchored" data-anchor-id="loss-curves">Loss Curves</h2>
+<div id="22" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Training loss (every 10 steps):"</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Step | Causal  | Noncausal | Predict-Detach"</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"-----|---------|-----------|---------------"</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step <span class="kw">in</span> <span class="fl">10</span><span class="op">:</span><span class="fl">10</span><span class="op">:</span>NUM_STEPS</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    c <span class="op">=</span> <span class="pp">@sprintf</span>(<span class="st">"%.4f"</span>, results[<span class="op">:</span>causal].losses[step])</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="pp">@sprintf</span>(<span class="st">"%.4f"</span>, results[<span class="op">:</span>leaky_noncausal].losses[step])</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> <span class="pp">@sprintf</span>(<span class="st">"%.4f"</span>, results[<span class="op">:</span>predict_detach].losses[step])</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>(<span class="fu">lpad</span>(step,<span class="fl">2</span>))<span class="st"> | </span><span class="sc">$</span>c<span class="st">  | </span><span class="sc">$</span>n<span class="st">    | </span><span class="sc">$</span>p<span class="st">"</span>)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Training loss (every 10 steps):
+Step | Causal  | Noncausal | Predict-Detach
+-----|---------|-----------|---------------
+  10 | 4.2332  | 4.2335    | 4.2091
+  20 | 4.0445  | 4.1064    | 4.0876
+  30 | 3.9655  | 3.9693    | 4.0143
+  40 | 3.9516  | 3.9026    | 3.9799
+  50 | 3.9276  | 3.8386    | 3.9376
+  60 | 3.9228  | 3.7417    | 3.9436
+  70 | 3.9093  | 3.5813    | 3.9380
+  80 | 3.8803  | 3.3409    | 3.9409
+  90 | 3.8627  | 2.8549    | 3.9363
+  100 | 3.8126  | 2.2552    | 3.9528</code></pre>
+</div>
+</div>
+</section>
+<section id="the-categorical-perspective" class="level2">
+<h2 class="anchored" data-anchor-id="the-categorical-perspective">The Categorical Perspective</h2>
+<p>All three regimes use the same Σ (left Kan extension) but differ in:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Regime</th>
+<th>Relation</th>
+<th>Source</th>
+<th>Can solve copy task?</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Causal</td>
+<td>Lower-triangular</td>
+<td>Hidden states</td>
+<td>✗ (cannot see future)</td>
+</tr>
+<tr class="even">
+<td>Leaky noncausal</td>
+<td>Full</td>
+<td>Hidden states</td>
+<td>✓ (sees future)</td>
+</tr>
+<tr class="odd">
+<td>Predict-detach</td>
+<td>Full</td>
+<td>Predicted embeddings</td>
+<td>✓ (predicted future)</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>KETAttentionLayer</code> implements Σ as scaled dot-product attention. The relation morphism (causal vs.&nbsp;full mask) determines the attention pattern. The predict-detach regime achieves noncausal accuracy while maintaining causal gradient flow — the predicted basis states are detached from the computation graph.</p>
+<p>This demonstrates that <strong>architecture = choice of relation morphism</strong> in the Kan extension framework.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

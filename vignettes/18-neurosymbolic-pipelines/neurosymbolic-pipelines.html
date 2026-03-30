@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Simon Frost">
+
+<title>Neurosymbolic Pipelines</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="neurosymbolic-pipelines_files/libs/clipboard/clipboard.min.js"></script>
+<script src="neurosymbolic-pipelines_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="neurosymbolic-pipelines_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="neurosymbolic-pipelines_files/libs/quarto-html/popper.min.js"></script>
+<script src="neurosymbolic-pipelines_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="neurosymbolic-pipelines_files/libs/quarto-html/anchor.min.js"></script>
+<link href="neurosymbolic-pipelines_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="neurosymbolic-pipelines_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="neurosymbolic-pipelines_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="neurosymbolic-pipelines_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="neurosymbolic-pipelines_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#basket-rocket-draft-repair-score" id="toc-basket-rocket-draft-repair-score" class="nav-link" data-scroll-target="#basket-rocket-draft-repair-score">BASKET → ROCKET: Draft, Repair, Score</a></li>
+  <li><a href="#democritus-assembly-glue-then-reground" id="toc-democritus-assembly-glue-then-reground" class="nav-link" data-scroll-target="#democritus-assembly-glue-then-reground">Democritus Assembly: Glue Then Reground</a></li>
+  <li><a href="#topocoend-learn-the-neighborhood-before-aggregating" id="toc-topocoend-learn-the-neighborhood-before-aggregating" class="nav-link" data-scroll-target="#topocoend-learn-the-neighborhood-before-aggregating">TopoCoend: Learn the Neighborhood Before Aggregating</a></li>
+  <li><a href="#lux-backed-trainable-planner" id="toc-lux-backed-trainable-planner" class="nav-link" data-scroll-target="#lux-backed-trainable-planner">Lux-Backed Trainable Planner</a></li>
+  <li><a href="#horn-filling-as-an-obstruction-loss" id="toc-horn-filling-as-an-obstruction-loss" class="nav-link" data-scroll-target="#horn-filling-as-an-obstruction-loss">Horn Filling as an Obstruction Loss</a></li>
+  <li><a href="#behavioral-quotients-via-a-coequalizer" id="toc-behavioral-quotients-via-a-coequalizer" class="nav-link" data-scroll-target="#behavioral-quotients-via-a-coequalizer">Behavioral Quotients via a Coequalizer</a></li>
+  <li><a href="#takeaways" id="toc-takeaways" class="nav-link" data-scroll-target="#takeaways">Takeaways</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="neurosymbolic-pipelines.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="neurosymbolic-pipelines.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Neurosymbolic Pipelines</h1>
+<p class="subtitle lead">BASKET → ROCKET, Democritus assembly, TopoCoend, horn filling, and behavioral quotienting</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simon Frost </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This vignette packages five <code>papers/md/catagi.md</code>-style ideas into first-class <code>FunctorFlow</code> blocks:</p>
+<ul>
+<li><strong>BASKET → ROCKET</strong> for draft-then-repair planning</li>
+<li><strong>Democritus assembly</strong> for local-to-global causal gluing with regrounding</li>
+<li><strong>TopoCoend</strong> for learned neighborhood construction before Kan aggregation</li>
+<li><strong>Horn filling</strong> for higher-order simplicial consistency losses</li>
+<li><strong>Bisimulation quotienting</strong> for collapsing behaviorally equivalent trajectories</li>
+</ul>
+<p>The common pattern is categorical: assemble local evidence, map it through a relation, and use either a Kan extension or a universal construction to force global consistency.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Pkg</span>.<span class="fu">activate</span>(<span class="fu">joinpath</span>(<span class="pp">@__DIR__</span>, <span class="st">".."</span>))</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="basket-rocket-draft-repair-score" class="level2">
+<h2 class="anchored" data-anchor-id="basket-rocket-draft-repair-score">BASKET → ROCKET: Draft, Repair, Score</h2>
+<p>The enriched <code>basket_rocket_pipeline</code> now exposes both the <strong>draft</strong> and the <strong>repaired</strong> plan, plus a <code>:draft_repair_consistency</code> obstruction loss. By default that loss uses a token-overlap (<code>:jaccard</code>) comparator, which is friendlier to symbolic plans than pure <code>L2</code>.</p>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>pipeline <span class="op">=</span> <span class="fu">basket_rocket_pipeline</span>(;</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    config<span class="op">=</span><span class="fu">BasketRocketPipelineConfig</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        basket_config<span class="op">=</span><span class="fu">BASKETWorkflowConfig</span>(),</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        rocket_config<span class="op">=</span><span class="fu">ROCKETRepairConfig</span>(reducer<span class="op">=:</span>concat)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(pipeline))</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Ports: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(pipeline.ports)))</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Losses: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(pipeline.losses)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>FunctorFlow.Diagram
+Ports: [:input, :draft_relation, :repair_relation, :draft, :consistency_loss, :output]
+Losses: [:draft_repair_consistency]</code></pre>
+</div>
+</div>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">coverage_score</span>(plan<span class="op">::</span><span class="dt">AbstractString</span>, targets<span class="op">::</span><span class="dt">Set{String}</span>) <span class="op">=</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">length</span>(<span class="fu">intersect</span>(<span class="fu">Set</span>(<span class="fu">split</span>(<span class="fu">lowercase</span>(plan))), targets)) <span class="op">/</span> <span class="fu">length</span>(targets)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>target_skills <span class="op">=</span> <span class="fu">Set</span>([</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"collect"</span>, <span class="st">"validate"</span>, <span class="st">"train"</span>, <span class="st">"red-team"</span>, <span class="st">"deploy"</span>, <span class="st">"monitor"</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(pipeline, <span class="fu">Dict</span>(</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    pipeline.ports[<span class="op">:</span>input].ref <span class="op">=&gt;</span> <span class="fu">Dict</span>(</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>collect <span class="op">=&gt;</span> <span class="st">"1. collect data</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>validate <span class="op">=&gt;</span> <span class="st">"2. validate schema</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>train <span class="op">=&gt;</span> <span class="st">"3. train model</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>redteam <span class="op">=&gt;</span> <span class="st">"4. red-team prompts</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>deploy <span class="op">=&gt;</span> <span class="st">"5. deploy service</span><span class="sc">\n</span><span class="st">"</span>,</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>monitor <span class="op">=&gt;</span> <span class="st">"6. monitor drift</span><span class="sc">\n</span><span class="st">"</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    pipeline.ports[<span class="op">:</span>draft_relation].ref <span class="op">=&gt;</span> <span class="fu">Dict</span>(</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>base <span class="op">=&gt;</span> [<span class="op">:</span>collect, <span class="op">:</span>train, <span class="op">:</span>deploy],</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>safety <span class="op">=&gt;</span> [<span class="op">:</span>validate, <span class="op">:</span>redteam],</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>ops <span class="op">=&gt;</span> [<span class="op">:</span>monitor]</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    pipeline.ports[<span class="op">:</span>repair_relation].ref <span class="op">=&gt;</span> <span class="fu">Dict</span>(</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>execution_ready <span class="op">=&gt;</span> [<span class="op">:</span>base, <span class="op">:</span>safety, <span class="op">:</span>ops]</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Draft: "</span>, result.values[pipeline.ports[<span class="op">:</span>draft].ref])</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Repair: "</span>, result.values[pipeline.ports[<span class="op">:</span>output].ref])</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Consistency loss: "</span>, result.losses[<span class="op">:</span>draft_repair_consistency])</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Draft coverage: "</span>, <span class="fu">coverage_score</span>(result.values[pipeline.ports[<span class="op">:</span>draft].ref][<span class="op">:</span>base], target_skills))</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Repaired coverage: "</span>, <span class="fu">coverage_score</span>(result.values[pipeline.ports[<span class="op">:</span>output].ref][<span class="op">:</span>execution_ready], target_skills))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Draft: Dict{Any, Any}(:safety =&gt; "2. validate schema\n4. red-team prompts\n", :base =&gt; "1. collect data\n3. train model\n5. deploy service\n", :ops =&gt; "6. monitor drift\n")
+Repair: Dict{Any, Any}(:execution_ready =&gt; "1. collect data\n3. train model\n5. deploy service\n2. validate schema\n4. red-team prompts\n6. monitor drift\n")
+Consistency loss: 0.18181818181818177
+Draft coverage: 0.5
+Repaired coverage: 1.0</code></pre>
+</div>
+</div>
+<p>This turns the agentic workflow into a diagram with an explicit <strong>plan-edit geometry</strong>:</p>
+<ol type="1">
+<li>Left-Kan composes fragments into a global draft.</li>
+<li>Right-Kan repairs incomplete or inconsistent candidates.</li>
+<li>An obstruction loss penalizes unnecessary semantic drift during repair.</li>
+</ol>
+<p>In this version, the draft stage emits <strong>multiple plan views</strong> (<code>:base</code>, <code>:safety</code>, <code>:ops</code>), and the repair stage glues them into an <strong>execution-ready</strong> plan. That makes the pipeline feel much closer to an actual agent stack: draft specialized subplans first, then repair them into a single deployable action sequence.</p>
+</section>
+<section id="democritus-assembly-glue-then-reground" class="level2">
+<h2 class="anchored" data-anchor-id="democritus-assembly-glue-then-reground">Democritus Assembly: Glue Then Reground</h2>
+<p><code>democritus_assembly_pipeline</code> adds a regrounding morphism from the glued global section back to local claims. The induced obstruction loss behaves like a sheaf-style coherence penalty: if the global causal story cannot be restricted back to the original local sections, the loss goes up.</p>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>demo <span class="op">=</span> <span class="fu">democritus_assembly_pipeline</span>(; restrict_impl<span class="op">=</span>identity)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(demo))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>FunctorFlow.Diagram</code></pre>
+</div>
+</div>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>demo_result <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(demo, <span class="fu">Dict</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    demo.ports[<span class="op">:</span>input].ref <span class="op">=&gt;</span> <span class="fu">Dict</span>(</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>cell_a <span class="op">=&gt;</span> <span class="fu">Set</span>([<span class="st">"Rain -&gt; WetGrass"</span>]),</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>cell_b <span class="op">=&gt;</span> <span class="fu">Set</span>([<span class="st">"WetGrass -&gt; SlipperyRoad"</span>])</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    demo.ports[<span class="op">:</span>relation].ref <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>world <span class="op">=&gt;</span> [<span class="op">:</span>cell_a, <span class="op">:</span>cell_b])</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Global state: "</span>, demo_result.values[demo.ports[<span class="op">:</span>global_output].ref])</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Regrounded claims: "</span>, demo_result.values[demo.ports[<span class="op">:</span>regrounded_claims].ref])</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Coherence loss: "</span>, demo_result.losses[<span class="op">:</span>section_coherence])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Global state: Dict{Any, Any}(:world =&gt; Set(Any["WetGrass -&gt; SlipperyRoad", "Rain -&gt; WetGrass"]))
+Regrounded claims: Dict{Any, Any}(:world =&gt; Set(Any["WetGrass -&gt; SlipperyRoad", "Rain -&gt; WetGrass"]))
+Coherence loss: 0.0</code></pre>
+</div>
+</div>
+<p>This is a useful template for <strong>fragmentary causal discovery</strong>, multi-document synthesis, or multi-view world-model assembly.</p>
+</section>
+<section id="topocoend-learn-the-neighborhood-before-aggregating" class="level2">
+<h2 class="anchored" data-anchor-id="topocoend-learn-the-neighborhood-before-aggregating">TopoCoend: Learn the Neighborhood Before Aggregating</h2>
+<p><code>topocoend_block</code> explicitly models the step that many neural architectures leave implicit: infer the neighborhood relation first, then aggregate over it.</p>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>topo <span class="op">=</span> <span class="fu">topocoend_block</span>(;</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    infer_neighborhood_impl<span class="op">=</span>x <span class="op">-&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>scene <span class="op">=&gt;</span> <span class="fu">collect</span>(<span class="fu">keys</span>(x))),</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    lift_impl<span class="op">=</span>identity</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(topo))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>FunctorFlow.Diagram</code></pre>
+</div>
+</div>
+<div id="14" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>topo_result <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(topo, <span class="fu">Dict</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Tokens <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>obj1 <span class="op">=&gt;</span> <span class="fl">1.0</span>, <span class="op">:</span>obj2 <span class="op">=&gt;</span> <span class="fl">2.0</span>, <span class="op">:</span>obj3 <span class="op">=&gt;</span> <span class="fl">4.0</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Learned relation: "</span>, topo_result.values[<span class="op">:</span>infer_neighborhood])</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Global context: "</span>, topo_result.values[<span class="op">:</span>coend_aggregate])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Learned relation: Dict(:scene =&gt; [:obj1, :obj3, :obj2])
+Global context: Dict(:scene =&gt; 2.3333333333333335)</code></pre>
+</div>
+</div>
+<p>The categorical point is that a <strong>coend-like aggregation</strong> should depend on an explicitly constructed cover, not just a fixed adjacency matrix. This is a natural bridge between attention, sheaves, and relation learning.</p>
+</section>
+<section id="lux-backed-trainable-planner" class="level2">
+<h2 class="anchored" data-anchor-id="lux-backed-trainable-planner">Lux-Backed Trainable Planner</h2>
+<p>The same <code>BASKET → ROCKET</code> geometry can be compiled into a differentiable Lux model. In this version both Kan reducers are learnable attention layers, and the <code>draft_repair_consistency</code> loss becomes a neural <code>L2</code> objective over plan embeddings.</p>
+<div id="16" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Lux</span>, <span class="bu">Random</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>d_model <span class="op">=</span> <span class="fl">16</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> <span class="bu">Random</span>.<span class="fu">MersenneTwister</span>(<span class="fl">7</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>planner_diagram <span class="op">=</span> <span class="fu">basket_rocket_pipeline</span>(;</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    config<span class="op">=</span><span class="fu">BasketRocketPipelineConfig</span>(</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>        basket_config<span class="op">=</span><span class="fu">BASKETWorkflowConfig</span>(reducer<span class="op">=:</span>draft_attention),</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>        rocket_config<span class="op">=</span><span class="fu">ROCKETRepairConfig</span>(reducer<span class="op">=:</span>repair_attention),</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        consistency_comparator<span class="op">=:</span>l2</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>planner <span class="op">=</span> <span class="fu">compile_to_lux</span>(planner_diagram;</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    reducer_layers<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>draft_attention <span class="op">=&gt;</span> <span class="fu">KETAttentionLayer</span>(d_model; n_heads<span class="op">=</span><span class="fl">2</span>, name<span class="op">=:</span>draft_attention),</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>repair_attention <span class="op">=&gt;</span> <span class="fu">KETAttentionLayer</span>(d_model; n_heads<span class="op">=</span><span class="fl">2</span>, name<span class="op">=:</span>repair_attention)</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>ps, st <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, planner)</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>seq_len <span class="op">=</span> <span class="fl">5</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>mask <span class="op">=</span> <span class="fu">Float32</span>.(<span class="fu">ones</span>(seq_len, seq_len))</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>planner_inputs <span class="op">=</span> <span class="fu">Dict</span>(</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    planner_diagram.ports[<span class="op">:</span>input].ref <span class="op">=&gt;</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, d_model, seq_len),</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    planner_diagram.ports[<span class="op">:</span>draft_relation].ref <span class="op">=&gt;</span> mask,</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    planner_diagram.ports[<span class="op">:</span>repair_relation].ref <span class="op">=&gt;</span> mask</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>planner_result, st <span class="op">=</span> <span class="fu">planner</span>(planner_inputs, ps, st)</span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Draft embedding shape: "</span>, <span class="fu">size</span>(planner_result[<span class="op">:</span>values][planner_diagram.ports[<span class="op">:</span>draft].ref]))</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Repair embedding shape: "</span>, <span class="fu">size</span>(planner_result[<span class="op">:</span>values][planner_diagram.ports[<span class="op">:</span>output].ref]))</span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Trainable consistency loss: "</span>, planner_result[<span class="op">:</span>losses][<span class="op">:</span>draft_repair_consistency])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Draft embedding shape: (16, 5)
+Repair embedding shape: (16, 5)
+Trainable consistency loss: 25.501907348632812</code></pre>
+</div>
+</div>
+<p>This gives a direct path from the symbolic planner story to a trainable agent architecture: use the diagram to specify <strong>what</strong> should compose and repair, then let Lux learn <strong>how</strong> those maps are realized.</p>
+<p>We can even optimize the planner directly against its own consistency signal:</p>
+<div id="18" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Optimisers</span>, <span class="bu">Zygote</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>opt <span class="op">=</span> Optimisers.<span class="fu">setup</span>(Optimisers.<span class="fu">Adam</span>(<span class="fl">5f-3</span>), ps)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>loss_trace <span class="op">=</span> <span class="dt">Float32</span>[]</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>draft_ref <span class="op">=</span> planner_diagram.ports[<span class="op">:</span>draft].ref</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>repair_ref <span class="op">=</span> planner_diagram.ports[<span class="op">:</span>output].ref</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    ((loss_val, st_new), grads) <span class="op">=</span> Zygote.<span class="fu">withgradient</span>(ps) <span class="cf">do</span> p</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>        out, st_step <span class="op">=</span> <span class="fu">planner</span>(planner_inputs, p, st)</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        draft <span class="op">=</span> out[<span class="op">:</span>values][draft_ref]</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>        repair <span class="op">=</span> out[<span class="op">:</span>values][repair_ref]</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>        delta <span class="op">=</span> repair <span class="op">.-</span> draft</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>        (<span class="fu">sum</span>(abs2, delta) <span class="op">/</span> <span class="fu">length</span>(delta), st_step)</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">push!</span>(loss_trace, <span class="fu">Float32</span>(loss_val))</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    opt, ps <span class="op">=</span> Optimisers.<span class="fu">update</span>(opt, ps, grads[<span class="fl">1</span>])</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    st <span class="op">=</span> st_new</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Consistency loss trace: "</span>, <span class="fu">round</span>.(loss_trace; digits<span class="op">=</span><span class="fl">4</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Consistency loss trace: Float32[8.1293, 4.498, 2.7115, 1.6874, 1.2151]</code></pre>
+</div>
+</div>
+<p>This is intentionally tiny, but it shows the full loop: the diagram determines which embeddings should agree, and Lux/Zygote optimize that consistency objective directly.</p>
+</section>
+<section id="horn-filling-as-an-obstruction-loss" class="level2">
+<h2 class="anchored" data-anchor-id="horn-filling-as-an-obstruction-loss">Horn Filling as an Obstruction Loss</h2>
+<p><code>horn_fill_block</code> gives a compact 2-simplex model of higher-order consistency. The boundary path <code>d12 ∘ d01</code> should agree with the direct filler <code>d02</code>. Any disagreement becomes a first-class loss.</p>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>horn <span class="op">=</span> <span class="fu">horn_fill_block</span>(;</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    first_face_impl<span class="op">=</span>x <span class="op">-&gt;</span> x <span class="op">+</span> <span class="fl">1</span>,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    second_face_impl<span class="op">=</span>x <span class="op">-&gt;</span> x <span class="op">*</span> <span class="fl">2</span>,</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    filler_impl<span class="op">=</span>x <span class="op">-&gt;</span> (x <span class="op">+</span> <span class="fl">1</span>) <span class="op">*</span> <span class="fl">2</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(horn))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>FunctorFlow.Diagram</code></pre>
+</div>
+</div>
+<div id="22" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>horn_result <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(horn, <span class="fu">Dict</span>(<span class="op">:</span>Vertex0 <span class="op">=&gt;</span> <span class="fl">3</span>))</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Boundary path: "</span>, horn_result.values[<span class="op">:</span>horn_boundary])</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Direct filler: "</span>, horn_result.values[<span class="op">:</span>d02])</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Horn obstruction: "</span>, horn_result.losses[<span class="op">:</span>horn_obstruction])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Boundary path: 8
+Direct filler: 8
+Horn obstruction: 0.0</code></pre>
+</div>
+</div>
+<p>This is a lightweight entry point for <strong>simplicial regularization</strong>: consistency is enforced not just pairwise, but over triangular compositions.</p>
+</section>
+<section id="behavioral-quotients-via-a-coequalizer" class="level2">
+<h2 class="anchored" data-anchor-id="behavioral-quotients-via-a-coequalizer">Behavioral Quotients via a Coequalizer</h2>
+<p><code>bisimulation_quotient_block</code> turns a relation witness into two parallel behavior maps and then takes their coequalizer. The resulting quotient object is the categorical abstraction of “these two trajectories are behaviorally indistinguishable.”</p>
+<div id="24" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>quotient <span class="op">=</span> <span class="fu">bisimulation_quotient_block</span>()</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(quotient))</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Ports: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(quotient.ports)))</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(quotient.objects)))</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Operations: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(quotient.operations)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>FunctorFlow.Diagram
+Ports: [:relation, :left_behavior, :right_behavior, :output]
+Objects: [:base__BisimRelation, :base__StateA, :base__StateB, :base__Behavior, :behavior_quotient_Quotient]
+Operations: [:base__proj_left, :base__proj_right, :base__observe_a, :base__observe_b, :base__left_behavior, :base__right_behavior, :behavior_quotient_q, :behavior_quotient_qf, :behavior_quotient_qg]</code></pre>
+</div>
+</div>
+<p>The key structure is:</p>
+<ul>
+<li>a relation object <code>R</code></li>
+<li>projections <code>R → StateA</code> and <code>R → StateB</code></li>
+<li>observation morphisms into a common behavior space</li>
+<li>a <strong>coequalizer</strong> that identifies behaviorally equivalent observations</li>
+</ul>
+<p>This is a useful template for state abstraction in world models, option discovery, or policy compression.</p>
+</section>
+<section id="takeaways" class="level2">
+<h2 class="anchored" data-anchor-id="takeaways">Takeaways</h2>
+<p>These additions make the <code>FunctorFlow</code> block layer more explicitly neurosymbolic:</p>
+<ul>
+<li><strong>Planning</strong> becomes Kan aggregation + repair + edit consistency.</li>
+<li><strong>Causal assembly</strong> becomes sheaf gluing + regrounding.</li>
+<li><strong>Learned neighborhoods</strong> become explicit categorical objects.</li>
+<li><strong>Higher-order coherence</strong> becomes a horn-filling obstruction.</li>
+<li><strong>State abstraction</strong> becomes a coequalizer over behavioral witnesses.</li>
+</ul>
+<p>The most immediately useful pattern is still <strong>BASKET → ROCKET</strong>, but it now sits inside a broader family of categorical agent architectures rather than being a one-off workflow block.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

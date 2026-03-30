@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Simon Frost">
+
+<title>Lux Neural Backend</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="lux-neural-backend_files/libs/clipboard/clipboard.min.js"></script>
+<script src="lux-neural-backend_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="lux-neural-backend_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="lux-neural-backend_files/libs/quarto-html/popper.min.js"></script>
+<script src="lux-neural-backend_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="lux-neural-backend_files/libs/quarto-html/anchor.min.js"></script>
+<link href="lux-neural-backend_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="lux-neural-backend_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="lux-neural-backend_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="lux-neural-backend_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="lux-neural-backend_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#diagramdenselayer" id="toc-diagramdenselayer" class="nav-link" data-scroll-target="#diagramdenselayer">DiagramDenseLayer</a></li>
+  <li><a href="#ketattentionlayer" id="toc-ketattentionlayer" class="nav-link" data-scroll-target="#ketattentionlayer">KETAttentionLayer</a>
+  <ul class="collapse">
+  <li><a href="#single-head-attention" id="toc-single-head-attention" class="nav-link" data-scroll-target="#single-head-attention">Single-head attention</a></li>
+  <li><a href="#multi-head-attention" id="toc-multi-head-attention" class="nav-link" data-scroll-target="#multi-head-attention">Multi-head attention</a></li>
+  <li><a href="#masked-attention" id="toc-masked-attention" class="nav-link" data-scroll-target="#masked-attention">Masked attention</a></li>
+  </ul></li>
+  <li><a href="#compile_to_lux" id="toc-compile_to_lux" class="nav-link" data-scroll-target="#compile_to_lux">compile_to_lux</a></li>
+  <li><a href="#db-square-with-neural-morphisms" id="toc-db-square-with-neural-morphisms" class="nav-link" data-scroll-target="#db-square-with-neural-morphisms">DB Square with Neural Morphisms</a></li>
+  <li><a href="#gt-neighborhood-model" id="toc-gt-neighborhood-model" class="nav-link" data-scroll-target="#gt-neighborhood-model">GT Neighborhood Model</a></li>
+  <li><a href="#convenience-builders" id="toc-convenience-builders" class="nav-link" data-scroll-target="#convenience-builders">Convenience Builders</a>
+  <ul class="collapse">
+  <li><a href="#ket-model" id="toc-ket-model" class="nav-link" data-scroll-target="#ket-model">KET model</a></li>
+  <li><a href="#db-model" id="toc-db-model" class="nav-link" data-scroll-target="#db-model">DB model</a></li>
+  <li><a href="#gt-model" id="toc-gt-model" class="nav-link" data-scroll-target="#gt-model">GT model</a></li>
+  </ul></li>
+  <li><a href="#mixed-neuralsymbolic" id="toc-mixed-neuralsymbolic" class="nav-link" data-scroll-target="#mixed-neuralsymbolic">Mixed Neural/Symbolic</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="lux-neural-backend.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="../../lux-neural-backend.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Lux Neural Backend</h1>
+<p class="subtitle lead">Differentiable diagrams with Lux.jl</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simon Frost </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>FunctorFlow.jl provides a <strong>Lux-based neural backend</strong> that compiles categorical diagrams into differentiable Lux models. This gives you:</p>
+<ul>
+<li><strong>DiagramDenseLayer</strong> — dense linear morphisms</li>
+<li><strong>DiagramChainLayer</strong> — composed sequences of layers</li>
+<li><strong>KETAttentionLayer</strong> — single- and multi-head attention for Kan Extension Templates</li>
+<li><strong>compile_to_lux</strong> — end-to-end compilation of a <code>Diagram</code> to a <code>LuxDiagramModel</code></li>
+<li><strong>Neural comparators</strong> — differentiable obstruction loss comparators</li>
+</ul>
+<p>The result is a standard Lux model that participates in the Lux ecosystem: you can extract parameters, compute gradients, and train with any Lux-compatible optimizer.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Lux</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">LuxCore</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Random</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> <span class="bu">Random</span>.<span class="fu">MersenneTwister</span>(<span class="fl">42</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="diagramdenselayer" class="level2">
+<h2 class="anchored" data-anchor-id="diagramdenselayer">DiagramDenseLayer</h2>
+<p>A <code>DiagramDenseLayer</code> wraps a standard dense (affine) transformation as a FunctorFlow morphism layer. It maps an input dimension to an output dimension with learnable weights and biases.</p>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>dense <span class="op">=</span> FunctorFlow.<span class="fu">DiagramDenseLayer</span>(<span class="fl">8</span>, <span class="fl">4</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<div class="ansi-escaped-output">
+<pre>DiagramDenseLayer(:dense, 8, 4, identity)  <span class="ansi-bright-black-fg"># 36 parameters</span></pre>
+</div>
+</div>
+</div>
+<p>Initialize parameters and state, then run a forward pass.</p>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>ps, st <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, dense)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, <span class="fl">8</span>, <span class="fl">2</span>)  <span class="co"># 8 features, batch of 2</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>y, st_new <span class="op">=</span> <span class="fu">dense</span>(x, ps, st)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Input size:  "</span>, <span class="fu">size</span>(x))</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Output size: "</span>, <span class="fu">size</span>(y))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Input size:  (8, 2)
+Output size: (4, 2)</code></pre>
+</div>
+</div>
+</section>
+<section id="ketattentionlayer" class="level2">
+<h2 class="anchored" data-anchor-id="ketattentionlayer">KETAttentionLayer</h2>
+<p>The <code>KETAttentionLayer</code> implements the attention mechanism used in the KET (Kan Extension Template) pattern. It supports both single-head and multi-head configurations.</p>
+<section id="single-head-attention" class="level3">
+<h3 class="anchored" data-anchor-id="single-head-attention">Single-head attention</h3>
+<p>The layer internally computes Q, K, V projections from a single <code>source</code> input of shape <code>(d_model, seq_len[, batch])</code>.</p>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>attn <span class="op">=</span> FunctorFlow.<span class="fu">KETAttentionLayer</span>(<span class="fl">16</span>; n_heads<span class="op">=</span><span class="fl">1</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>ps_a, st_a <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, attn)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>source <span class="op">=</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, <span class="fl">16</span>, <span class="fl">5</span>)  <span class="co"># d_model × seq_len</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>out_a, st_a2 <span class="op">=</span> <span class="fu">attn</span>(source, ps_a, st_a)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Attention output size: "</span>, <span class="fu">size</span>(out_a))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Attention output size: (16, 5)</code></pre>
+</div>
+</div>
+</section>
+<section id="multi-head-attention" class="level3">
+<h3 class="anchored" data-anchor-id="multi-head-attention">Multi-head attention</h3>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>mha <span class="op">=</span> FunctorFlow.<span class="fu">KETAttentionLayer</span>(<span class="fl">16</span>; n_heads<span class="op">=</span><span class="fl">4</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>ps_m, st_m <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, mha)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>out_m, st_m2 <span class="op">=</span> <span class="fu">mha</span>(source, ps_m, st_m)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Multi-head output size: "</span>, <span class="fu">size</span>(out_m))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Multi-head output size: (16, 5)</code></pre>
+</div>
+</div>
+</section>
+<section id="masked-attention" class="level3">
+<h3 class="anchored" data-anchor-id="masked-attention">Masked attention</h3>
+<p>You can pass <code>(source, mask)</code> as a tuple to prevent attention over certain positions (e.g., padding or future tokens). The mask has shape <code>(seq_len, seq_len)</code> where <code>true</code> (1) entries allow attention.</p>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>mask <span class="op">=</span> <span class="fu">ones</span>(<span class="dt">Float32</span>, <span class="fl">5</span>, <span class="fl">5</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>mask[<span class="fl">4</span><span class="op">:</span><span class="fl">5</span>, <span class="op">:</span>] <span class="op">.=</span> <span class="fl">0f0</span>  <span class="co"># mask out positions 4 and 5</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>out_masked, _ <span class="op">=</span> <span class="fu">attn</span>((source, mask), ps_a, st_a)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Masked output size: "</span>, <span class="fu">size</span>(out_masked))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Masked output size: (16, 5)</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="compile_to_lux" class="level2">
+<h2 class="anchored" data-anchor-id="compile_to_lux">compile_to_lux</h2>
+<p>The main entry point is <code>compile_to_lux</code>, which takes a <code>Diagram</code> and returns a <code>LuxDiagramModel</code>. Let’s compile a KET block.</p>
+<div id="14" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>D <span class="op">=</span> <span class="fu">ket_block</span>(; name<span class="op">=:</span>NeuralKET, reducer<span class="op">=:</span>ket_attention)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>Diagram :NeuralKET
+  Objects:
+    Values::messages
+    Incidence::relation
+    ContextualizedValues::contextualized_messages
+  Operations:
+    aggregate = Σ(Values, along=Incidence, target=ContextualizedValues, reducer=:ket_attention)
+  Ports:
+    → input (messages)
+    → relation (relation)
+    ← output (contextualized_messages)</code></pre>
+</div>
+</div>
+<p>Compile the diagram into a Lux model, providing a <code>KETAttentionLayer</code> for the reducer.</p>
+<div id="16" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> <span class="fu">compile_to_lux</span>(D;</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    reducer_layers<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>ket_attention <span class="op">=&gt;</span> FunctorFlow.<span class="fu">KETAttentionLayer</span>(<span class="fl">8</span>; n_heads<span class="op">=</span><span class="fl">1</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<div class="ansi-escaped-output">
+<pre>LuxDiagramModel(Diagram :NeuralKET ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩, CompiledDiagram :NeuralKET ⟨0 morphisms, 7 reducers, 2 comparators⟩, Dict{Symbol, AbstractLuxLayer}(), Dict{Symbol, AbstractLuxLayer}(:ket_attention =&gt; KETAttentionLayer(:ket_attention, 8, 1, 8, 0.0f0)), Dict{Symbol, AbstractLuxLayer}(), Symbol[], [:ket_attention], Symbol[])  <span class="ansi-bright-black-fg"># 288 parameters</span><span class="ansi-bright-black-fg">, plus 2 non-trainable</span></pre>
+</div>
+</div>
+</div>
+<p>Set up parameters and run a forward pass. The <code>LuxDiagramModel</code> returns a <code>(result_dict, new_state)</code> tuple where <code>result_dict</code> has <code>:values</code> and <code>:losses</code> keys.</p>
+<div id="18" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>ps_ket, st_ket <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, model)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>inputs <span class="op">=</span> <span class="fu">Dict</span>(</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Values <span class="op">=&gt;</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, <span class="fl">8</span>, <span class="fl">3</span>),</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Incidence <span class="op">=&gt;</span> <span class="fu">Float32</span>.(<span class="fu">ones</span>(<span class="fl">3</span>, <span class="fl">3</span>))</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>result_ket, st_ket2 <span class="op">=</span> <span class="fu">model</span>(inputs, ps_ket, st_ket)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"KET result keys: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_ket[<span class="op">:</span>values])))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>KET result keys: [:aggregate, :Incidence, :Values, :ContextualizedValues]</code></pre>
+</div>
+</div>
+</section>
+<section id="db-square-with-neural-morphisms" class="level2">
+<h2 class="anchored" data-anchor-id="db-square-with-neural-morphisms">DB Square with Neural Morphisms</h2>
+<p>Compiling a DB square with neural morphisms gives you a model whose obstruction loss is differentiable — you can backpropagate through it.</p>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>db <span class="op">=</span> <span class="fu">db_square</span>(; name<span class="op">=:</span>NeuralDB)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>model_db <span class="op">=</span> <span class="fu">compile_to_lux</span>(db;</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    morphism_layers<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>f <span class="op">=&gt;</span> FunctorFlow.<span class="fu">DiagramDenseLayer</span>(<span class="fl">4</span>, <span class="fl">4</span>),</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>g <span class="op">=&gt;</span> FunctorFlow.<span class="fu">DiagramDenseLayer</span>(<span class="fl">4</span>, <span class="fl">4</span>)</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<div class="ansi-escaped-output">
+<pre>LuxDiagramModel(Diagram :NeuralDB ⟨1 objects, 2 morphisms, 0 Kan, 1 losses⟩, CompiledDiagram :NeuralDB ⟨0 morphisms, 7 reducers, 2 comparators⟩, Dict{Symbol, AbstractLuxLayer}(:f =&gt; DiagramDenseLayer(:dense, 4, 4, identity), :g =&gt; DiagramDenseLayer(:dense, 4, 4, identity)), Dict{Symbol, AbstractLuxLayer}(), Dict{Symbol, AbstractLuxLayer}(), [:f, :g], Symbol[], Symbol[])  <span class="ansi-bright-black-fg"># 40 parameters</span></pre>
+</div>
+</div>
+</div>
+<p>The default <code>:l2</code> comparator is automatically replaced with the differentiable <code>neural_l2_comparator</code>.</p>
+<div id="22" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ps_db, st_db <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, model_db)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>inputs_db <span class="op">=</span> <span class="fu">Dict</span>(<span class="op">:</span>State <span class="op">=&gt;</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, <span class="fl">4</span>, <span class="fl">2</span>))</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>result_db, st_db2 <span class="op">=</span> <span class="fu">model_db</span>(inputs_db, ps_db, st_db)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"DB values: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_db[<span class="op">:</span>values])))</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"DB losses: "</span>, result_db[<span class="op">:</span>losses])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>DB values: [:State, :f, :p2, :g, :p1]
+DB losses: Dict{Symbol, Any}(:obstruction =&gt; 7.485126495361328)</code></pre>
+</div>
+</div>
+<p>The losses are computed by the neural comparator and participate in the computation graph, so gradients flow through both the morphism layers and the comparator.</p>
+</section>
+<section id="gt-neighborhood-model" class="level2">
+<h2 class="anchored" data-anchor-id="gt-neighborhood-model">GT Neighborhood Model</h2>
+<p>The GT (Graph Transformer) neighborhood pattern combines a <strong>lift</strong> morphism (node→edge features) with a KET-style <strong>aggregation</strong> using attention.</p>
+<div id="24" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>gt <span class="op">=</span> <span class="fu">gt_neighborhood_block</span>(; name<span class="op">=:</span>NeuralGT, reducer<span class="op">=:</span>ket_attention)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>model_gt <span class="op">=</span> <span class="fu">compile_to_lux</span>(gt;</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    morphism_layers<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>lift <span class="op">=&gt;</span> FunctorFlow.<span class="fu">DiagramDenseLayer</span>(<span class="fl">8</span>, <span class="fl">8</span>)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    reducer_layers<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>ket_attention <span class="op">=&gt;</span> FunctorFlow.<span class="fu">KETAttentionLayer</span>(<span class="fl">8</span>; n_heads<span class="op">=</span><span class="fl">2</span>)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<div class="ansi-escaped-output">
+<pre>LuxDiagramModel(Diagram :NeuralGT ⟨4 objects, 1 morphisms, 1 Kan, 0 losses⟩, CompiledDiagram :NeuralGT ⟨0 morphisms, 7 reducers, 2 comparators⟩, Dict{Symbol, AbstractLuxLayer}(:lift =&gt; DiagramDenseLayer(:dense, 8, 8, identity)), Dict{Symbol, AbstractLuxLayer}(:ket_attention =&gt; KETAttentionLayer(:ket_attention, 8, 2, 4, 0.0f0)), Dict{Symbol, AbstractLuxLayer}(), [:lift], [:ket_attention], Symbol[])  <span class="ansi-bright-black-fg"># 360 parameters</span><span class="ansi-bright-black-fg">, plus 2 non-trainable</span></pre>
+</div>
+</div>
+</div>
+<div id="26" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>ps_gt, st_gt <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, model_gt)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>inputs_gt <span class="op">=</span> <span class="fu">Dict</span>(</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Tokens <span class="op">=&gt;</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, <span class="fl">8</span>, <span class="fl">4</span>),</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Incidence <span class="op">=&gt;</span> <span class="fu">Float32</span>.(<span class="fu">ones</span>(<span class="fl">4</span>, <span class="fl">4</span>))</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>result_gt, st_gt2 <span class="op">=</span> <span class="fu">model_gt</span>(inputs_gt, ps_gt, st_gt)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"GT result keys: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_gt[<span class="op">:</span>values])))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>GT result keys: [:aggregate, :ContextualizedTokens, :lift, :Incidence, :EdgeMessages, :Tokens]</code></pre>
+</div>
+</div>
+</section>
+<section id="convenience-builders" class="level2">
+<h2 class="anchored" data-anchor-id="convenience-builders">Convenience Builders</h2>
+<p>The Lux extension provides convenience functions that create both the diagram and the Lux model in one step.</p>
+<section id="ket-model" class="level3">
+<h3 class="anchored" data-anchor-id="ket-model">KET model</h3>
+<p><code>build_ket_lux_model(d_model)</code> returns <code>(model, diagram)</code>.</p>
+<div id="28" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>ket_model, ket_diag <span class="op">=</span> FunctorFlow.<span class="fu">build_ket_lux_model</span>(<span class="fl">8</span>; n_heads<span class="op">=</span><span class="fl">1</span>)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>ps_km, st_km <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, ket_model)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"KET model type: "</span>, <span class="fu">typeof</span>(ket_model))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>KET model type: LuxDiagramModel</code></pre>
+</div>
+</div>
+</section>
+<section id="db-model" class="level3">
+<h3 class="anchored" data-anchor-id="db-model">DB model</h3>
+<div id="30" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>db_model, db_diag <span class="op">=</span> FunctorFlow.<span class="fu">build_db_lux_model</span>(<span class="fl">4</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>ps_dm, st_dm <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, db_model)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"DB model type: "</span>, <span class="fu">typeof</span>(db_model))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>DB model type: LuxDiagramModel</code></pre>
+</div>
+</div>
+</section>
+<section id="gt-model" class="level3">
+<h3 class="anchored" data-anchor-id="gt-model">GT model</h3>
+<div id="32" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>gt_model, gt_diag <span class="op">=</span> FunctorFlow.<span class="fu">build_gt_lux_model</span>(<span class="fl">8</span>; n_heads<span class="op">=</span><span class="fl">2</span>)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>ps_gm, st_gm <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, gt_model)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"GT model type: "</span>, <span class="fu">typeof</span>(gt_model))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>GT model type: LuxDiagramModel</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="mixed-neuralsymbolic" class="level2">
+<h2 class="anchored" data-anchor-id="mixed-neuralsymbolic">Mixed Neural/Symbolic</h2>
+<p>A key strength of the FunctorFlow Lux backend is that you can mix <strong>neural</strong> morphisms (Lux layers with learnable parameters) and <strong>symbolic</strong> morphisms (plain Julia functions) in the same diagram. The compiler handles the routing automatically.</p>
+<div id="34" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>D_mixed <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>MixedModel)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Raw; kind<span class="op">=:</span>input, shape<span class="op">=</span><span class="st">"(8,)"</span>)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Encoded; kind<span class="op">=:</span>latent, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Normalized; kind<span class="op">=:</span>latent, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Output; kind<span class="op">=:</span>output, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Neural morphism: learned encoder</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_mixed, <span class="op">:</span>encode, <span class="op">:</span>Raw, <span class="op">:</span>Encoded;</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"Learned encoder"</span>)</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Symbolic morphism: deterministic normalization</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_mixed, <span class="op">:</span>normalize, <span class="op">:</span>Encoded, <span class="op">:</span>Normalized;</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"L2 normalization"</span>)</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(D_mixed, <span class="op">:</span>normalize,</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>    x <span class="op">-&gt;</span> x <span class="op">./</span> <span class="fu">sqrt</span>.(<span class="fu">sum</span>(x <span class="op">.^</span> <span class="fl">2</span>; dims<span class="op">=</span><span class="fl">1</span>) <span class="op">.+</span> <span class="fl">1f-8</span>))</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Neural morphism: learned decoder</span></span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_mixed, <span class="op">:</span>decode, <span class="op">:</span>Normalized, <span class="op">:</span>Output;</span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"Learned decoder"</span>)</span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a><span class="fu">compose!</span>(D_mixed, <span class="op">:</span>encode, <span class="op">:</span>normalize, <span class="op">:</span>decode; name<span class="op">=:</span>pipeline)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>pipeline = encode ⋅ normalize ⋅ decode</code></pre>
+</div>
+</div>
+<p>Compile with neural layers only for the unbound morphisms.</p>
+<div id="36" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>model_mixed <span class="op">=</span> <span class="fu">compile_to_lux</span>(D_mixed;</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    morphism_layers<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>encode <span class="op">=&gt;</span> FunctorFlow.<span class="fu">DiagramDenseLayer</span>(<span class="fl">8</span>, <span class="fl">4</span>),</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>decode <span class="op">=&gt;</span> FunctorFlow.<span class="fu">DiagramDenseLayer</span>(<span class="fl">4</span>, <span class="fl">4</span>)</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>ps_mix, st_mix <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, model_mixed)</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>x_mix <span class="op">=</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, <span class="fl">8</span>, <span class="fl">3</span>)</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>result_mix, st_mix2 <span class="op">=</span> <span class="fu">model_mixed</span>(</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Dict</span>(<span class="op">:</span>Raw <span class="op">=&gt;</span> x_mix), ps_mix, st_mix</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Pipeline output size: "</span>, <span class="fu">size</span>(result_mix[<span class="op">:</span>values][<span class="op">:</span>pipeline]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Pipeline output size: (4, 3)</code></pre>
+</div>
+</div>
+<p>The <code>:normalize</code> morphism uses the bound Julia function (no parameters), while <code>:encode</code> and <code>:decode</code> use learnable <code>DiagramDenseLayer</code> instances. Gradients flow through the symbolic normalization via standard automatic differentiation.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
