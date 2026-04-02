@@ -33,8 +33,10 @@ julia = "1.10"
 
 [extras]
 Catlab = "134e5e36-593f-5add-ad60-77f754baafbe"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [targets]
-test = ["Test", "Catlab", "Metal"]
+test = ["Test", "Catlab", "LinearAlgebra", "Metal", "Zygote"]

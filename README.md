@@ -106,6 +106,7 @@ FunctorFlow operationalizes the categorical design language from *Categories for
 | **BASKET** | `basket_workflow_block` | Plan fragment composition via left-Kan aggregation |
 | **ROCKET** | `rocket_repair_block` | Plan repair via right-Kan completion |
 | **Democritus** | `democritus_gluing_block` | Sheaf-theoretic local-to-global gluing |
+| **Higher horns** | `higher_horn_block` | Multi-step simplicial coherence and horn-family regularization |
 
 ## Compilation pipeline
 

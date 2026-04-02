@@ -102,8 +102,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#ket-model" id="toc-ket-model" class="nav-link" data-scroll-target="#ket-model">KET model</a></li>
   <li><a href="#db-model" id="toc-db-model" class="nav-link" data-scroll-target="#db-model">DB model</a></li>
   <li><a href="#gt-model" id="toc-gt-model" class="nav-link" data-scroll-target="#gt-model">GT model</a></li>
+  <li><a href="#catagi-block-backends" id="toc-catagi-block-backends" class="nav-link" data-scroll-target="#catagi-block-backends">CATAGI block backends</a></li>
   </ul></li>
   <li><a href="#mixed-neuralsymbolic" id="toc-mixed-neuralsymbolic" class="nav-link" data-scroll-target="#mixed-neuralsymbolic">Mixed Neural/Symbolic</a></li>
+  <li><a href="#related-docs" id="toc-related-docs" class="nav-link" data-scroll-target="#related-docs">Related Docs</a></li>
   </ul>
 <div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="lux-neural-backend.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="../../lux-neural-backend.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
 </div>
@@ -253,7 +255,7 @@ Output size: (4, 2)</code></pre>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <div class="ansi-escaped-output">
-<pre>LuxDiagramModel(Diagram :NeuralKET ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩, CompiledDiagram :NeuralKET ⟨0 morphisms, 7 reducers, 2 comparators⟩, Dict{Symbol, AbstractLuxLayer}(), Dict{Symbol, AbstractLuxLayer}(:ket_attention =&gt; KETAttentionLayer(:ket_attention, 8, 1, 8, 0.0f0)), Dict{Symbol, AbstractLuxLayer}(), Symbol[], [:ket_attention], Symbol[])  <span class="ansi-bright-black-fg"># 288 parameters</span><span class="ansi-bright-black-fg">, plus 2 non-trainable</span></pre>
+<pre>LuxDiagramModel(Diagram :NeuralKET ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩, CompiledDiagram :NeuralKET ⟨0 morphisms, 7 reducers, 3 comparators⟩, Dict{Symbol, AbstractLuxLayer}(), Dict{Symbol, AbstractLuxLayer}(:ket_attention =&gt; KETAttentionLayer(:ket_attention, 8, 1, 8, 0.0f0)), Dict{Symbol, AbstractLuxLayer}(), Symbol[], [:ket_attention], Symbol[])  <span class="ansi-bright-black-fg"># 288 parameters</span><span class="ansi-bright-black-fg">, plus 2 non-trainable</span></pre>
 </div>
 </div>
 </div>
@@ -287,7 +289,7 @@ Output size: (4, 2)</code></pre>
 <span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <div class="ansi-escaped-output">
-<pre>LuxDiagramModel(Diagram :NeuralDB ⟨1 objects, 2 morphisms, 0 Kan, 1 losses⟩, CompiledDiagram :NeuralDB ⟨0 morphisms, 7 reducers, 2 comparators⟩, Dict{Symbol, AbstractLuxLayer}(:f =&gt; DiagramDenseLayer(:dense, 4, 4, identity), :g =&gt; DiagramDenseLayer(:dense, 4, 4, identity)), Dict{Symbol, AbstractLuxLayer}(), Dict{Symbol, AbstractLuxLayer}(), [:f, :g], Symbol[], Symbol[])  <span class="ansi-bright-black-fg"># 40 parameters</span></pre>
+<pre>LuxDiagramModel(Diagram :NeuralDB ⟨1 objects, 2 morphisms, 0 Kan, 1 losses⟩, CompiledDiagram :NeuralDB ⟨0 morphisms, 7 reducers, 3 comparators⟩, Dict{Symbol, AbstractLuxLayer}(:f =&gt; DiagramDenseLayer(:dense, 4, 4, identity), :g =&gt; DiagramDenseLayer(:dense, 4, 4, identity)), Dict{Symbol, AbstractLuxLayer}(), Dict{Symbol, AbstractLuxLayer}(), [:f, :g], Symbol[], Symbol[])  <span class="ansi-bright-black-fg"># 40 parameters</span></pre>
 </div>
 </div>
 </div>
@@ -322,7 +324,7 @@ DB losses: Dict{Symbol, Any}(:obstruction =&gt; 7.485126495361328)</code></pre>
 <span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <div class="ansi-escaped-output">
-<pre>LuxDiagramModel(Diagram :NeuralGT ⟨4 objects, 1 morphisms, 1 Kan, 0 losses⟩, CompiledDiagram :NeuralGT ⟨0 morphisms, 7 reducers, 2 comparators⟩, Dict{Symbol, AbstractLuxLayer}(:lift =&gt; DiagramDenseLayer(:dense, 8, 8, identity)), Dict{Symbol, AbstractLuxLayer}(:ket_attention =&gt; KETAttentionLayer(:ket_attention, 8, 2, 4, 0.0f0)), Dict{Symbol, AbstractLuxLayer}(), [:lift], [:ket_attention], Symbol[])  <span class="ansi-bright-black-fg"># 360 parameters</span><span class="ansi-bright-black-fg">, plus 2 non-trainable</span></pre>
+<pre>LuxDiagramModel(Diagram :NeuralGT ⟨4 objects, 1 morphisms, 1 Kan, 0 losses⟩, CompiledDiagram :NeuralGT ⟨0 morphisms, 7 reducers, 3 comparators⟩, Dict{Symbol, AbstractLuxLayer}(:lift =&gt; DiagramDenseLayer(:dense, 8, 8, identity)), Dict{Symbol, AbstractLuxLayer}(:ket_attention =&gt; KETAttentionLayer(:ket_attention, 8, 2, 4, 0.0f0)), Dict{Symbol, AbstractLuxLayer}(), [:lift], [:ket_attention], Symbol[])  <span class="ansi-bright-black-fg"># 360 parameters</span><span class="ansi-bright-black-fg">, plus 2 non-trainable</span></pre>
 </div>
 </div>
 </div>
@@ -378,57 +380,103 @@ DB losses: Dict{Symbol, Any}(:obstruction =&gt; 7.485126495361328)</code></pre>
 </div>
 </div>
 </section>
+<section id="catagi-block-backends" class="level3">
+<h3 class="anchored" data-anchor-id="catagi-block-backends">CATAGI block backends</h3>
+<div id="34" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>topo_model, topo_diag <span class="op">=</span> FunctorFlow.<span class="fu">build_topocoend_lux_model</span>(<span class="fl">8</span>; n_heads<span class="op">=</span><span class="fl">2</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>horn_model, horn_diag <span class="op">=</span> FunctorFlow.<span class="fu">build_horn_lux_model</span>(<span class="fl">8</span>)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>bisim_model, bisim_diag <span class="op">=</span> FunctorFlow.<span class="fu">build_bisimulation_quotient_lux_model</span>(<span class="fl">8</span>)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"TopoCoend model type: "</span>, <span class="fu">typeof</span>(topo_model))</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Horn model type: "</span>, <span class="fu">typeof</span>(horn_model))</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Bisimulation quotient model type: "</span>, <span class="fu">typeof</span>(bisim_model))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>TopoCoend model type: LuxDiagramModel
+Horn model type: LuxDiagramModel
+Bisimulation quotient model type: LuxDiagramModel</code></pre>
+</div>
+</div>
+<p>The <code>build_topocoend_lux_model</code> helper uses a dedicated <code>RelationInferenceLayer</code> to construct a soft relation before the Kan aggregation:</p>
+<div id="36" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>ps_topo, st_topo <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, topo_model)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>seq_len <span class="op">=</span> <span class="fl">4</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>topo_inputs <span class="op">=</span> <span class="fu">Dict</span>(</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    topo_diag.ports[<span class="op">:</span>input].ref <span class="op">=&gt;</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, <span class="fl">8</span>, seq_len)</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>topo_result, st_topo <span class="op">=</span> <span class="fu">topo_model</span>(topo_inputs, ps_topo, st_topo)</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Learned relation size: "</span>, <span class="fu">size</span>(topo_result[<span class="op">:</span>values][topo_diag.ports[<span class="op">:</span>learned_relation].ref]))</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"TopoCoend output size: "</span>, <span class="fu">size</span>(topo_result[<span class="op">:</span>values][topo_diag.ports[<span class="op">:</span>output].ref]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Learned relation size: (4, 4)
+TopoCoend output size: (8, 4)</code></pre>
+</div>
+</div>
+<p>These CATAGI builders are the differentiable companions to the symbolic walkthroughs in:</p>
+<ul>
+<li><a href="../18-neurosymbolic-pipelines/neurosymbolic-pipelines.html">18 Neurosymbolic Pipelines</a></li>
+<li><a href="../23-topocoend-triage/topocoend-triage.html">23 TopoCoend Triage</a></li>
+<li><a href="../24-bisimulation-quotient/bisimulation-quotient.html">24 Bisimulation Quotient</a></li>
+</ul>
+</section>
 </section>
 <section id="mixed-neuralsymbolic" class="level2">
 <h2 class="anchored" data-anchor-id="mixed-neuralsymbolic">Mixed Neural/Symbolic</h2>
 <p>A key strength of the FunctorFlow Lux backend is that you can mix <strong>neural</strong> morphisms (Lux layers with learnable parameters) and <strong>symbolic</strong> morphisms (plain Julia functions) in the same diagram. The compiler handles the routing automatically.</p>
-<div id="34" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>D_mixed <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>MixedModel)</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Raw; kind<span class="op">=:</span>input, shape<span class="op">=</span><span class="st">"(8,)"</span>)</span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Encoded; kind<span class="op">=:</span>latent, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Normalized; kind<span class="op">=:</span>latent, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Output; kind<span class="op">=:</span>output, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Neural morphism: learned encoder</span></span>
-<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_mixed, <span class="op">:</span>encode, <span class="op">:</span>Raw, <span class="op">:</span>Encoded;</span>
-<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"Learned encoder"</span>)</span>
-<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Symbolic morphism: deterministic normalization</span></span>
-<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_mixed, <span class="op">:</span>normalize, <span class="op">:</span>Encoded, <span class="op">:</span>Normalized;</span>
-<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"L2 normalization"</span>)</span>
-<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(D_mixed, <span class="op">:</span>normalize,</span>
-<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>    x <span class="op">-&gt;</span> x <span class="op">./</span> <span class="fu">sqrt</span>.(<span class="fu">sum</span>(x <span class="op">.^</span> <span class="fl">2</span>; dims<span class="op">=</span><span class="fl">1</span>) <span class="op">.+</span> <span class="fl">1f-8</span>))</span>
-<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Neural morphism: learned decoder</span></span>
-<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_mixed, <span class="op">:</span>decode, <span class="op">:</span>Normalized, <span class="op">:</span>Output;</span>
-<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"Learned decoder"</span>)</span>
-<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a><span class="fu">compose!</span>(D_mixed, <span class="op">:</span>encode, <span class="op">:</span>normalize, <span class="op">:</span>decode; name<span class="op">=:</span>pipeline)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="38" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>D_mixed <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>MixedModel)</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Raw; kind<span class="op">=:</span>input, shape<span class="op">=</span><span class="st">"(8,)"</span>)</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Encoded; kind<span class="op">=:</span>latent, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Normalized; kind<span class="op">=:</span>latent, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mixed, <span class="op">:</span>Output; kind<span class="op">=:</span>output, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Neural morphism: learned encoder</span></span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_mixed, <span class="op">:</span>encode, <span class="op">:</span>Raw, <span class="op">:</span>Encoded;</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"Learned encoder"</span>)</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Symbolic morphism: deterministic normalization</span></span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_mixed, <span class="op">:</span>normalize, <span class="op">:</span>Encoded, <span class="op">:</span>Normalized;</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"L2 normalization"</span>)</span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(D_mixed, <span class="op">:</span>normalize,</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>    x <span class="op">-&gt;</span> x <span class="op">./</span> <span class="fu">sqrt</span>.(<span class="fu">sum</span>(x <span class="op">.^</span> <span class="fl">2</span>; dims<span class="op">=</span><span class="fl">1</span>) <span class="op">.+</span> <span class="fl">1f-8</span>))</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Neural morphism: learned decoder</span></span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_mixed, <span class="op">:</span>decode, <span class="op">:</span>Normalized, <span class="op">:</span>Output;</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"Learned decoder"</span>)</span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a><span class="fu">compose!</span>(D_mixed, <span class="op">:</span>encode, <span class="op">:</span>normalize, <span class="op">:</span>decode; name<span class="op">=:</span>pipeline)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>pipeline = encode ⋅ normalize ⋅ decode</code></pre>
 </div>
 </div>
 <p>Compile with neural layers only for the unbound morphisms.</p>
-<div id="36" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>model_mixed <span class="op">=</span> <span class="fu">compile_to_lux</span>(D_mixed;</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    morphism_layers<span class="op">=</span><span class="fu">Dict</span>(</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>encode <span class="op">=&gt;</span> FunctorFlow.<span class="fu">DiagramDenseLayer</span>(<span class="fl">8</span>, <span class="fl">4</span>),</span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>decode <span class="op">=&gt;</span> FunctorFlow.<span class="fu">DiagramDenseLayer</span>(<span class="fl">4</span>, <span class="fl">4</span>)</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>ps_mix, st_mix <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, model_mixed)</span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>x_mix <span class="op">=</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, <span class="fl">8</span>, <span class="fl">3</span>)</span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>result_mix, st_mix2 <span class="op">=</span> <span class="fu">model_mixed</span>(</span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Dict</span>(<span class="op">:</span>Raw <span class="op">=&gt;</span> x_mix), ps_mix, st_mix</span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Pipeline output size: "</span>, <span class="fu">size</span>(result_mix[<span class="op">:</span>values][<span class="op">:</span>pipeline]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="40" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>model_mixed <span class="op">=</span> <span class="fu">compile_to_lux</span>(D_mixed;</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    morphism_layers<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>encode <span class="op">=&gt;</span> FunctorFlow.<span class="fu">DiagramDenseLayer</span>(<span class="fl">8</span>, <span class="fl">4</span>),</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>decode <span class="op">=&gt;</span> FunctorFlow.<span class="fu">DiagramDenseLayer</span>(<span class="fl">4</span>, <span class="fl">4</span>)</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>ps_mix, st_mix <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, model_mixed)</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>x_mix <span class="op">=</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, <span class="fl">8</span>, <span class="fl">3</span>)</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>result_mix, st_mix2 <span class="op">=</span> <span class="fu">model_mixed</span>(</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Dict</span>(<span class="op">:</span>Raw <span class="op">=&gt;</span> x_mix), ps_mix, st_mix</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Pipeline output size: "</span>, <span class="fu">size</span>(result_mix[<span class="op">:</span>values][<span class="op">:</span>pipeline]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Pipeline output size: (4, 3)</code></pre>
 </div>
 </div>
 <p>The <code>:normalize</code> morphism uses the bound Julia function (no parameters), while <code>:encode</code> and <code>:decode</code> use learnable <code>DiagramDenseLayer</code> instances. Gradients flow through the symbolic normalization via standard automatic differentiation.</p>
+</section>
+<section id="related-docs" class="level2">
+<h2 class="anchored" data-anchor-id="related-docs">Related Docs</h2>
+<ul>
+<li><a href="../04-block-library/block-library.html">04 Block Library</a> for the reusable symbolic builders and the CATAGI block guide.</li>
+<li><a href="../18-neurosymbolic-pipelines/neurosymbolic-pipelines.html">18 Neurosymbolic Pipelines</a> for the symbolic versions of the same planning / TopoCoend / horn / bisimulation patterns.</li>
+<li><a href="../23-topocoend-triage/topocoend-triage.html">23 TopoCoend Triage</a> and <a href="../24-bisimulation-quotient/bisimulation-quotient.html">24 Bisimulation Quotient</a> for focused single-block walkthroughs.</li>
+</ul>
 </section>
 
 </main>

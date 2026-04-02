@@ -21,9 +21,26 @@ FunctorFlow includes block patterns inspired by categorical planning:
 - `democritus_assembly_pipeline`
 - `topocoend_block`
 - `horn_fill_block`
+- `higher_horn_block`
 - `bisimulation_quotient_block`
 
 These builders support symbolic examples directly and can also be compiled to Lux-backed models where appropriate.
+
+## CATAGI block guide
+
+The CATAGI-style surfaces now have a clearer documentation path:
+
+| Block family | Symbolic surface | Trainable surface | Best walkthrough |
+| --- | --- | --- | --- |
+| BASKET / ROCKET planning | `basket_workflow_block`, `rocket_repair_block`, `basket_rocket_pipeline` | `build_basket_rocket_lux_model` | `18-neurosymbolic-pipelines` |
+| Democritus assembly | `democritus_assembly_pipeline` | symbolic-only | `18-neurosymbolic-pipelines` |
+| TopoCoend relation learning | `topocoend_block` | `build_topocoend_lux_model`, `RelationInferenceLayer` | `23-topocoend-triage` then `07-lux-neural-backend` |
+| Horn and higher-horn consistency | `horn_fill_block`, `higher_horn_block` | `build_horn_lux_model`, `build_higher_horn_lux_model` | `18-neurosymbolic-pipelines` then `07-lux-neural-backend` |
+| Bisimulation quotienting | `bisimulation_quotient_block` | `build_bisimulation_quotient_lux_model` | `24-bisimulation-quotient` then `07-lux-neural-backend` |
+
+A good reading order is: `18-neurosymbolic-pipelines` for the symbolic overview,
+`23-topocoend-triage` and `24-bisimulation-quotient` for concrete focused
+examples, then `07-lux-neural-backend` for the differentiable versions.
 
 ## Tutorial libraries
 
@@ -50,9 +67,14 @@ For neural execution, FunctorFlow provides:
 - `KETAttentionLayer`
 - `DiagramDenseLayer`
 - `DiagramChainLayer`
+- `RelationInferenceLayer`
 - `build_ket_lux_model`
 - `build_db_lux_model`
 - `build_gt_lux_model`
 - `build_basket_rocket_lux_model`
+- `build_topocoend_lux_model`
+- `build_horn_lux_model`
+- `build_higher_horn_lux_model`
+- `build_bisimulation_quotient_lux_model`
 
 These helper constructors are especially useful for moving from symbolic diagram design to trainable models.

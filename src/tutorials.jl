@@ -46,7 +46,7 @@ const FOUNDATIONS_TUTORIAL_LIBRARY = TutorialLibrary(
 """Workflow drafting and repair blocks."""
 const PLANNING_TUTORIAL_LIBRARY = TutorialLibrary(
     :planning,
-    [:basket_workflow, :rocket_repair, :basket_rocket_pipeline, :democritus_assembly];
+    [:basket_workflow, :rocket_repair, :basket_rocket_pipeline, :democritus_assembly, :higher_horn];
     adapter_library_names=[:standard],
     description="Workflow drafting and repair blocks."
 )

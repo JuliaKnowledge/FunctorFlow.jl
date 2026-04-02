@@ -171,6 +171,8 @@ import Catlab
         @test result3.losses[:obs] > 0.0   # non-commutative
     end
 
+    include("test_lux_ext.jl")
+
     @testset "Composition" begin
         child = ket_block()
         parent = Diagram(:Parent)
@@ -238,12 +240,17 @@ import Catlab
         horn = horn_fill_block()
         @test haskey(horn.losses, :horn_obstruction)
 
+        higher_horn = higher_horn_block()
+        @test haskey(higher_horn.losses, :higher_horn_obstruction)
+        @test haskey(higher_horn.ports, :d03)
+
         quotient = bisimulation_quotient_block()
         @test haskey(quotient.ports, :output)
 
         # build_macro
         ket2 = build_macro(:ket; name=:CustomKET)
         @test ket2.name == :CustomKET
+        @test build_macro(:higher_horn).name == :HigherHorn
     end
 
     @testset "Structured LM Duality" begin
@@ -269,6 +276,30 @@ import Catlab
         topo_result = FunctorFlow.run(topo, Dict(:Tokens => Dict(:a => 1.0, :b => 3.0)))
         @test topo_result.values[:coend_aggregate][:all] ≈ 2.0
 
+        topo_example = build_topocoend_triage_example()
+        topo_example_result = execute_topocoend_triage_example(topo_example)
+        topo_summary = summarize_topocoend_triage_example(topo_example)
+        learned_cover = topo_example_result.values[topo_example[:diagram].ports[:learned_relation].ref]
+        @test :respiratory_focus in keys(learned_cover)
+        @test :chief_complaint in learned_cover[:respiratory_focus]
+        @test :lactate in learned_cover[:metabolic_focus]
+        @test topo_summary["highest_priority_context"] == "respiratory_focus"
+        @test topo_summary["counts"]["contexts"] == 3
+        @test topo_summary["context_risks"]["respiratory_focus"] ≈ (0.95 + 0.90 + 0.60) / 3
+        @test topo_summary["context_risks"]["metabolic_focus"] ≈ (0.70 + 0.85) / 2
+
+        bisim_example = build_bisimulation_quotient_example()
+        bisim_result = execute_bisimulation_quotient_example(bisim_example)
+        bisim_summary = summarize_bisimulation_quotient_example(bisim_example)
+        quotient_codes = bisim_result.values[bisim_example[:diagram].ports[:output].ref]
+        @test quotient_codes[:acute_reroute] == 21.0
+        @test quotient_codes[:watchful_recovery] == 10.0
+        @test quotient_codes[:steady_progress] == 0.0
+        @test bisim_result.losses[:behavioral_class_coeq_loss] ≈ 0.0
+        @test "controller_alignment" in bisim_summary["declared_bisimulations"]
+        @test bisim_summary["counts"]["quotient_classes"] == 3
+        @test bisim_summary["quotient_labels"]["acute_reroute"] == "acute_reroute"
+
         horn = horn_fill_block(;
             first_face_impl=x -> x + 1,
             second_face_impl=x -> x * 2,
@@ -278,6 +309,19 @@ import Catlab
         @test horn_result.values[:horn_boundary] == 8
         @test horn_result.losses[:horn_obstruction] ≈ 0.0
 
+        higher_horn = higher_horn_block(;
+            config=HigherHornConfig(
+                filler_faces=[:d03_exact, :d03_relaxed]
+            ),
+            boundary_face_impls=[x -> x + 1, x -> x * 2, x -> x - 3],
+            filler_impls=[x -> ((x + 1) * 2) - 3, x -> ((x + 1) * 2) - 2]
+        )
+        higher_horn_result = FunctorFlow.run(higher_horn, Dict(:Vertex0 => 3))
+        @test higher_horn_result.values[:higher_horn_boundary] == 5
+        @test higher_horn_result.values[:d03_exact] == 5
+        @test higher_horn_result.values[:d03_relaxed] == 6
+        @test higher_horn_result.losses[:higher_horn_obstruction] ≈ 1.0
+
         demo = democritus_assembly_pipeline(; restrict_impl=identity)
         demo_input = Dict(
             demo.ports[:input].ref => Dict(:r1 => Set(["A->B"]), :r2 => Set(["B->C"])),
@@ -285,6 +329,16 @@ import Catlab
         )
         demo_result = FunctorFlow.run(demo, demo_input)
         @test haskey(demo_result.losses, :section_coherence)
+
+        democritus_example = build_democritus_assembly_example()
+        democritus_result = execute_democritus_assembly_example(democritus_example)
+        democritus_summary = summarize_democritus_assembly_example(democritus_example)
+        global_claims = democritus_result.values[democritus_example[:diagram].ports[:global_output].ref][:labor_market]
+        @test "minimum wage -> employment" in global_claims
+        @test "minimum wage -> employment" in democritus_summary["global_inferred_claims"]
+        @test "minimum wage -> employment" in democritus_summary["fragment_repairs"]["policy"]
+        @test democritus_summary["counts"]["repaired_claims"] >= 1
+        @test democritus_summary["coherence_loss"] > 0.0
 
         pipeline = basket_rocket_pipeline()
         br_input = Dict(
@@ -310,6 +364,7 @@ import Catlab
 
         planning = get_tutorial_library(:planning)
         @test :democritus_assembly in planning.macro_names
+        @test :higher_horn in planning.macro_names
     end
 
     @testset "DSL Macros" begin

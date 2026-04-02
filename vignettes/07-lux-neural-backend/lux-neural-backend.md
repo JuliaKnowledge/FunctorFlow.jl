@@ -15,7 +15,9 @@ Simon Frost
   - [KET model](#ket-model)
   - [DB model](#db-model)
   - [GT model](#gt-model)
+  - [CATAGI block backends](#catagi-block-backends)
 - [Mixed Neural/Symbolic](#mixed-neuralsymbolic)
+- [Related Docs](#related-docs)
 
 ## Introduction
 
@@ -149,7 +151,7 @@ model = compile_to_lux(D;
 )
 ```
 
-    LuxDiagramModel(Diagram :NeuralKET ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩, CompiledDiagram :NeuralKET ⟨0 morphisms, 7 reducers, 2 comparators⟩, Dict{Symbol, AbstractLuxLayer}(), Dict{Symbol, AbstractLuxLayer}(:ket_attention => KETAttentionLayer(:ket_attention, 8, 1, 8, 0.0f0)), Dict{Symbol, AbstractLuxLayer}(), Symbol[], [:ket_attention], Symbol[])  # 288 parameters, plus 2 non-trainable
+    LuxDiagramModel(Diagram :NeuralKET ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩, CompiledDiagram :NeuralKET ⟨0 morphisms, 7 reducers, 3 comparators⟩, Dict{Symbol, AbstractLuxLayer}(), Dict{Symbol, AbstractLuxLayer}(:ket_attention => KETAttentionLayer(:ket_attention, 8, 1, 8, 0.0f0)), Dict{Symbol, AbstractLuxLayer}(), Symbol[], [:ket_attention], Symbol[])  # 288 parameters, plus 2 non-trainable
 
 Set up parameters and run a forward pass. The `LuxDiagramModel` returns
 a `(result_dict, new_state)` tuple where `result_dict` has `:values` and
@@ -185,7 +187,7 @@ model_db = compile_to_lux(db;
 )
 ```
 
-    LuxDiagramModel(Diagram :NeuralDB ⟨1 objects, 2 morphisms, 0 Kan, 1 losses⟩, CompiledDiagram :NeuralDB ⟨0 morphisms, 7 reducers, 2 comparators⟩, Dict{Symbol, AbstractLuxLayer}(:f => DiagramDenseLayer(:dense, 4, 4, identity), :g => DiagramDenseLayer(:dense, 4, 4, identity)), Dict{Symbol, AbstractLuxLayer}(), Dict{Symbol, AbstractLuxLayer}(), [:f, :g], Symbol[], Symbol[])  # 40 parameters
+    LuxDiagramModel(Diagram :NeuralDB ⟨1 objects, 2 morphisms, 0 Kan, 1 losses⟩, CompiledDiagram :NeuralDB ⟨0 morphisms, 7 reducers, 3 comparators⟩, Dict{Symbol, AbstractLuxLayer}(:f => DiagramDenseLayer(:dense, 4, 4, identity), :g => DiagramDenseLayer(:dense, 4, 4, identity)), Dict{Symbol, AbstractLuxLayer}(), Dict{Symbol, AbstractLuxLayer}(), [:f, :g], Symbol[], Symbol[])  # 40 parameters
 
 The default `:l2` comparator is automatically replaced with the
 differentiable `neural_l2_comparator`.
@@ -225,7 +227,7 @@ model_gt = compile_to_lux(gt;
 )
 ```
 
-    LuxDiagramModel(Diagram :NeuralGT ⟨4 objects, 1 morphisms, 1 Kan, 0 losses⟩, CompiledDiagram :NeuralGT ⟨0 morphisms, 7 reducers, 2 comparators⟩, Dict{Symbol, AbstractLuxLayer}(:lift => DiagramDenseLayer(:dense, 8, 8, identity)), Dict{Symbol, AbstractLuxLayer}(:ket_attention => KETAttentionLayer(:ket_attention, 8, 2, 4, 0.0f0)), Dict{Symbol, AbstractLuxLayer}(), [:lift], [:ket_attention], Symbol[])  # 360 parameters, plus 2 non-trainable
+    LuxDiagramModel(Diagram :NeuralGT ⟨4 objects, 1 morphisms, 1 Kan, 0 losses⟩, CompiledDiagram :NeuralGT ⟨0 morphisms, 7 reducers, 3 comparators⟩, Dict{Symbol, AbstractLuxLayer}(:lift => DiagramDenseLayer(:dense, 8, 8, identity)), Dict{Symbol, AbstractLuxLayer}(:ket_attention => KETAttentionLayer(:ket_attention, 8, 2, 4, 0.0f0)), Dict{Symbol, AbstractLuxLayer}(), [:lift], [:ket_attention], Symbol[])  # 360 parameters, plus 2 non-trainable
 
 ``` julia
 ps_gt, st_gt = Lux.setup(rng, model_gt)
@@ -277,6 +279,49 @@ println("GT model type: ", typeof(gt_model))
 ```
 
     GT model type: LuxDiagramModel
+
+### CATAGI block backends
+
+``` julia
+topo_model, topo_diag = FunctorFlow.build_topocoend_lux_model(8; n_heads=2)
+horn_model, horn_diag = FunctorFlow.build_horn_lux_model(8)
+bisim_model, bisim_diag = FunctorFlow.build_bisimulation_quotient_lux_model(8)
+
+println("TopoCoend model type: ", typeof(topo_model))
+println("Horn model type: ", typeof(horn_model))
+println("Bisimulation quotient model type: ", typeof(bisim_model))
+```
+
+    TopoCoend model type: LuxDiagramModel
+    Horn model type: LuxDiagramModel
+    Bisimulation quotient model type: LuxDiagramModel
+
+The `build_topocoend_lux_model` helper uses a dedicated
+`RelationInferenceLayer` to construct a soft relation before the Kan
+aggregation:
+
+``` julia
+ps_topo, st_topo = Lux.setup(rng, topo_model)
+seq_len = 4
+topo_inputs = Dict(
+    topo_diag.ports[:input].ref => randn(rng, Float32, 8, seq_len)
+)
+topo_result, st_topo = topo_model(topo_inputs, ps_topo, st_topo)
+println("Learned relation size: ", size(topo_result[:values][topo_diag.ports[:learned_relation].ref]))
+println("TopoCoend output size: ", size(topo_result[:values][topo_diag.ports[:output].ref]))
+```
+
+    Learned relation size: (4, 4)
+    TopoCoend output size: (8, 4)
+
+These CATAGI builders are the differentiable companions to the symbolic
+walkthroughs in:
+
+- [18 Neurosymbolic
+  Pipelines](../18-neurosymbolic-pipelines/neurosymbolic-pipelines.html)
+- [23 TopoCoend Triage](../23-topocoend-triage/topocoend-triage.html)
+- [24 Bisimulation
+  Quotient](../24-bisimulation-quotient/bisimulation-quotient.html)
 
 ## Mixed Neural/Symbolic
 
@@ -336,3 +381,16 @@ The `:normalize` morphism uses the bound Julia function (no parameters),
 while `:encode` and `:decode` use learnable `DiagramDenseLayer`
 instances. Gradients flow through the symbolic normalization via
 standard automatic differentiation.
+
+## Related Docs
+
+- [04 Block Library](../04-block-library/block-library.html) for the
+  reusable symbolic builders and the CATAGI block guide.
+- [18 Neurosymbolic
+  Pipelines](../18-neurosymbolic-pipelines/neurosymbolic-pipelines.html)
+  for the symbolic versions of the same planning / TopoCoend / horn /
+  bisimulation patterns.
+- [23 TopoCoend Triage](../23-topocoend-triage/topocoend-triage.html)
+  and [24 Bisimulation
+  Quotient](../24-bisimulation-quotient/bisimulation-quotient.html) for
+  focused single-block walkthroughs.

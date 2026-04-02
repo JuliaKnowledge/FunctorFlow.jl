@@ -92,6 +92,72 @@ function (l::DiagramChainLayer)(x::AbstractArray, ps, st)
 end
 
 """
+    RelationInferenceLayer(d_model; symmetric=true, name=:infer_relation)
+
+Learn a soft relation matrix from token embeddings. The layer projects the
+tokens into query/key spaces, forms pairwise affinities, optionally symmetrizes
+them, and returns a `(seq_len, seq_len[, batch])` relation suitable for
+attention-style Kan aggregation.
+"""
+struct RelationInferenceLayer <: LuxCore.AbstractLuxLayer
+    name::Symbol
+    d_model::Int
+    symmetric::Bool
+end
+
+function RelationInferenceLayer(d_model::Int;
+                                symmetric::Bool=true,
+                                name::Symbol=:infer_relation)
+    RelationInferenceLayer(name, d_model, symmetric)
+end
+
+function LuxCore.initialparameters(rng::AbstractRNG, l::RelationInferenceLayer)
+    scale = sqrt(2.0f0 / l.d_model)
+    W_q = randn(rng, Float32, l.d_model, l.d_model) .* scale
+    W_k = randn(rng, Float32, l.d_model, l.d_model) .* scale
+    b_q = zeros(Float32, l.d_model)
+    b_k = zeros(Float32, l.d_model)
+    (; W_q, W_k, b_q, b_k)
+end
+
+LuxCore.initialstates(::AbstractRNG, ::RelationInferenceLayer) = NamedTuple()
+
+function (l::RelationInferenceLayer)(source::AbstractArray, ps, st)
+    function _proj(W, b, x)
+        sz = size(x)
+        x2d = reshape(x, sz[1], :)
+        y2d = W * x2d .+ b
+        reshape(y2d, size(y2d, 1), sz[2:end]...)
+    end
+
+    function _btmm(A, B)
+        if ndims(A) == 2
+            return A' * B
+        end
+        batch = size(A, 3)
+        s = size(A, 2)
+        c = size(B, 2)
+        slices = [reshape(A[:, :, i]' * B[:, :, i], :, 1) for i in 1:batch]
+        reshape(hcat(slices...), s, c, batch)
+    end
+
+    Q = _proj(ps.W_q, ps.b_q, source)
+    K = _proj(ps.W_k, ps.b_k, source)
+    scale = Float32(sqrt(l.d_model))
+    relation = sigmoid.(_btmm(K, Q) ./ scale)
+    if l.symmetric
+        relation = ndims(relation) == 2 ?
+            0.5f0 .* (relation .+ permutedims(relation, (2, 1))) :
+            0.5f0 .* (relation .+ permutedims(relation, (2, 1, 3)))
+    end
+    seq_len = size(relation, 1)
+    eye2d = Float32.([i == j ? 1 : 0 for i in 1:seq_len, j in 1:seq_len])
+    eye = ndims(relation) == 2 ? eye2d :
+        reshape(eye2d, seq_len, seq_len, ntuple(_ -> 1, ndims(relation) - 2)...)
+    clamp.(relation .+ eye, 0.0f0, 1.0f0), st
+end
+
+"""
     KETAttentionLayer(d_model; n_heads=1, dropout=0.0f0, name=:ket_attention)
 
 Learnable Kan Extension Transformer (KET) reducer as a Lux layer.
@@ -155,6 +221,15 @@ function (l::KETAttentionLayer)((source, mask)::Tuple{AbstractArray, AbstractArr
     _ket_attention_forward(l, source, mask, ps, st)
 end
 
+function _apply_attention_mask(scores::AbstractArray, mask::AbstractArray)
+    mask_nd = ndims(scores) > ndims(mask) ?
+        reshape(mask, size(mask)..., ntuple(_ -> 1, ndims(scores) - ndims(mask))...) :
+        mask
+    mask_f = Float32.(mask_nd)
+    log_bias = log.(clamp.(mask_f, 1.0f-6, 1.0f0))
+    scores .+ ifelse.(mask_f .> 0.0f0, log_bias, typemin(Float32))
+end
+
 function _ket_attention_forward(l::KETAttentionLayer, source::AbstractArray,
                                 mask::Union{Nothing, AbstractArray}, ps, st)
     d_model = l.d_model
@@ -204,13 +279,7 @@ function _ket_attention_forward(l::KETAttentionLayer, source::AbstractArray,
         scores = _btmm(K, Q) ./ scale
 
         if mask !== nothing
-            if ndims(scores) > ndims(mask)
-                mask_nd = reshape(mask, size(mask)..., ntuple(_ -> 1, ndims(scores) - ndims(mask))...)
-            else
-                mask_nd = mask
-            end
-            # Use ifelse to avoid 0 * -Inf = NaN
-            scores = scores .+ ifelse.(mask_nd .> 0.5f0, 0.0f0, typemin(Float32))
+            scores = _apply_attention_mask(scores, mask)
         end
 
         weights = _softmax_cols(scores)
@@ -230,12 +299,7 @@ function _ket_attention_forward(l::KETAttentionLayer, source::AbstractArray,
             Vh = copy(selectdim(V_mh, 2, h))
             scores_h = _btmm(Kh, Qh) ./ scale
             if mask !== nothing
-                if ndims(scores_h) > ndims(mask)
-                    mask_nd = reshape(mask, size(mask)..., ntuple(_ -> 1, ndims(scores_h) - ndims(mask))...)
-                else
-                    mask_nd = mask
-                end
-                scores_h = scores_h .+ ifelse.(mask_nd .> 0.5f0, 0.0f0, typemin(Float32))
+                scores_h = _apply_attention_mask(scores_h, mask)
             end
             w_h = _softmax_cols(scores_h)
             _bmm(Vh, w_h)
@@ -749,6 +813,104 @@ function build_basket_rocket_lux_model(d_model::Int;
                            reducer_layers=Dict(
                                draft_reducer => draft_layer,
                                repair_reducer => repair_layer
+                           ))
+    (model, D)
+end
+
+"""
+    build_topocoend_lux_model(d_model; config=TopoCoendConfig(reducer=:ket_attention), n_heads=4, kwargs...)
+
+Build a Lux-backed TopoCoend block. A learned `RelationInferenceLayer`
+constructs the neighborhood relation, a dense lift morphism embeds local
+contexts, and `KETAttentionLayer` performs the Kan aggregation.
+"""
+function build_topocoend_lux_model(d_model::Int;
+                                   config::TopoCoendConfig=TopoCoendConfig(reducer=:ket_attention),
+                                   n_heads::Int=4,
+                                   dropout::Real=0.0f0,
+                                   relation_layer::Union{Nothing, LuxCore.AbstractLuxLayer}=nothing,
+                                   kwargs...)
+    cfg = _apply_overrides(config, kwargs)
+    D = topocoend_block(; config=cfg)
+    infer_layer = something(relation_layer,
+                            RelationInferenceLayer(d_model;
+                                name=cfg.infer_neighborhood_name))
+    lift_layer = DiagramDenseLayer(d_model, d_model; name=cfg.lift_name)
+    attn = KETAttentionLayer(d_model; n_heads=n_heads, dropout=dropout, name=cfg.reducer)
+    model = compile_to_lux(D;
+                           morphism_layers=Dict(
+                               cfg.infer_neighborhood_name => infer_layer,
+                               cfg.lift_name => lift_layer
+                           ),
+                           reducer_layers=Dict(cfg.reducer => attn))
+    (model, D)
+end
+
+"""
+    build_horn_lux_model(d_model; config=HornObstructionConfig(), kwargs...)
+
+Build a Lux-backed 2-simplex horn-filling block with learned boundary and filler
+maps.
+"""
+function build_horn_lux_model(d_model::Int;
+                              config::HornObstructionConfig=HornObstructionConfig(),
+                              kwargs...)
+    cfg = _apply_overrides(config, kwargs)
+    D = horn_fill_block(; config=cfg)
+    model = compile_to_lux(D;
+                           morphism_layers=Dict(
+                               cfg.first_face => DiagramDenseLayer(d_model, d_model; name=cfg.first_face),
+                               cfg.second_face => DiagramDenseLayer(d_model, d_model; name=cfg.second_face),
+                               cfg.filler_face => DiagramDenseLayer(d_model, d_model; name=cfg.filler_face),
+                           ))
+    (model, D)
+end
+
+"""
+    build_higher_horn_lux_model(d_model; config=HigherHornConfig(), kwargs...)
+
+Build a Lux-backed higher-order horn regularizer with learned boundary and
+filler maps.
+"""
+function build_higher_horn_lux_model(d_model::Int;
+                                     config::HigherHornConfig=HigherHornConfig(),
+                                     kwargs...)
+    cfg = _apply_overrides(config, kwargs)
+    D = higher_horn_block(; config=cfg)
+    morphism_layers = Dict{Symbol, LuxCore.AbstractLuxLayer}()
+    for face_name in vcat(cfg.boundary_faces, cfg.filler_faces)
+        morphism_layers[face_name] = DiagramDenseLayer(d_model, d_model; name=face_name)
+    end
+    model = compile_to_lux(D; morphism_layers=morphism_layers)
+    (model, D)
+end
+
+"""
+    build_bisimulation_quotient_lux_model(d_model; config=BisimulationQuotientConfig(), kwargs...)
+
+Build a Lux-backed behavioral quotient block. The projection and observation
+maps remain identity scaffolds, while the two behavior paths and the quotient
+map are learned neural morphisms constrained by the coequalizer loss.
+"""
+function build_bisimulation_quotient_lux_model(d_model::Int;
+                                               config::BisimulationQuotientConfig=BisimulationQuotientConfig(),
+                                               kwargs...)
+    cfg = _apply_overrides(config, kwargs)
+    D = bisimulation_quotient_block(;
+        config=cfg,
+        left_projection_impl=identity,
+        right_projection_impl=identity,
+        observe_a_impl=identity,
+        observe_b_impl=identity,
+    )
+    left_path = D.ports[:left_behavior].ref
+    right_path = D.ports[:right_behavior].ref
+    quotient_map = D.ports[:output].ref
+    model = compile_to_lux(D;
+                           morphism_layers=Dict(
+                               left_path => DiagramDenseLayer(d_model, d_model; name=left_path),
+                               right_path => DiagramDenseLayer(d_model, d_model; name=right_path),
+                               quotient_map => DiagramDenseLayer(d_model, d_model; name=quotient_map),
                            ))
     (model, D)
 end

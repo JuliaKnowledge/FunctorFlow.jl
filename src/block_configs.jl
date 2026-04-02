@@ -98,6 +98,7 @@ end
 Base.@kwdef struct DemocritusAssemblyConfig
     name::Symbol = :DemocritusAssembly
     gluing_config::DemocritusGluingConfig = DemocritusGluingConfig()
+    regrounded_object::Symbol = :RegroundedClaims
     restrict_name::Symbol = :restrict_to_local
     coherence_loss_name::Symbol = :section_coherence
     comparator::Symbol = :jaccard
@@ -128,6 +129,17 @@ Base.@kwdef struct HornObstructionConfig
     boundary_path::Symbol = :horn_boundary
     comparator::Symbol = :l2
     loss_name::Symbol = :horn_obstruction
+end
+
+"""Configuration for a higher-order horn regularization block."""
+Base.@kwdef struct HigherHornConfig
+    name::Symbol = :HigherHorn
+    object_names::Vector{Symbol} = [:Vertex0, :Vertex1, :Vertex2, :Vertex3]
+    boundary_faces::Vector{Symbol} = [:d01, :d12, :d23]
+    filler_faces::Vector{Symbol} = [:d03]
+    boundary_path::Symbol = :higher_horn_boundary
+    comparator::Symbol = :l2
+    loss_name::Symbol = :higher_horn_obstruction
 end
 
 """Configuration for a bisimulation-inspired behavioral quotient block."""

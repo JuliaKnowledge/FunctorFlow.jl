@@ -1,0 +1,134 @@
+---
+title: "TCC Method Pullback"
+subtitle: "DID-vs-IV agreement and conflict surfaces over the Democritus causal-claims corpus"
+author: "Simon Frost"
+format:
+  html:
+    code-fold: false
+    toc: true
+  gfm:
+    toc: true
+  pdf:
+    code-fold: false
+    toc: true
+    mainfont: "STIX Two Text"
+    sansfont: "STIX Two Text"
+    monofont: "JuliaMono"
+    mathfont: "STIX Two Math"
+engine: julia
+---
+
+## Introduction
+
+The TCC method-pullback demo lifts the Democritus causal-claims corpus into a
+categorical comparison between two method families:
+
+- **difference-in-differences** (DID family), and
+- **instrumental variables** (IV family).
+
+The Julia port now materializes that pullback directly from the repo-local
+Parquet data and exposes both agreement counts and method-conflict witnesses.
+
+## Setup
+
+```{julia}
+#| output: false
+using Pkg
+Pkg.activate(joinpath(@__DIR__, ".."))
+
+using FunctorFlow
+```
+
+```{julia}
+sample_root = normpath(joinpath(@__DIR__, "..", "..", "..", "FunctorFlow_v1", "sample_data", "demo_repo_root"))
+workspace_root = normpath(joinpath(@__DIR__, "..", "..", "..", "FunctorFlow_v1"))
+
+isdir(sample_root) || error("Expected FunctorFlow_v1 sample data at $sample_root")
+isdir(workspace_root) || error("Expected FunctorFlow_v1 workspace at $workspace_root")
+```
+
+## Materialize the pullback summary
+
+`describe_tcc_method_pullback` gives a normalized dictionary view that is stable
+across the Julia and Python implementations.
+
+```{julia}
+summary = describe_tcc_method_pullback(sample_root; top_k=6, workspace_root=workspace_root)
+
+println("Compiled counts: ", summary["compiled_counts"])
+println("Omega counts: ", summary["omega_counts"])
+println("Top DID/IV pullback rows:")
+for row in summary["did_iv_pullback"]
+    println("  ", row)
+end
+```
+
+The pullback rows expose claims that survive alignment across method families,
+while the omega counts summarize whether those aligned pairs land in consensus or
+method conflict.
+
+## Inspect explicit conflict witnesses
+
+The same summary carries the method-conflict surface directly, which is useful
+for downstream review or adjudication.
+
+```{julia}
+println("Method conflicts:")
+for row in summary["method_conflicts"]
+    println("  ", row)
+end
+```
+
+## Work with the typed Julia object
+
+The typed `TCCMethodPullbackSummary` is useful when you want field access and
+semantic compilation rather than just a normalized report.
+
+```{julia}
+pullback = materialize_tcc_method_pullback(sample_root; top_k=6, workspace_root=workspace_root)
+
+println("Typed summary counts: ", pullback.compiled_counts)
+println("First pullback witness: ", first(pullback.did_iv_pullback))
+println("First conflict witness: ", first(pullback.method_conflicts))
+```
+
+## Compile and execute the parity artifact
+
+The semantic compiler lowers the pullback summary into a dedicated
+`tcc_method_pullback` artifact and a placeholder operation
+`materialize_tcc_pullback`.
+
+```{julia}
+artifact = compile_v1(pullback)
+println("Artifact subject: ", (artifact.subject_name, artifact.subject_kind))
+println("Artifact nodes: ", [(node.name, node.node_kind) for node in artifact.nodes])
+```
+
+```{julia}
+plan = compile_plan(:TCCMethodPullbackPlan, pullback)
+ir = lower_plan_to_executable_ir(plan)
+executed = execute_placeholder_ir(ir)
+
+println("IR instructions:")
+for instruction in ir.instructions
+    println("  ", instruction.name, " => ", instruction.opcode)
+end
+
+println("Execution trace:")
+for line in executed.trace
+    println("  ", line)
+end
+```
+
+## Why this matters
+
+This vignette turns the TCC method-family comparison into a fully documented
+Julia-native workflow:
+
+- the sample-data-backed pullback is materialized locally;
+- agreement and conflict witnesses are visible as structured outputs; and
+- the result lowers cleanly into the same parity-oriented compiler story as the
+  rest of FunctorFlow v1.
+
+That gives the Julia port a real worked example for empirical method comparison,
+not just symbolic categorical structure.

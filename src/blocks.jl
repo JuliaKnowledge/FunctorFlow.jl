@@ -254,8 +254,9 @@ function democritus_assembly_pipeline(; config::DemocritusAssemblyConfig=Democri
     glue_op = operation_ref(glue_inc, cfg.gluing_config.glue_name)
     global_obj = object_ref(glue_inc, cfg.gluing_config.global_object)
     claim_obj = object_ref(glue_inc, cfg.gluing_config.claim_object)
+    add_object!(D, cfg.regrounded_object; kind=:local_claims)
 
-    add_morphism!(D, cfg.restrict_name, global_obj, claim_obj;
+    add_morphism!(D, cfg.restrict_name, global_obj, cfg.regrounded_object;
                   implementation=restrict_impl,
                   metadata=Dict{Symbol, Any}(:macro => :DemocritusAssembly,
                                              :role => :regrounding))
@@ -345,6 +346,70 @@ function horn_fill_block(; config::HornObstructionConfig=HornObstructionConfig()
 end
 
 """
+    higher_horn_block(; config=HigherHornConfig(), boundary_face_impls=nothing, filler_impls=nothing, kwargs...) -> Diagram
+
+Build a higher-order horn regularization block. An arbitrary boundary chain is
+composed from `boundary_faces`, then compared against one or more direct filler
+maps from the first object to the last. The resulting loss sums the obstruction
+across all registered fillers.
+"""
+function higher_horn_block(; config::HigherHornConfig=HigherHornConfig(),
+                           boundary_face_impls=nothing, filler_impls=nothing, kwargs...)
+    cfg = _apply_overrides(config, kwargs)
+    length(cfg.object_names) >= 3 ||
+        error("Higher horns require at least three objects")
+    length(cfg.boundary_faces) == length(cfg.object_names) - 1 ||
+        error("Higher horn boundary faces must have one fewer element than object_names")
+    isempty(cfg.filler_faces) &&
+        error("Higher horns require at least one filler face")
+
+    boundary_impl_vec = boundary_face_impls === nothing ? fill(nothing, length(cfg.boundary_faces)) :
+        collect(boundary_face_impls)
+    filler_impl_vec = filler_impls === nothing ? fill(nothing, length(cfg.filler_faces)) :
+        collect(filler_impls)
+    length(boundary_impl_vec) == length(cfg.boundary_faces) ||
+        error("boundary_face_impls must match boundary_faces length")
+    length(filler_impl_vec) == length(cfg.filler_faces) ||
+        error("filler_impls must match filler_faces length")
+
+    D = Diagram(cfg.name)
+    for object_name in cfg.object_names
+        add_object!(D, object_name; kind=:state)
+    end
+
+    for (idx, face_name) in pairs(cfg.boundary_faces)
+        add_morphism!(D, face_name, cfg.object_names[idx], cfg.object_names[idx + 1];
+                      implementation=boundary_impl_vec[idx],
+                      metadata=Dict{Symbol, Any}(:macro => :HigherHorn,
+                                                 :role => :horn_face,
+                                                 :position => idx))
+    end
+
+    source_object = first(cfg.object_names)
+    target_object = last(cfg.object_names)
+    for (idx, filler_name) in pairs(cfg.filler_faces)
+        add_morphism!(D, filler_name, source_object, target_object;
+                      implementation=filler_impl_vec[idx],
+                      metadata=Dict{Symbol, Any}(:macro => :HigherHorn,
+                                                 :role => :horn_filler,
+                                                 :position => idx))
+    end
+
+    compose!(D, cfg.boundary_faces...; name=cfg.boundary_path)
+    add_obstruction_loss!(D, cfg.loss_name;
+                          paths=[(cfg.boundary_path, filler_name) for filler_name in cfg.filler_faces],
+                          comparator=cfg.comparator,
+                          metadata=Dict{Symbol, Any}(:macro => :HigherHorn))
+    expose_port!(D, :input, source_object; direction=INPUT, port_type=:state)
+    expose_port!(D, :boundary, cfg.boundary_path; direction=OUTPUT, port_type=:state)
+    for filler_name in cfg.filler_faces
+        expose_port!(D, filler_name, filler_name; direction=OUTPUT, port_type=:state)
+    end
+    expose_port!(D, :loss, cfg.loss_name; kind=:loss, direction=OUTPUT, port_type=:loss)
+    D
+end
+
+"""
     bisimulation_quotient_block(; config=BisimulationQuotientConfig(), kwargs...) -> Diagram
 
 Build a behavioral quotient block by composing a bisimulation relation with two
@@ -417,6 +482,7 @@ const MACRO_LIBRARY = Dict{Symbol, Any}(
     :basket_rocket_pipeline => basket_rocket_pipeline,
     :topocoend => topocoend_block,
     :horn_fill => horn_fill_block,
+    :higher_horn => higher_horn_block,
     :bisimulation_quotient => bisimulation_quotient_block,
 )
 

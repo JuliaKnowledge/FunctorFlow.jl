@@ -6,13 +6,15 @@ using Test
 using FunctorFlow
 using Lux
 using LuxCore
-using LinearAlgebra
+import LinearAlgebra
 using Random
 
 # Package extensions need explicit import
 import FunctorFlow: compile_to_lux
 using Base: @invokelatest
-const LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
+const LuxExt = let ext = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
+    ext === nothing ? FunctorFlow : ext
+end
 
 @testset "FunctorFlowLuxExt" begin
 
@@ -102,7 +104,7 @@ const LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
         layer = LuxExt.KETAttentionLayer(d_model; n_heads=1, name=:causal_attn)
         st = LuxCore.initialstates(rng, layer)
 
-        eye4 = Matrix{Float32}(I, d_model, d_model)
+        eye4 = Matrix{Float32}(LinearAlgebra.I, d_model, d_model)
         zeros4 = zeros(Float32, d_model)
         ps = (
             W_q = eye4,
@@ -129,10 +131,10 @@ const LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
         y1, _ = layer((x1, mask), ps, st)
         y2, _ = layer((x2, mask), ps, st)
 
-        @test y1[:, 1] ≈ y2[:, 1] atol=1f-5
-        @test y1[:, 2] ≈ y2[:, 2] atol=1f-5
-        @test y1[:, 3] ≈ y2[:, 3] atol=1f-5
-        @test !(y1[:, 4] ≈ y2[:, 4] atol=1f-5)
+        @test isapprox(y1[:, 1], y2[:, 1]; atol=1f-5)
+        @test isapprox(y1[:, 2], y2[:, 2]; atol=1f-5)
+        @test isapprox(y1[:, 3], y2[:, 3]; atol=1f-5)
+        @test !isapprox(y1[:, 4], y2[:, 4]; atol=1f-5)
     end
 
     # -----------------------------------------------------------------
@@ -158,7 +160,7 @@ const LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
         layer = LuxExt.KETAttentionLayer(d_model; n_heads=1, name=:batched_causal_attn)
         st = LuxCore.initialstates(rng, layer)
 
-        eye4 = Matrix{Float32}(I, d_model, d_model)
+        eye4 = Matrix{Float32}(LinearAlgebra.I, d_model, d_model)
         zeros4 = zeros(Float32, d_model)
         ps = (
             W_q = eye4,
@@ -186,9 +188,9 @@ const LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
         y1, _ = layer((x1, mask), ps, st)
         y2, _ = layer((x2, mask), ps, st)
 
-        @test y1[:, 1:3, 1] ≈ y2[:, 1:3, 1] atol=1f-5
-        @test y1[:, 1:3, 2] ≈ y2[:, 1:3, 2] atol=1f-5
-        @test !(y1[:, 4, 2] ≈ y2[:, 4, 2] atol=1f-5)
+        @test isapprox(y1[:, 1:3, 1], y2[:, 1:3, 1]; atol=1f-5)
+        @test isapprox(y1[:, 1:3, 2], y2[:, 1:3, 2]; atol=1f-5)
+        @test !isapprox(y1[:, 4, 2], y2[:, 4, 2]; atol=1f-5)
     end
 
     # -----------------------------------------------------------------
@@ -198,7 +200,7 @@ const LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
         layer = LuxExt.KETAttentionLayer(d_model; n_heads=2, name=:mh_causal_attn)
         st = LuxCore.initialstates(rng, layer)
 
-        eye4 = Matrix{Float32}(I, d_model, d_model)
+        eye4 = Matrix{Float32}(LinearAlgebra.I, d_model, d_model)
         zeros4 = zeros(Float32, d_model)
         ps = (
             W_q = eye4,
@@ -225,10 +227,10 @@ const LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
         y1, _ = layer((x1, mask), ps, st)
         y2, _ = layer((x2, mask), ps, st)
 
-        @test y1[:, 1] ≈ y2[:, 1] atol=1f-5
-        @test y1[:, 2] ≈ y2[:, 2] atol=1f-5
-        @test y1[:, 3] ≈ y2[:, 3] atol=1f-5
-        @test !(y1[:, 4] ≈ y2[:, 4] atol=1f-5)
+        @test isapprox(y1[:, 1], y2[:, 1]; atol=1f-5)
+        @test isapprox(y1[:, 2], y2[:, 2]; atol=1f-5)
+        @test isapprox(y1[:, 3], y2[:, 3]; atol=1f-5)
+        @test !isapprox(y1[:, 4], y2[:, 4]; atol=1f-5)
     end
 
     # -----------------------------------------------------------------
@@ -243,7 +245,7 @@ const LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
         @test l1 ≈ 1.0f0
 
         cos_dist = LuxExt.neural_cosine_comparator(a, a)
-        @test cos_dist ≈ 0.0f0 atol=1e-5
+        @test isapprox(cos_dist, 0.0f0; atol=1e-5)
     end
 
     # -----------------------------------------------------------------
@@ -386,6 +388,80 @@ const LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
     end
 
     # -----------------------------------------------------------------
+    @testset "RelationInferenceLayer learns a relation matrix" begin
+        d_model = 8
+        seq_len = 5
+        layer = RelationInferenceLayer(d_model; name=:infer_relation)
+        ps, st = Lux.setup(rng, layer)
+        source = randn(rng, Float32, d_model, seq_len)
+        relation, _ = layer(source, ps, st)
+        @test size(relation) == (seq_len, seq_len)
+        @test all(relation .>= 0.0f0)
+        @test all(relation .<= 1.0f0)
+        @test all(LinearAlgebra.diag(relation) .≈ 1.0f0)
+    end
+
+    # -----------------------------------------------------------------
+    @testset "build_topocoend_lux_model convenience" begin
+        d_model = 8
+        model, D = build_topocoend_lux_model(d_model; n_heads=2)
+
+        ps, st = Lux.setup(rng, model)
+        seq_len = 4
+        inputs = Dict(
+            D.ports[:input].ref => randn(rng, Float32, d_model, seq_len),
+        )
+        result, _ = model(inputs, ps, st)
+        @test size(result[:values][D.ports[:learned_relation].ref]) == (seq_len, seq_len)
+        @test size(result[:values][D.ports[:output].ref]) == (d_model, seq_len)
+    end
+
+    # -----------------------------------------------------------------
+    @testset "build_horn_lux_model convenience" begin
+        d_model = 6
+        model, D = build_horn_lux_model(d_model)
+
+        ps, st = Lux.setup(rng, model)
+        inputs = Dict(:Vertex0 => randn(rng, Float32, d_model, 3))
+        result, _ = model(inputs, ps, st)
+        @test size(result[:values][:horn_boundary]) == (d_model, 3)
+        @test size(result[:values][:d02]) == (d_model, 3)
+        @test result[:losses][:horn_obstruction] >= 0
+    end
+
+    # -----------------------------------------------------------------
+    @testset "build_higher_horn_lux_model convenience" begin
+        d_model = 6
+        model, D = build_higher_horn_lux_model(d_model;
+            config=HigherHornConfig(filler_faces=[:d03_exact, :d03_relaxed]))
+
+        ps, st = Lux.setup(rng, model)
+        inputs = Dict(:Vertex0 => randn(rng, Float32, d_model, 2))
+        result, _ = model(inputs, ps, st)
+        @test size(result[:values][:higher_horn_boundary]) == (d_model, 2)
+        @test size(result[:values][:d03_exact]) == (d_model, 2)
+        @test size(result[:values][:d03_relaxed]) == (d_model, 2)
+        @test result[:losses][:higher_horn_obstruction] >= 0
+    end
+
+    # -----------------------------------------------------------------
+    @testset "build_bisimulation_quotient_lux_model convenience" begin
+        d_model = 5
+        model, D = build_bisimulation_quotient_lux_model(d_model)
+
+        ps, st = Lux.setup(rng, model)
+        seq_len = 3
+        inputs = Dict(
+            D.ports[:relation].ref => randn(rng, Float32, d_model, seq_len),
+        )
+        result, _ = model(inputs, ps, st)
+        @test size(result[:values][D.ports[:left_behavior].ref]) == (d_model, seq_len)
+        @test size(result[:values][D.ports[:right_behavior].ref]) == (d_model, seq_len)
+        @test size(result[:values][D.ports[:output].ref]) == (d_model, seq_len)
+        @test result[:losses][:behavior_quotient_coeq_loss] >= 0
+    end
+
+    # -----------------------------------------------------------------
     @testset "Mixed neural/symbolic execution" begin
         # Build a diagram with some neural ops and some symbolic ops
         D = Diagram(:MixedModel)
@@ -424,11 +500,12 @@ const LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
         pos = zeros(Float32, 2, 2, 1)
         embed = Float32[1 0; 0 1]
         head = Float32[2 1; -1 3]
+        readout = reshape(Float32[1, -2, 3, -4], 2, 2, 1)
 
         function detached_loss(head_w)
             logits = reshape(head_w * reshape(hidden, 2, :), 2, 2, 1)
             source = FunctorFlow.predict_detach_source(logits, embed; position_bias=pos)
-            sum(source)
+            sum(source .* readout)
         end
 
         function leaky_loss(head_w)
@@ -437,13 +514,13 @@ const LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
             probs_2d = reshape(probs, size(probs, 1), :)
             predicted = reshape(embed * probs_2d, size(embed, 1), 2, 1)
             source = predicted .+ pos
-            sum(source)
+            sum(source .* readout)
         end
 
-        grad_detached = gradient(detached_loss, head)[1]
+        grad_detached = something(gradient(detached_loss, head)[1], zeros(Float32, size(head)...))
         grad_leaky = gradient(leaky_loss, head)[1]
 
-        @test grad_detached ≈ zeros(Float32, size(head)...) atol=1f-6
+        @test isapprox(grad_detached, zeros(Float32, size(head)...); atol=1f-6)
         @test !isapprox(grad_leaky, zeros(Float32, size(head)...); atol=1f-6)
     end
 

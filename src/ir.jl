@@ -102,6 +102,9 @@ end
 function _serialize_value(v::Vector{Symbol})
     String.(v)
 end
+function _serialize_value(v::AbstractVector)
+    [_serialize_value(x) for x in v]
+end
 function _serialize_value(v::PortDirection)
     lowercase(string(v))
 end
@@ -110,6 +113,12 @@ function _serialize_value(v::KanDirection)
 end
 function _serialize_value(v::Vector{Tuple{Symbol, Symbol}})
     [(String(a), String(b)) for (a, b) in v]
+end
+function _serialize_value(v::Tuple)
+    [_serialize_value(x) for x in v]
+end
+function _serialize_value(v::Set)
+    [_serialize_value(x) for x in sort!(collect(v); by=string)]
 end
 function _serialize_value(v::Nothing)
     nothing
