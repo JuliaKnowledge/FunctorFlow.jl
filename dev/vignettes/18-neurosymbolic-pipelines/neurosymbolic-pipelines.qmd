@@ -32,6 +32,13 @@ blocks:
 The common pattern is categorical: assemble local evidence, map it through a relation, and
 use either a Kan extension or a universal construction to force global consistency.
 
+This vignette is the symbolic overview page for the CATAGI block family. The
+dedicated follow-ups are:
+
+- [07 Lux Neural Backend](../07-lux-neural-backend/lux-neural-backend.html) for trainable versions
+- [23 TopoCoend Triage](../23-topocoend-triage/topocoend-triage.html) for a focused TopoCoend example
+- [24 Bisimulation Quotient](../24-bisimulation-quotient/bisimulation-quotient.html) for the quotient/coequalizer example
+
 ## Setup
 
 ```{julia}
@@ -160,6 +167,11 @@ The categorical point is that a **coend-like aggregation** should depend on an e
 constructed cover, not just a fixed adjacency matrix. This is a natural bridge between
 attention, sheaves, and relation learning.
 
+For a concrete single-block walkthrough, see
+[23 TopoCoend Triage](../23-topocoend-triage/topocoend-triage.html). For the
+trainable version, see `build_topocoend_lux_model` in
+[07 Lux Neural Backend](../07-lux-neural-backend/lux-neural-backend.html).
+
 ## Lux-Backed Trainable Planner
 
 The same `BASKET → ROCKET` geometry can be compiled into a differentiable Lux model. In this
@@ -259,6 +271,29 @@ println("Horn obstruction: ", horn_result.losses[:horn_obstruction])
 This is a lightweight entry point for **simplicial regularization**: consistency is enforced
 not just pairwise, but over triangular compositions.
 
+`higher_horn_block` extends the same idea to longer boundary chains and multiple competing
+fillers. That lets one diagram encode a family of higher-order regularizers instead of a
+single triangle.
+
+```{julia}
+higher_horn = higher_horn_block(;
+    config=HigherHornConfig(
+        filler_faces=[:d03_exact, :d03_relaxed]
+    ),
+    boundary_face_impls=[x -> x + 1, x -> x * 2, x -> x - 3],
+    filler_impls=[x -> ((x + 1) * 2) - 3, x -> ((x + 1) * 2) - 2]
+)
+println(summary(higher_horn))
+```
+
+```{julia}
+higher_horn_result = FunctorFlow.run(higher_horn, Dict(:Vertex0 => 3))
+println("Higher boundary path: ", higher_horn_result.values[:higher_horn_boundary])
+println("Exact filler: ", higher_horn_result.values[:d03_exact])
+println("Relaxed filler: ", higher_horn_result.values[:d03_relaxed])
+println("Higher horn obstruction: ", higher_horn_result.losses[:higher_horn_obstruction])
+```
+
 ## Behavioral Quotients via a Coequalizer
 
 `bisimulation_quotient_block` turns a relation witness into two parallel behavior maps and
@@ -283,6 +318,21 @@ The key structure is:
 This is a useful template for state abstraction in world models, option discovery, or policy
 compression.
 
+The dedicated symbolic quotient walkthrough lives in
+[24 Bisimulation Quotient](../24-bisimulation-quotient/bisimulation-quotient.html),
+and the Lux-backed counterpart is `build_bisimulation_quotient_lux_model` in
+[07 Lux Neural Backend](../07-lux-neural-backend/lux-neural-backend.html).
+
+## Related Docs
+
+- [04 Block Library](../04-block-library/block-library.html) for the reusable
+  CATAGI block summary and API map.
+- [07 Lux Neural Backend](../07-lux-neural-backend/lux-neural-backend.html) for
+  the differentiable versions of the TopoCoend, horn, and bisimulation blocks.
+- [23 TopoCoend Triage](../23-topocoend-triage/topocoend-triage.html) and
+  [24 Bisimulation Quotient](../24-bisimulation-quotient/bisimulation-quotient.html)
+  for focused single-block walkthroughs.
+
 ## Takeaways
 
 These additions make the `FunctorFlow` block layer more explicitly neurosymbolic:
@@ -290,7 +340,7 @@ These additions make the `FunctorFlow` block layer more explicitly neurosymbolic
 - **Planning** becomes Kan aggregation + repair + edit consistency.
 - **Causal assembly** becomes sheaf gluing + regrounding.
 - **Learned neighborhoods** become explicit categorical objects.
-- **Higher-order coherence** becomes a horn-filling obstruction.
+- **Higher-order coherence** becomes a horn-filling obstruction, from triangles to horn families.
 - **State abstraction** becomes a coequalizer over behavioral witnesses.
 
 The most immediately useful pattern is still **BASKET → ROCKET**, but it now sits inside a

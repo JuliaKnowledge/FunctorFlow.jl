@@ -93,9 +93,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#lux-backed-trainable-planner" id="toc-lux-backed-trainable-planner" class="nav-link" data-scroll-target="#lux-backed-trainable-planner">Lux-Backed Trainable Planner</a></li>
   <li><a href="#horn-filling-as-an-obstruction-loss" id="toc-horn-filling-as-an-obstruction-loss" class="nav-link" data-scroll-target="#horn-filling-as-an-obstruction-loss">Horn Filling as an Obstruction Loss</a></li>
   <li><a href="#behavioral-quotients-via-a-coequalizer" id="toc-behavioral-quotients-via-a-coequalizer" class="nav-link" data-scroll-target="#behavioral-quotients-via-a-coequalizer">Behavioral Quotients via a Coequalizer</a></li>
+  <li><a href="#related-docs" id="toc-related-docs" class="nav-link" data-scroll-target="#related-docs">Related Docs</a></li>
   <li><a href="#takeaways" id="toc-takeaways" class="nav-link" data-scroll-target="#takeaways">Takeaways</a></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="neurosymbolic-pipelines.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="neurosymbolic-pipelines.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="neurosymbolic-pipelines.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="../../neurosymbolic-pipelines.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
 </div>
 <main class="content" id="quarto-document-content">
 
@@ -136,6 +137,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Bisimulation quotienting</strong> for collapsing behaviorally equivalent trajectories</li>
 </ul>
 <p>The common pattern is categorical: assemble local evidence, map it through a relation, and use either a Kan extension or a universal construction to force global consistency.</p>
+<p>This vignette is the symbolic overview page for the CATAGI block family. The dedicated follow-ups are:</p>
+<ul>
+<li><a href="../07-lux-neural-backend/lux-neural-backend.html">07 Lux Neural Backend</a> for trainable versions</li>
+<li><a href="../23-topocoend-triage/topocoend-triage.html">23 TopoCoend Triage</a> for a focused TopoCoend example</li>
+<li><a href="../24-bisimulation-quotient/bisimulation-quotient.html">24 Bisimulation Quotient</a> for the quotient/coequalizer example</li>
+</ul>
 </section>
 <section id="setup" class="level2">
 <h2 class="anchored" data-anchor-id="setup">Setup</h2>
@@ -238,7 +245,7 @@ Repaired coverage: 1.0</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>Global state: Dict{Any, Any}(:world =&gt; Set(Any["WetGrass -&gt; SlipperyRoad", "Rain -&gt; WetGrass"]))
 Regrounded claims: Dict{Any, Any}(:world =&gt; Set(Any["WetGrass -&gt; SlipperyRoad", "Rain -&gt; WetGrass"]))
-Coherence loss: 0.0</code></pre>
+Coherence loss: 0.4285714285714286</code></pre>
 </div>
 </div>
 <p>This is a useful template for <strong>fragmentary causal discovery</strong>, multi-document synthesis, or multi-view world-model assembly.</p>
@@ -269,6 +276,7 @@ Global context: Dict(:scene =&gt; 2.3333333333333335)</code></pre>
 </div>
 </div>
 <p>The categorical point is that a <strong>coend-like aggregation</strong> should depend on an explicitly constructed cover, not just a fixed adjacency matrix. This is a natural bridge between attention, sheaves, and relation learning.</p>
+<p>For a concrete single-block walkthrough, see <a href="../23-topocoend-triage/topocoend-triage.html">23 TopoCoend Triage</a>. For the trainable version, see <code>build_topocoend_lux_model</code> in <a href="../07-lux-neural-backend/lux-neural-backend.html">07 Lux Neural Backend</a>.</p>
 </section>
 <section id="lux-backed-trainable-planner" class="level2">
 <h2 class="anchored" data-anchor-id="lux-backed-trainable-planner">Lux-Backed Trainable Planner</h2>
@@ -368,16 +376,43 @@ Horn obstruction: 0.0</code></pre>
 </div>
 </div>
 <p>This is a lightweight entry point for <strong>simplicial regularization</strong>: consistency is enforced not just pairwise, but over triangular compositions.</p>
+<p><code>higher_horn_block</code> extends the same idea to longer boundary chains and multiple competing fillers. That lets one diagram encode a family of higher-order regularizers instead of a single triangle.</p>
+<div id="24" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>higher_horn <span class="op">=</span> <span class="fu">higher_horn_block</span>(;</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    config<span class="op">=</span><span class="fu">HigherHornConfig</span>(</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>        filler_faces<span class="op">=</span>[<span class="op">:</span>d03_exact, <span class="op">:</span>d03_relaxed]</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    boundary_face_impls<span class="op">=</span>[x <span class="op">-&gt;</span> x <span class="op">+</span> <span class="fl">1</span>, x <span class="op">-&gt;</span> x <span class="op">*</span> <span class="fl">2</span>, x <span class="op">-&gt;</span> x <span class="op">-</span> <span class="fl">3</span>],</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    filler_impls<span class="op">=</span>[x <span class="op">-&gt;</span> ((x <span class="op">+</span> <span class="fl">1</span>) <span class="op">*</span> <span class="fl">2</span>) <span class="op">-</span> <span class="fl">3</span>, x <span class="op">-&gt;</span> ((x <span class="op">+</span> <span class="fl">1</span>) <span class="op">*</span> <span class="fl">2</span>) <span class="op">-</span> <span class="fl">2</span>]</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(higher_horn))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>FunctorFlow.Diagram</code></pre>
+</div>
+</div>
+<div id="26" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>higher_horn_result <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(higher_horn, <span class="fu">Dict</span>(<span class="op">:</span>Vertex0 <span class="op">=&gt;</span> <span class="fl">3</span>))</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Higher boundary path: "</span>, higher_horn_result.values[<span class="op">:</span>higher_horn_boundary])</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Exact filler: "</span>, higher_horn_result.values[<span class="op">:</span>d03_exact])</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Relaxed filler: "</span>, higher_horn_result.values[<span class="op">:</span>d03_relaxed])</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Higher horn obstruction: "</span>, higher_horn_result.losses[<span class="op">:</span>higher_horn_obstruction])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Higher boundary path: 5
+Exact filler: 5
+Relaxed filler: 6
+Higher horn obstruction: 1.0</code></pre>
+</div>
+</div>
 </section>
 <section id="behavioral-quotients-via-a-coequalizer" class="level2">
 <h2 class="anchored" data-anchor-id="behavioral-quotients-via-a-coequalizer">Behavioral Quotients via a Coequalizer</h2>
 <p><code>bisimulation_quotient_block</code> turns a relation witness into two parallel behavior maps and then takes their coequalizer. The resulting quotient object is the categorical abstraction of “these two trajectories are behaviorally indistinguishable.”</p>
-<div id="24" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>quotient <span class="op">=</span> <span class="fu">bisimulation_quotient_block</span>()</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(quotient))</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Ports: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(quotient.ports)))</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(quotient.objects)))</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Operations: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(quotient.operations)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="28" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>quotient <span class="op">=</span> <span class="fu">bisimulation_quotient_block</span>()</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(quotient))</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Ports: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(quotient.ports)))</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(quotient.objects)))</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Operations: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(quotient.operations)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>FunctorFlow.Diagram
 Ports: [:relation, :left_behavior, :right_behavior, :output]
@@ -393,6 +428,15 @@ Operations: [:base__proj_left, :base__proj_right, :base__observe_a, :base__obser
 <li>a <strong>coequalizer</strong> that identifies behaviorally equivalent observations</li>
 </ul>
 <p>This is a useful template for state abstraction in world models, option discovery, or policy compression.</p>
+<p>The dedicated symbolic quotient walkthrough lives in <a href="../24-bisimulation-quotient/bisimulation-quotient.html">24 Bisimulation Quotient</a>, and the Lux-backed counterpart is <code>build_bisimulation_quotient_lux_model</code> in <a href="../07-lux-neural-backend/lux-neural-backend.html">07 Lux Neural Backend</a>.</p>
+</section>
+<section id="related-docs" class="level2">
+<h2 class="anchored" data-anchor-id="related-docs">Related Docs</h2>
+<ul>
+<li><a href="../04-block-library/block-library.html">04 Block Library</a> for the reusable CATAGI block summary and API map.</li>
+<li><a href="../07-lux-neural-backend/lux-neural-backend.html">07 Lux Neural Backend</a> for the differentiable versions of the TopoCoend, horn, and bisimulation blocks.</li>
+<li><a href="../23-topocoend-triage/topocoend-triage.html">23 TopoCoend Triage</a> and <a href="../24-bisimulation-quotient/bisimulation-quotient.html">24 Bisimulation Quotient</a> for focused single-block walkthroughs.</li>
+</ul>
 </section>
 <section id="takeaways" class="level2">
 <h2 class="anchored" data-anchor-id="takeaways">Takeaways</h2>
@@ -401,7 +445,7 @@ Operations: [:base__proj_left, :base__proj_right, :base__observe_a, :base__obser
 <li><strong>Planning</strong> becomes Kan aggregation + repair + edit consistency.</li>
 <li><strong>Causal assembly</strong> becomes sheaf gluing + regrounding.</li>
 <li><strong>Learned neighborhoods</strong> become explicit categorical objects.</li>
-<li><strong>Higher-order coherence</strong> becomes a horn-filling obstruction.</li>
+<li><strong>Higher-order coherence</strong> becomes a horn-filling obstruction, from triangles to horn families.</li>
 <li><strong>State abstraction</strong> becomes a coequalizer over behavioral witnesses.</li>
 </ul>
 <p>The most immediately useful pattern is still <strong>BASKET → ROCKET</strong>, but it now sits inside a broader family of categorical agent architectures rather than being a one-off workflow block.</p>

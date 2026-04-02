@@ -215,6 +215,40 @@ ps_gm, st_gm = Lux.setup(rng, gt_model)
 println("GT model type: ", typeof(gt_model))
 ```
 
+### CATAGI block backends
+
+```{julia}
+topo_model, topo_diag = FunctorFlow.build_topocoend_lux_model(8; n_heads=2)
+horn_model, horn_diag = FunctorFlow.build_horn_lux_model(8)
+bisim_model, bisim_diag = FunctorFlow.build_bisimulation_quotient_lux_model(8)
+
+println("TopoCoend model type: ", typeof(topo_model))
+println("Horn model type: ", typeof(horn_model))
+println("Bisimulation quotient model type: ", typeof(bisim_model))
+```
+
+The `build_topocoend_lux_model` helper uses a dedicated
+`RelationInferenceLayer` to construct a soft relation before the Kan
+aggregation:
+
+```{julia}
+ps_topo, st_topo = Lux.setup(rng, topo_model)
+seq_len = 4
+topo_inputs = Dict(
+    topo_diag.ports[:input].ref => randn(rng, Float32, 8, seq_len)
+)
+topo_result, st_topo = topo_model(topo_inputs, ps_topo, st_topo)
+println("Learned relation size: ", size(topo_result[:values][topo_diag.ports[:learned_relation].ref]))
+println("TopoCoend output size: ", size(topo_result[:values][topo_diag.ports[:output].ref]))
+```
+
+These CATAGI builders are the differentiable companions to the symbolic
+walkthroughs in:
+
+- [18 Neurosymbolic Pipelines](../18-neurosymbolic-pipelines/neurosymbolic-pipelines.html)
+- [23 TopoCoend Triage](../23-topocoend-triage/topocoend-triage.html)
+- [24 Bisimulation Quotient](../24-bisimulation-quotient/bisimulation-quotient.html)
+
 ## Mixed Neural/Symbolic
 
 A key strength of the FunctorFlow Lux backend is that you can mix **neural** morphisms (Lux layers with learnable parameters) and **symbolic** morphisms (plain Julia functions) in the same diagram. The compiler handles the routing automatically.
@@ -262,4 +296,17 @@ result_mix, st_mix2 = model_mixed(
 println("Pipeline output size: ", size(result_mix[:values][:pipeline]))
 ```
 
-The `:normalize` morphism uses the bound Julia function (no parameters), while `:encode` and `:decode` use learnable `DiagramDenseLayer` instances. Gradients flow through the symbolic normalization via standard automatic differentiation.
+The `:normalize` morphism uses the bound Julia function (no parameters), while
+`:encode` and `:decode` use learnable `DiagramDenseLayer` instances. Gradients
+flow through the symbolic normalization via standard automatic differentiation.
+
+## Related Docs
+
+- [04 Block Library](../04-block-library/block-library.html) for the reusable
+  symbolic builders and the CATAGI block guide.
+- [18 Neurosymbolic Pipelines](../18-neurosymbolic-pipelines/neurosymbolic-pipelines.html)
+  for the symbolic versions of the same planning / TopoCoend / horn /
+  bisimulation patterns.
+- [23 TopoCoend Triage](../23-topocoend-triage/topocoend-triage.html) and
+  [24 Bisimulation Quotient](../24-bisimulation-quotient/bisimulation-quotient.html)
+  for focused single-block walkthroughs.
