@@ -177,6 +177,31 @@ lean_code = render_lean_certificate(D)
 write_lean_certificate(D; output_dir="proofs/generated")
 ```
 
+### CLIFF-style orchestration layer
+
+FunctorFlow.jl now also includes a Julia-native orchestration surface inspired by
+the `CLIFF_CatAgi` router and conscious-workspace layer:
+
+```julia
+router = build_cliff_query_router()
+decision = route_cliff_query(router, "How similar is Adobe to Nike?"; execution_mode=:deep)
+
+example = build_cliff_orchestration_example()
+summary = summarize_cliff_orchestration_example(example)
+summary["route_decision"]["route_name"]   # "company_similarity"
+summary["convergence"]["stop_trigger"]    # "stability"
+
+runtime_example = build_cliff_runtime_example()
+trace = execute_cliff_runtime_example(runtime_example)
+trace.result.status                         # :completed
+summarize_cliff_route_trace(trace)["counts"]["updates"]  # 2
+```
+
+The optional `AgentFramework.jl` extension can then turn `CLIFFAgentSpec`,
+`InteractiveCheckpointRequest`, and `RouteRunResult` values into concrete Julia
+agents, workflow checkpoint requests, and checkpoint payloads for LLM-backed
+execution.
+
 ## Dependencies
 
 - **Required**: OrderedCollections.jl, JSON3.jl

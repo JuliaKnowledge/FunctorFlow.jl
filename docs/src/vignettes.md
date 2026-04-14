@@ -63,3 +63,12 @@ For the CATAGI-oriented material, the most coherent reading path is:
   <li><strong>21 TCC Method Pullback</strong> - DID-vs-IV pullback materialization and compilation against the Democritus causal-claims corpus. <a href="21-tcc-method-pullback/tcc-method-pullback.html">Julia HTML</a> | <a href="21-tcc-method-pullback/tcc-method-pullback.pdf">PDF</a></li>
 </ul>
 ```
+
+## CLIFF orchestration demos
+
+```@raw html
+<ul>
+  <li><strong>25 CLIFF Route Runtime</strong> - build a runnable routed executor in Julia, drive convergence-aware stopping, and compile the resulting route artifact. <a href="25-cliff-route-runtime/cliff-route-runtime.html">Julia HTML</a> | <a href="25-cliff-route-runtime/cliff-route-runtime.md">Markdown</a></li>
+  <li><strong>26 CLIFF Interactive Routing</strong> - execute a checkpointed Democritus-style route, inspect its shared broadcasts, and compile the paused route result. <a href="26-cliff-interactive-routing/cliff-interactive-routing.html">Julia HTML</a> | <a href="26-cliff-interactive-routing/cliff-interactive-routing.md">Markdown</a></li>
+</ul>
+```

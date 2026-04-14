@@ -428,12 +428,96 @@ summary = {
   }]
 }
 print(json.dumps(summary, sort_keys=True))
-""")
+        """)
         @test summary == py_summary
     end
 
     # ==================================================================
-    # B5. Data-bridge semantics
+    # B5. CLIFF-style orchestration semantics
+    # ==================================================================
+    @testset "CLIFF Orchestration" begin
+        router = build_cliff_query_router()
+        @test route_cliff_query(router, "How similar is Adobe to Nike?"; execution_mode=:deep).route_name == :company_similarity
+        @test route_cliff_query(router, "Analyze 10 recent Adobe 10-K filings and extract workflows").route_name == :basket_rocket_sec
+        @test route_cliff_query(router, "Plan a culinary tour in Lisbon with a dinner budget").route_name == :culinary_tour
+        @test route_cliff_query(router, "Show me the Category Theory for AGI textbook demo").route_name == :course_demo
+        @test route_cliff_query(router, "How comfortable is the Lovesac sectional sofa?").route_name == :product_feedback
+        @test route_cliff_query(router, "Analyze recent studies on red wine and synthesize what they support").route_name == :democritus
+        @test route_cliff_query(router, "Analyze recent studies on red wine"; route_override=:product_feedback).route_name == :product_feedback
+
+        example = build_cliff_orchestration_example()
+        plan = build_cliff_orchestration_compilation_plan(example)
+        executed = execute_cliff_orchestration_example(example)
+        summary = summarize_cliff_orchestration_example(example)
+        workspace = example[:workspace]
+
+        @test summary["route_decision"]["route_name"] == "company_similarity"
+        @test summary["counts"]["selected_agents"] == length(example[:selected_agents])
+        @test summary["workspace"]["used_capacity"] == used_capacity(workspace)
+        @test summary["workspace"]["remaining_capacity"] == remaining_capacity(workspace)
+        @test example[:assessments][1].stop_trigger == "min_evidence"
+        @test last(example[:assessments]).stop
+        @test last(example[:assessments]).stop_trigger == "stability"
+        @test any(artifact -> artifact.subject_kind == :cliff_route_run, plan.artifacts)
+        @test any(artifact -> artifact.subject_kind == :conscious_workspace, plan.artifacts)
+        @test any(artifact -> artifact.subject_kind == :evidence_convergence_assessment, plan.artifacts)
+        @test any(occursin("route_query", line) for line in executed.trace)
+        @test any(occursin("select_conscious_workspace", line) for line in executed.trace)
+        @test any(occursin("assess_evidence_convergence", line) for line in executed.trace)
+        @test any(occursin("materialize_route_run", line) for line in executed.trace)
+
+        synthesis_messages = messages_for_agent(example[:board], "synthesis_editor")
+        convergence_messages = messages_for_agent(example[:board], "synthesis_editor"; tag="convergence")
+        @test length(synthesis_messages) == 2
+        @test length(convergence_messages) == 1
+        workspace_broadcasts = publish_workspace!(ConsciousBroadcastBoard(), workspace; source_agent="workspace")
+        @test length(workspace_broadcasts) == length(workspace.selected)
+        @test as_dict(example[:result])["artifacts"][1]["artifact_kind"] == "dashboard"
+        @test as_dict(example[:checkpoint_request])["response_type"] == "approval"
+    end
+
+    # ==================================================================
+    # B6. CLIFF runtime semantics
+    # ==================================================================
+    @testset "CLIFF Runtime" begin
+        example = build_cliff_runtime_example()
+        runtime = example[:runtime]
+        config = example[:config]
+
+        @test Set(list_route_executors(runtime)) == Set([:company_similarity, :democritus])
+        @test get_route_executor(runtime, :company_similarity).route_name == :company_similarity
+
+        trace = execute_cliff_runtime_example(example)
+        summary = summarize_cliff_route_trace(trace)
+
+        @test trace.result.status == :completed
+        @test trace.route_decision.route_name == :company_similarity
+        @test summary["counts"]["updates"] == 2
+        @test summary["counts"]["assessments"] == 2
+        @test summary["latest_assessment"]["stop_trigger"] == "stability"
+        @test summary["primary_artifact"]["artifact_kind"] == "dashboard"
+        @test !needs_human_input(trace.result)
+        @test "Pair recognized" in summary["broadcast_titles"]
+        @test trace.result.metadata[:route_state][:normalized_pair] == ("Adobe", "Nike")
+        @test latest_workspace(trace) === trace.result.workspace
+        @test latest_assessment(trace) === trace.result.convergence
+        @test supports_route_capabilities(trace.route_decision, config.available_capabilities)
+        @test isempty(route_capability_gap(trace.route_decision, config.available_capabilities))
+
+        plan = compile_plan(:CLIFFRuntimeTracePlan, trace.result; metadata=Dict(:example => "cliff_runtime_trace"))
+        @test any(artifact -> artifact.subject_kind == :cliff_route_run, plan.artifacts)
+
+        checkpoint_trace = execute_cliff_interactive_example(example)
+        checkpoint_summary = summarize_cliff_route_trace(checkpoint_trace)
+        @test checkpoint_trace.result.status == :needs_input
+        @test checkpoint_trace.route_decision.route_name == :democritus
+        @test needs_human_input(checkpoint_trace.result)
+        @test checkpoint_summary["pending_checkpoint"]["request_id"] == "democritus-focus-approval"
+        @test checkpoint_trace.result.metadata[:route_state][:study_focus] == "minimum wage and employment"
+    end
+
+    # ==================================================================
+    # B7. Data-bridge semantics
     # ==================================================================
     @testset "Data Bridge Semantics" begin
         plan = build_data_bridge_compilation_plan()

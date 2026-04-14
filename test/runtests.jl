@@ -455,6 +455,9 @@ import Catlab
 
     # Include comprehensive V1 feature tests
     include("test_v1.jl")
+    if Base.find_package("AgentFramework") !== nothing
+        include("test_agentframework_ext.jl")
+    end
 
     @testset "Unicode Operators" begin
         D = Diagram(:UnicodeTest)

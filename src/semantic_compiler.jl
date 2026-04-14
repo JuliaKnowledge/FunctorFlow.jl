@@ -661,6 +661,146 @@ function _compile_rocket_workflow_refinement(refinement::ROCKETWorkflowRefinemen
     ]; metadata=copy(refinement.metadata))
 end
 
+function _compile_cliff_route_decision(decision::CLIFFRouteDecision)
+    CompiledArtifact(decision.route_name, :cliff_route_decision, [
+        CompilationNode(Symbol(decision.route_name, :__cliff_route_decision), :cliff_route_decision;
+            outputs=[decision.route_name],
+            metadata=Dict(
+                :route_name => decision.route_name,
+                :module_name => decision.module_name,
+                :rationale => decision.rationale,
+                :execution_mode => decision.execution_mode,
+                :matched_markers => copy(decision.matched_markers),
+                :required_capabilities => copy(decision.required_capabilities),
+                :metadata => copy(decision.metadata),
+            )),
+    ]; metadata=copy(decision.metadata))
+end
+
+function _compile_cliff_agent_spec(agent::CLIFFAgentSpec)
+    CompiledArtifact(agent.name, :cliff_agent_spec, [
+        CompilationNode(Symbol(agent.name, :__cliff_agent_spec), :cliff_agent_spec;
+            outputs=[agent.name],
+            metadata=Dict(
+                :description => agent.description,
+                :instructions => agent.instructions,
+                :required_capabilities => copy(agent.required_capabilities),
+                :preferred_capabilities => copy(agent.preferred_capabilities),
+                :route_bindings => copy(agent.route_bindings),
+                :metadata => copy(agent.metadata),
+            )),
+    ]; metadata=copy(agent.metadata))
+end
+
+function _compile_conscious_workspace(workspace::ConsciousWorkspaceState)
+    selected_specs = [
+        Dict(
+            :process_name => selection.process.name,
+            :score => selection.score,
+            :attention_cost => selection.process.attention_cost,
+        )
+        for selection in workspace.selected
+    ]
+    deferred_specs = [
+        Dict(
+            :process_name => process.name,
+            :attention_cost => process.attention_cost,
+        )
+        for process in workspace.deferred
+    ]
+    CompiledArtifact(:ConsciousWorkspace, :conscious_workspace, [
+        CompilationNode(:ConsciousWorkspace__state, :conscious_workspace;
+            inputs=[selection.process.name for selection in workspace.selected],
+            outputs=[:ConsciousWorkspace],
+            metadata=Dict(
+                :capacity => workspace.field_of_view.capacity,
+                :used_capacity => used_capacity(workspace),
+                :remaining_capacity => remaining_capacity(workspace),
+                :selected_specs => selected_specs,
+                :deferred_specs => deferred_specs,
+            )),
+    ])
+end
+
+function _compile_evidence_convergence_assessment(assessment::EvidenceConvergenceAssessment)
+    subject_name = Symbol("EvidenceConvergence_", lpad(assessment.iteration, 2, '0'))
+    CompiledArtifact(subject_name, :evidence_convergence_assessment, [
+        CompilationNode(Symbol(subject_name, :__assessment), :evidence_convergence_assessment;
+            outputs=[subject_name],
+            metadata=Dict(
+                :evidence_count => assessment.evidence_count,
+                :iteration => assessment.iteration,
+                :similarity => assessment.similarity,
+                :comparable => assessment.comparable,
+                :stability_threshold => assessment.stability_threshold,
+                :stable_passes => assessment.stable_passes,
+                :required_stable_passes => assessment.required_stable_passes,
+                :remaining_stable_passes => assessment.remaining_stable_passes,
+                :min_evidence_remaining => assessment.min_evidence_remaining,
+                :stable => assessment.stable,
+                :stop => assessment.stop,
+                :stop_trigger => assessment.stop_trigger,
+                :reason => assessment.reason,
+                :snapshot => assessment.snapshot,
+            )),
+    ])
+end
+
+function _compile_cliff_checkpoint_request(request::InteractiveCheckpointRequest)
+    subject_name = Symbol(request.route_name, :__checkpoint_request)
+    CompiledArtifact(subject_name, :cliff_checkpoint_request, [
+        CompilationNode(Symbol(subject_name, :__request), :cliff_checkpoint_request;
+            outputs=[subject_name],
+            metadata=Dict(
+                :request_id => request.request_id,
+                :route_name => request.route_name,
+                :prompt => request.prompt,
+                :payload => copy(request.payload),
+                :response_type => request.response_type,
+                :metadata => copy(request.metadata),
+            )),
+    ]; metadata=copy(request.metadata))
+end
+
+function _compile_cliff_route_run(result::RouteRunResult)
+    subject_name = Symbol(result.route_decision.route_name, :__route_run)
+    inputs = Symbol[result.route_decision.route_name]
+    append!(inputs, [agent.name for agent in result.selected_agents])
+    result.workspace !== nothing && push!(inputs, :ConsciousWorkspace)
+    if result.convergence !== nothing
+        push!(inputs, Symbol("EvidenceConvergence_", lpad(result.convergence.iteration, 2, '0')))
+    end
+    if result.pending_checkpoint !== nothing
+        push!(inputs, Symbol(result.pending_checkpoint.route_name, :__checkpoint_request))
+    end
+    artifact_specs = [
+        Dict(
+            :name => artifact.name,
+            :artifact_kind => artifact.artifact_kind,
+            :content_ref => artifact.content_ref,
+            :tags => copy(artifact.tags),
+            :metadata => copy(artifact.metadata),
+        )
+        for artifact in result.artifacts
+    ]
+    CompiledArtifact(subject_name, :cliff_route_run, [
+        CompilationNode(Symbol(subject_name, :__materialize), :cliff_route_run;
+            inputs=unique(inputs),
+            outputs=[subject_name],
+            metadata=Dict(
+                :route_name => result.route_decision.route_name,
+                :status => result.status,
+                :route_outdir => result.route_outdir,
+                :artifact_specs => artifact_specs,
+                :selected_agents => [agent.name for agent in result.selected_agents],
+                :has_workspace => result.workspace !== nothing,
+                :has_convergence => result.convergence !== nothing,
+                :has_pending_checkpoint => result.pending_checkpoint !== nothing,
+                :metadata => copy(result.metadata),
+            )),
+    ]; metadata=copy(result.metadata))
+end
+
 function _compile_temporal_schrodinger_bridge(bridge::TemporalSchrodingerBridge)
     endpoint_specs = [(constraint.company, constraint.year_from, constraint.year_to, constraint.split)
                       for constraint in bridge.endpoint_constraints]
@@ -951,6 +1091,18 @@ function compile_v1(subject)
         _compile_agentic_workflow(subject)
     elseif subject isa ROCKETWorkflowRefinement
         _compile_rocket_workflow_refinement(subject)
+    elseif subject isa CLIFFRouteDecision
+        _compile_cliff_route_decision(subject)
+    elseif subject isa CLIFFAgentSpec
+        _compile_cliff_agent_spec(subject)
+    elseif subject isa ConsciousWorkspaceState
+        _compile_conscious_workspace(subject)
+    elseif subject isa EvidenceConvergenceAssessment
+        _compile_evidence_convergence_assessment(subject)
+    elseif subject isa InteractiveCheckpointRequest
+        _compile_cliff_checkpoint_request(subject)
+    elseif subject isa RouteRunResult
+        _compile_cliff_route_run(subject)
     elseif subject isa TemporalSchrodingerBridge
         _compile_temporal_schrodinger_bridge(subject)
     elseif subject isa CSQLObject
@@ -1025,6 +1177,12 @@ function _opcode_for_node(node::CompilationNode)
         :rocket_refinement => :refine_structured_state,
         :agentic_workflow => :declare_agentic_workflow,
         :rocket_workflow_refinement => :refine_agentic_workflow,
+        :cliff_route_decision => :route_query,
+        :cliff_agent_spec => :declare_cliff_agent,
+        :conscious_workspace => :select_conscious_workspace,
+        :evidence_convergence_assessment => :assess_evidence_convergence,
+        :cliff_checkpoint_request => :request_route_checkpoint,
+        :cliff_route_run => :materialize_route_run,
         :temporal_schrodinger_bridge => :instantiate_temporal_bridge,
         :csql_object => :declare_csql_object,
         :csql_morphism => :declare_csql_morphism,
@@ -1159,6 +1317,18 @@ function _type_for_node(node::CompilationNode)
         return IRType(:agentic_workflow; metadata=base_metadata)
     elseif node.node_kind == :rocket_workflow_refinement
         return IRType(:rocket_workflow_refinement; metadata=base_metadata)
+    elseif node.node_kind == :cliff_route_decision
+        return IRType(:cliff_route_decision; metadata=base_metadata)
+    elseif node.node_kind == :cliff_agent_spec
+        return IRType(:cliff_agent_spec; metadata=base_metadata)
+    elseif node.node_kind == :conscious_workspace
+        return IRType(:conscious_workspace; metadata=base_metadata)
+    elseif node.node_kind == :evidence_convergence_assessment
+        return IRType(:evidence_convergence_assessment; metadata=base_metadata)
+    elseif node.node_kind == :cliff_checkpoint_request
+        return IRType(:cliff_checkpoint_request; metadata=base_metadata)
+    elseif node.node_kind == :cliff_route_run
+        return IRType(:cliff_route_run; metadata=base_metadata)
     elseif node.node_kind == :temporal_schrodinger_bridge
         return IRType(:temporal_schrodinger_bridge; metadata=base_metadata)
     elseif node.node_kind == :csql_object

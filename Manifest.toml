@@ -2,7 +2,7 @@
 
 julia_version = "1.12.5"
 manifest_format = "2.0"
-project_hash = "4975e67d1e0d1f1aba1f17154b0591a04104f132"
+project_hash = "abbc908221c9946404973d4d1e3de51c695f2c3b"
 
 [[deps.ACSets]]
 deps = ["AlgebraicInterfaces", "Base64", "CompTime", "DataStructures", "JSON3", "MLStyle", "OrderedCollections", "PEG", "Permutations", "Pkg", "PrettyTables", "Random", "Reexport", "SHA", "StaticArrays", "StructEquality", "StructTypes", "Tables"]
@@ -344,10 +344,12 @@ uuid = "e8daeac3-1699-4d22-bf61-9995042cc00d"
 version = "0.1.0"
 
     [deps.FunctorFlow.extensions]
+    FunctorFlowAgentFrameworkExt = "AgentFramework"
     FunctorFlowMakieExt = "Makie"
     FunctorFlowMetalExt = ["Metal"]
 
     [deps.FunctorFlow.weakdeps]
+    AgentFramework = "8d84e483-4b84-4e3c-9ca2-3749d621083b"
     Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
     Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
 

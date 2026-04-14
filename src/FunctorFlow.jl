@@ -89,6 +89,11 @@ include("scm.jl")
 include("psr.jl")
 include("persistent_world.jl")
 include("workflows.jl")
+include("consciousness.jl")
+include("evidence_convergence.jl")
+include("cliff_router.jl")
+include("cliff_artifacts.jl")
+include("cliff_runtime.jl")
 include("data_bridges.jl")
 include("proof_shapes.jl")
 include("semantic_compiler.jl")
@@ -260,6 +265,32 @@ export build_agentic_workflow, build_rocket_workflow_refinement
 export build_agentic_workflow_example, build_agentic_workflow_compilation_plan
 export build_agentic_workflow_executable_ir, execute_agentic_workflow_example
 export summarize_agentic_workflow_example
+
+# v1: CLIFF-style orchestration semantics
+export UnconsciousProcess, AttentionScoreWeights, ConsciousFieldOfView, BroadcastSelection
+export ConsciousWorkspaceState, ConsciousBroadcast, ConsciousBroadcastBoard, ConsciousnessFunctor
+export publish!, broadcasts, messages_for_agent, clear_broadcasts!, publish_workspace!, score, competition_for_access
+export used_capacity, remaining_capacity
+export AbstractEvidenceConvergenceAdapter, FunctionEvidenceConvergenceAdapter
+export EvidenceConvergencePolicy, EvidenceConvergenceAssessment, EvidenceConvergenceTracker
+export convergence_similarity, convergence_description, assess!, last_assessment
+export CLIFFRouteSpec, CLIFFRouteDecision, CLIFFQueryRouter, build_cliff_query_router, route_cliff_query
+export looks_like_company_similarity_query, looks_like_culinary_tour_query, looks_like_course_demo_query
+export looks_like_product_feedback_query, looks_like_sec_query
+export CLIFFAgentSpec, InteractiveCheckpointRequest, SynthesisArtifact, RouteRunResult
+export primary_artifact, needs_human_input, selected_agent_names
+export route_matches_agent, capability_gap, supports_capabilities, select_agents_for_route
+export CLIFFRouteUpdate, CLIFFRuntimeConfig, CLIFFExecutionContext, CLIFFRouteExecutor, CLIFFRuntime, CLIFFRouteTrace
+export get_route_state, set_route_state!, route_capability_gap, supports_route_capabilities
+export register_route_executor!, get_route_executor, list_route_executors
+export execute_cliff_query, execute_cliff_route, latest_workspace, latest_assessment, broadcast_titles
+export build_cliff_runtime_example, execute_cliff_runtime_example, execute_cliff_interactive_example
+export summarize_cliff_route_trace
+export build_cliff_orchestration_example, build_cliff_orchestration_compilation_plan
+export build_cliff_orchestration_executable_ir, execute_cliff_orchestration_example
+export summarize_cliff_orchestration_example
+export agentframework_capabilities, build_agentframework_agent
+export build_agentframework_request_event, build_agentframework_checkpoint
 
 # v1: Categorical data bridges
 export AtlasFileSet, AtlasSummary, SQLScriptSet, CSQLAtlasStudy

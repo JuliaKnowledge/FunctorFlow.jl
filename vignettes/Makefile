@@ -74,6 +74,14 @@ $(VIGNETTE_DIRS):
 16: 16-kan-duality
 17: 17-causal-jepa
 18: 18-neurosymbolic-pipelines
+19: 19-temporal-repair
+20: 20-red-wine-categorical-db
+21: 21-tcc-method-pullback
+22: 22-democritus-assembly
+23: 23-topocoend-triage
+24: 24-bisimulation-quotient
+25: 25-cliff-route-runtime
+26: 26-cliff-interactive-routing
 
 clean:
 	@for dir in $(VIGNETTE_DIRS); do \
