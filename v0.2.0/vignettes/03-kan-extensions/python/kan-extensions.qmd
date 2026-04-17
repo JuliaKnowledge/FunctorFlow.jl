@@ -1,0 +1,322 @@
+---
+title: "Kan Extensions"
+author: "Simon Frost"
+subtitle: "Universal aggregation and completion"
+format:
+  html:
+    toc: true
+    code-fold: false
+  gfm:
+    toc: true
+  pdf:
+    documentclass: article
+    mainfont: "STIX Two Text"
+    mathfont: "STIX Two Math"
+    monofont: "JuliaMono"
+    pdf-engine: lualatex
+jupyter: python3
+---
+
+## Introduction
+
+Kan extensions are often called "the most universal construction in category theory." In FunctorFlow, they serve as the foundational operation for two dual patterns:
+
+- **Left Kan extension** = universal **aggregation**. It pushes forward values along a relation and reduces them. This single abstraction subsumes attention, pooling, message passing, and context fusion.
+- **Right Kan extension** = universal **completion**. It fills in missing or partial values along a compatibility relation. This covers denoising, repair, and reconciliation.
+
+Both patterns take a source value, a relation (the "along" functor), and a reducer that determines how grouped values are combined.
+
+## Setup
+
+```{python}
+from FunctorFlow import Diagram, compile_to_callable
+```
+
+## Left Kan: Universal Aggregation
+
+A left Kan extension groups source values by a relation and reduces each group. Consider a set of node values and an incidence relation defining neighborhoods:
+
+```{python}
+D = Diagram("LeftKanDemo")
+D.object("Values", kind="messages")
+D.object("Incidence", kind="relation")
+D.left_kan(source="Values", along="Incidence", name="aggregate", reducer="sum")
+
+compiled = compile_to_callable(D)
+
+values = {"a": 1, "b": 2, "c": 3, "d": 4}
+incidence = {"x": ["a", "b"], "y": ["b", "c", "d"], "z": ["a"]}
+
+result = compiled.run({"Values": values, "Incidence": incidence})
+print("Sum aggregation:", result.values["aggregate"])
+```
+
+Target `"x"` receives `1 + 2 = 3`, target `"y"` receives `2 + 3 + 4 = 9`, and target `"z"` receives `1`.
+
+This is the same pattern as:
+
+- **Attention**: values are value vectors, relation is the attention matrix
+- **Pooling**: values are features, relation groups features into pools
+- **Message passing**: values are node messages, relation is the adjacency
+
+## Right Kan: Universal Completion
+
+A right Kan extension completes partial data using a compatibility relation. Where a left Kan aggregates many values into one, a right Kan fills in missing values from compatible sources.
+
+```{python}
+D2 = Diagram("RightKanDemo")
+D2.object("PartialValues", kind="partial")
+D2.object("Compatibility", kind="relation")
+D2.right_kan(source="PartialValues", along="Compatibility",
+             name="complete", reducer="first_non_null")
+
+compiled2 = compile_to_callable(D2)
+
+partial = {"a": None, "b": 42, "c": None, "d": 99}
+compat = {"a": ["b", "c"], "c": ["d", "a"]}
+
+result2 = compiled2.run({"PartialValues": partial, "Compatibility": compat})
+print("Completed:", result2.values["complete"])
+```
+
+For target `"a"`, the compatible sources are `"b"` (42) and `"c"` (None). The `"first_non_null"` reducer returns `42`. For `"c"`, the compatible sources are `"d"` (99) and `"a"` (None), yielding `99`.
+
+## Custom Reducers
+
+You can write and bind custom reducers. A reducer is a function with the signature `(source_values, relation, metadata) -> result`, where `source_values` is a dict of source key-value pairs, `relation` maps target keys to lists of source keys, and the result is a dict of target key-value pairs.
+
+```{python}
+from FunctorFlow.compiler import _normalize_relation
+
+D3 = Diagram("CustomReducer")
+D3.object("Vals", kind="messages")
+D3.object("Rel", kind="relation")
+D3.left_kan(source="Vals", along="Rel", name="weighted_sum",
+            reducer="weighted_sum")
+
+# Custom reducer: weighted sum where weight = position index
+def my_weighted_sum(source_values, relation, metadata):
+    normalized = _normalize_relation(relation)
+    result = {}
+    for target, sources in normalized.items():
+        total = 0.0
+        for i, src in enumerate(sources, 1):
+            val = source_values.get(src, 0)
+            total += i * val
+        result[target] = total
+    return result
+
+D3.bind_reducer("weighted_sum", my_weighted_sum)
+
+compiled3 = compile_to_callable(D3)
+result3 = compiled3.run({
+    "Vals": {"a": 10, "b": 20},
+    "Rel": {"x": ["a", "b"]}
+})
+print("Weighted sum:", result3.values["weighted_sum"])
+```
+
+With weights `[1, 2]` and values `[10, 20]`, the result is `1×10 + 2×20 = 50`.
+
+## Reducer Gallery
+
+FunctorFlow ships with 7 built-in reducers. Let's demonstrate each one using the same source data and relation:
+
+```{python}
+values = {"a": 10, "b": 20, "c": 30}
+relation = {"x": ["a", "b", "c"], "y": ["a"]}
+
+def demo_reducer(reducer_name):
+    D = Diagram(f"demo_{reducer_name}")
+    D.object("V", kind="messages")
+    D.object("R", kind="relation")
+    D.left_kan(source="V", along="R", name="result", reducer=reducer_name)
+    compiled = compile_to_callable(D)
+    result = compiled.run({"V": values, "R": relation})
+    return result.values["result"]
+```
+
+### sum — Sum of values
+
+```{python}
+print("sum:", demo_reducer("sum"))
+```
+
+### mean — Arithmetic mean
+
+```{python}
+print("mean:", demo_reducer("mean"))
+```
+
+### concat — Concatenation
+
+```{python}
+# concat works on strings and lists
+values_str = {"a": "hello", "b": " ", "c": "world"}
+
+D_concat = Diagram("ConcatDemo")
+D_concat.object("V", kind="messages")
+D_concat.object("R", kind="relation")
+D_concat.left_kan(source="V", along="R", name="result", reducer="concat")
+compiled_concat = compile_to_callable(D_concat)
+result_concat = compiled_concat.run({
+    "V": values_str,
+    "R": {"x": ["a", "b", "c"]}
+})
+print("concat:", result_concat.values["result"])
+```
+
+### majority — Most common value
+
+```{python}
+values_vote = {"a": "yes", "b": "no", "c": "yes", "d": "yes"}
+relation_vote = {"x": ["a", "b", "c", "d"]}
+
+D_maj = Diagram("MajorityDemo")
+D_maj.object("V", kind="messages")
+D_maj.object("R", kind="relation")
+D_maj.left_kan(source="V", along="R", name="result", reducer="majority")
+compiled_maj = compile_to_callable(D_maj)
+result_maj = compiled_maj.run({"V": values_vote, "R": relation_vote})
+print("majority:", result_maj.values["result"])
+```
+
+### set_union — Union of collections
+
+```{python}
+values_sets = {"a": {1, 2}, "b": {2, 3}, "c": {4}}
+relation_sets = {"x": ["a", "b", "c"]}
+
+D_union = Diagram("SetUnionDemo")
+D_union.object("V", kind="messages")
+D_union.object("R", kind="relation")
+D_union.left_kan(source="V", along="R", name="result", reducer="set_union")
+compiled_union = compile_to_callable(D_union)
+result_union = compiled_union.run({"V": values_sets, "R": relation_sets})
+print("set_union:", sorted(result_union.values["result"]["x"]))
+```
+
+### tuple — Collect into tuples
+
+```{python}
+print("tuple:", demo_reducer("tuple"))
+```
+
+### first_non_null — First non-None value
+
+```{python}
+values_partial = {"a": None, "b": 42, "c": None}
+relation_partial = {"x": ["a", "b", "c"]}
+
+D_fnn = Diagram("FirstNonNullDemo")
+D_fnn.object("V", kind="partial")
+D_fnn.object("R", kind="relation")
+D_fnn.left_kan(source="V", along="R", name="result", reducer="first_non_null")
+compiled_fnn = compile_to_callable(D_fnn)
+result_fnn = compiled_fnn.run({"V": values_partial, "R": relation_partial})
+print("first_non_null:", result_fnn.values["result"])
+```
+
+## The Duality
+
+Left and right Kan extensions are dual. Applied to the same data, they answer different questions:
+
+- **Left Kan** (aggregation): "What is the combined value at each target?"
+- **Right Kan** (completion): "What value should fill each missing slot?"
+
+```{python}
+D_dual = Diagram("Duality")
+D_dual.object("Data", kind="messages")
+D_dual.object("Relation", kind="relation")
+
+D_dual.left_kan(source="Data", along="Relation", name="aggregated",
+                reducer="sum")
+D_dual.right_kan(source="Data", along="Relation", name="completed",
+                 reducer="first_non_null")
+
+compiled_dual = compile_to_callable(D_dual)
+
+data = {"a": 10, "b": 5, "c": 30}
+rel = {"x": ["a", "b"], "y": ["b", "c"]}
+
+result_dual = compiled_dual.run({"Data": data, "Relation": rel})
+print("Left Kan (sum):", result_dual.values["aggregated"])
+print("Right Kan (first_non_null):", result_dual.values["completed"])
+```
+
+The left Kan sums available values per target group, while the right Kan returns the first non-null value from compatible neighbors. Together, they form the predict-and-repair duality at the heart of FunctorFlow's architectural patterns.
+
+## Comparing Left and Right Kan with Different Reducers
+
+Let's build the same diagram structure and compare the outputs when we swap left and right Kan with different reducers.
+
+```{python}
+source_data = {"a": 5, "b": 10, "c": 15, "d": 20}
+relation_data = {"p": ["a", "b"], "q": ["c", "d"], "r": ["a", "c"]}
+
+def run_kan(direction, reducer_name):
+    D = Diagram(f"{direction}_{reducer_name}")
+    D.object("S", kind="messages")
+    D.object("R", kind="relation")
+    if direction == "left":
+        D.left_kan(source="S", along="R", name="result",
+                   reducer=reducer_name)
+    else:
+        D.right_kan(source="S", along="R", name="result",
+                    reducer=reducer_name)
+    compiled = compile_to_callable(D)
+    result = compiled.run({"S": source_data, "R": relation_data})
+    return result.values["result"]
+
+print("Left Kan + sum:", run_kan("left", "sum"))
+print("Left Kan + mean:", run_kan("left", "mean"))
+print("Right Kan + sum:", run_kan("right", "sum"))
+print("Right Kan + mean:", run_kan("right", "mean"))
+```
+
+### Custom Reducer with Right Kan
+
+Custom reducers work identically with right Kan extensions. Here's a `max` reducer:
+
+```{python}
+D_max = Diagram("MaxCompletion")
+D_max.object("Values", kind="partial")
+D_max.object("Neighbors", kind="relation")
+D_max.right_kan(source="Values", along="Neighbors", name="max_filled",
+                reducer="max_val")
+
+def max_reducer(source_values, relation, metadata):
+    from FunctorFlow.compiler import _normalize_relation
+    normalized = _normalize_relation(relation)
+    result = {}
+    for target, sources in normalized.items():
+        vals = [source_values[s] for s in sources
+                if s in source_values and source_values[s] is not None]
+        result[target] = max(vals) if vals else None
+    return result
+
+D_max.bind_reducer("max_val", max_reducer)
+
+compiled_max = compile_to_callable(D_max)
+result_max = compiled_max.run({
+    "Values": {"a": None, "b": 7, "c": 3, "d": None},
+    "Neighbors": {"a": ["b", "c"], "d": ["b", "c"]}
+})
+print("Right Kan + max:", result_max.values["max_filled"])
+```
+
+Target `"a"` and `"d"` both get `max(7, 3) = 7` from their compatible neighbors.
+
+## Summary of Built-in Reducers
+
+| Reducer | Behaviour | Typical Use |
+|---------|-----------|-------------|
+| `"sum"` | Sum of grouped values | Pooling, message passing |
+| `"mean"` | Arithmetic mean of grouped values | Attention, averaging |
+| `"concat"` | Concatenation (strings or lists) | Sequence fusion |
+| `"majority"` | Most common value | Voting, consensus |
+| `"set_union"` | Union of sets | Feature aggregation |
+| `"tuple"` | Collect values into a tuple | Grouping, debugging |
+| `"first_non_null"` | First non-None value | Completion, repair |
+
+All reducers follow the signature `(source_values, relation, metadata) -> dict`, making it straightforward to define custom reducers for any aggregation or completion strategy.

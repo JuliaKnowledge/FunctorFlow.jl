@@ -1,0 +1,89 @@
+---
+title: "Bisimulation Quotient"
+subtitle: "Collapsing behaviorally equivalent controllers with a coequalizer"
+author: "Simon Frost"
+format:
+  html:
+    code-fold: false
+    toc: true
+  gfm:
+    toc: true
+  pdf:
+    code-fold: false
+    toc: true
+    mainfont: "STIX Two Text"
+    sansfont: "STIX Two Text"
+    monofont: "JuliaMono"
+    mathfont: "STIX Two Math"
+engine: julia
+---
+
+## Setup
+
+```{julia}
+#| output: false
+using FunctorFlow
+```
+
+`bisimulation_quotient_block` is the categorical move that turns two behavior
+maps into an explicit quotient. This vignette uses two different latent
+controller state spaces that nonetheless induce the same observable routing
+policy on paired states.
+
+## Build the Example
+
+```{julia}
+example = build_bisimulation_quotient_example()
+diagram = example[:diagram]
+println(summary(diagram))
+println("Declared bisimulations: ", collect(keys(get_bisimulations(diagram))))
+```
+
+The example explicitly declares:
+
+1. two observation coalgebras (`controller_a` and `controller_b`),
+2. a bisimulation witness (`controller_alignment`), and
+3. a coequalizer quotient that identifies equivalent behavior classes.
+
+## Execute the Quotient Diagram
+
+```{julia}
+result = execute_bisimulation_quotient_example(example)
+println("Left behaviors: ", result.values[diagram.ports[:left_behavior].ref])
+println("Right behaviors: ", result.values[diagram.ports[:right_behavior].ref])
+println("Quotient codes: ", result.values[diagram.ports[:output].ref])
+println("Coequalizer loss: ", result.losses[:behavioral_class_coeq_loss])
+```
+
+The key point is that the latent states are not identical, but their observable
+behavior signatures agree pairwise. The coequalizer loss therefore vanishes.
+
+## Summarize the Quotient Classes
+
+```{julia}
+summary = summarize_bisimulation_quotient_example(example)
+println("Quotient labels: ", summary["quotient_labels"])
+println("Declared bisimulations: ", summary["declared_bisimulations"])
+println("Counts: ", summary["counts"])
+```
+
+Here the quotient classes are simple numeric codes rendered back into semantic
+labels like `acute_reroute` and `steady_progress`. In a larger system this same
+pattern can be used to collapse equivalent latent world states, controller
+modes, or option policies before downstream planning.
+
+## Inspect the Underlying Relation
+
+```{julia}
+println("Paired latent states: ", example[:relation_pairs])
+```
+
+This is the practical interpretation of the categorical quotient: start from a
+relation witness, project into behavior, and identify states that are
+indistinguishable at the behavioral level.
+
+For the broader CATAGI symbolic overview, see
+[18 Neurosymbolic Pipelines](../18-neurosymbolic-pipelines/neurosymbolic-pipelines.html).
+For the trainable version of this pattern, see
+`build_bisimulation_quotient_lux_model` in
+[07 Lux Neural Backend](../07-lux-neural-backend/lux-neural-backend.html).

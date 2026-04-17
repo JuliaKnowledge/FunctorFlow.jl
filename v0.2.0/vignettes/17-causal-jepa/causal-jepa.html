@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Simon Frost">
+
+<title>Causal-JEPA: Object-Level Interventions as Categorical Operations</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="causal-jepa_files/libs/clipboard/clipboard.min.js"></script>
+<script src="causal-jepa_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="causal-jepa_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="causal-jepa_files/libs/quarto-html/popper.min.js"></script>
+<script src="causal-jepa_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="causal-jepa_files/libs/quarto-html/anchor.min.js"></script>
+<link href="causal-jepa_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="causal-jepa_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="causal-jepa_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="causal-jepa_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="causal-jepa_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#object-centric-world-as-a-product-diagram" id="toc-object-centric-world-as-a-product-diagram" class="nav-link" data-scroll-target="#object-centric-world-as-a-product-diagram">Object-Centric World as a Product Diagram</a></li>
+  <li><a href="#object-level-masking-as-a-categorical-intervention" id="toc-object-level-masking-as-a-categorical-intervention" class="nav-link" data-scroll-target="#object-level-masking-as-a-categorical-intervention">Object-Level Masking as a Categorical Intervention</a></li>
+  <li><a href="#influence-neighborhood-as-right-kan-completion" id="toc-influence-neighborhood-as-right-kan-completion" class="nav-link" data-scroll-target="#influence-neighborhood-as-right-kan-completion">Influence Neighborhood as Right-Kan Completion</a></li>
+  <li><a href="#c-jepa-training-as-coalgebraic-obstruction" id="toc-c-jepa-training-as-coalgebraic-obstruction" class="nav-link" data-scroll-target="#c-jepa-training-as-coalgebraic-obstruction">C-JEPA Training as Coalgebraic Obstruction</a></li>
+  <li><a href="#synthetic-multi-object-interaction-simulation" id="toc-synthetic-multi-object-interaction-simulation" class="nav-link" data-scroll-target="#synthetic-multi-object-interaction-simulation">Synthetic Multi-Object Interaction Simulation</a></li>
+  <li><a href="#masking-and-counterfactual-queries" id="toc-masking-and-counterfactual-queries" class="nav-link" data-scroll-target="#masking-and-counterfactual-queries">Masking and Counterfactual Queries</a></li>
+  <li><a href="#counterfactual-reasoning-via-σ-δ-composition" id="toc-counterfactual-reasoning-via-σ-δ-composition" class="nav-link" data-scroll-target="#counterfactual-reasoning-via-σ-δ-composition">Counterfactual Reasoning via Σ ∘ Δ Composition</a></li>
+  <li><a href="#topos-theoretic-view-subobject-classifier-for-masking" id="toc-topos-theoretic-view-subobject-classifier-for-masking" class="nav-link" data-scroll-target="#topos-theoretic-view-subobject-classifier-for-masking">Topos-Theoretic View: Subobject Classifier for Masking</a></li>
+  <li><a href="#bisimulation-when-two-masking-strategies-are-equivalent" id="toc-bisimulation-when-two-masking-strategies-are-equivalent" class="nav-link" data-scroll-target="#bisimulation-when-two-masking-strategies-are-equivalent">Bisimulation: When Two Masking Strategies Are Equivalent</a></li>
+  <li><a href="#ema-target-encoder-as-frozen-coalgebra" id="toc-ema-target-encoder-as-frozen-coalgebra" class="nav-link" data-scroll-target="#ema-target-encoder-as-frozen-coalgebra">EMA Target Encoder as Frozen Coalgebra</a></li>
+  <li><a href="#summary-and-correspondence-table" id="toc-summary-and-correspondence-table" class="nav-link" data-scroll-target="#summary-and-correspondence-table">Summary and Correspondence Table</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="causal-jepa.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="../../causal-jepa.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Causal-JEPA: Object-Level Interventions as Categorical Operations</h1>
+<p class="subtitle lead">Connecting C-JEPA’s latent interventions with FunctorFlow’s RN-Kan-Do-Calculus</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simon Frost </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p><strong>C-JEPA</strong> (Causal-JEPA, <a href="https://arxiv.org/abs/2602.11389">arXiv:2602.11389</a>) demonstrates that <strong>object-level masking</strong> during JEPA training induces a <strong>causal inductive bias</strong> — making interaction reasoning <em>functionally necessary</em>. Rather than masking random patches (as in I-JEPA), C-JEPA masks entire <em>objects</em> across history frames. This forces the predictor to recover the masked object’s state purely from its <strong>interactions with other objects</strong>, not from its own self-dynamics.</p>
+<p>The central theoretical result (<strong>Theorem 1: Interaction Necessity</strong>) shows that under object-level masking, minimizing the prediction loss necessarily identifies the <strong>influence neighborhood</strong> — the minimal set of context entities sufficient to predict a masked entity. This is the causal analog of a Markov blanket.</p>
+<p>FunctorFlow.jl’s categorical framework maps these ideas precisely:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>C-JEPA Concept</th>
+<th>FunctorFlow Construction</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Object slots <span class="math inline">\(S_t = \{s_t^1, \ldots, s_t^N\}\)</span></td>
+<td>Categorical objects in a Diagram</td>
+</tr>
+<tr class="even">
+<td>Object-level masking</td>
+<td>do-calculus intervention via left-Kan <span class="math inline">\(\Sigma\)</span></td>
+</tr>
+<tr class="odd">
+<td>Unmasked context</td>
+<td>Conditioning via right-Kan <span class="math inline">\(\Delta\)</span></td>
+</tr>
+<tr class="even">
+<td>Influence neighborhood <span class="math inline">\(\mathcal{N}_t(i)\)</span></td>
+<td>Markov blanket = minimal sufficient <span class="math inline">\(\Delta\)</span></td>
+</tr>
+<tr class="odd">
+<td>Joint prediction loss</td>
+<td>Obstruction loss in JEPA diagram</td>
+</tr>
+<tr class="even">
+<td>EMA target encoder</td>
+<td>Frozen reference coalgebra</td>
+</tr>
+<tr class="odd">
+<td>History reconstruction (<span class="math inline">\(\mathcal{L}_\text{history}\)</span>)</td>
+<td>Right-Kan completion (repair)</td>
+</tr>
+<tr class="even">
+<td>Future prediction (<span class="math inline">\(\mathcal{L}_\text{future}\)</span>)</td>
+<td>Left-Kan aggregation (prediction)</td>
+</tr>
+<tr class="odd">
+<td>Slot Attention (entity decomposition)</td>
+<td>Product diagram (<span class="math inline">\(\otimes\)</span>) of entity diagrams</td>
+</tr>
+<tr class="even">
+<td>Counterfactual reasoning</td>
+<td>Composition: intervene (<span class="math inline">\(\Sigma\)</span>) then condition (<span class="math inline">\(\Delta\)</span>)</td>
+</tr>
+<tr class="odd">
+<td>Identity anchor</td>
+<td>Coalgebra initial state</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Pkg</span>.<span class="fu">activate</span>(<span class="fu">joinpath</span>(<span class="pp">@__DIR__</span>, <span class="st">".."</span>))</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Random</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Statistics</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="object-centric-world-as-a-product-diagram" class="level2">
+<h2 class="anchored" data-anchor-id="object-centric-world-as-a-product-diagram">Object-Centric World as a Product Diagram</h2>
+<p>C-JEPA processes each frame through <strong>Slot Attention</strong>, decomposing a scene into <span class="math inline">\(N\)</span> object slots: <span class="math inline">\(S_t = \{s_t^1, \ldots, s_t^N\}\)</span>. Each slot is an independent entity with its own latent state and dynamics. Categorically, each entity is an <strong>F-coalgebra</strong> — a state paired with a transition morphism <span class="math inline">\(X \to F(X)\)</span> — and the full scene state is their <strong>product</strong>.</p>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">entity_diagram</span>(name<span class="op">::</span><span class="dt">Symbol</span>, slot_dim<span class="op">::</span><span class="dt">Int</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    D <span class="op">=</span> <span class="fu">Diagram</span>(name)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_object!</span>(D, <span class="op">:</span>State, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"Entity latent state (ℝ^</span><span class="sc">$</span>slot_dim<span class="st">)"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_object!</span>(D, <span class="op">:</span>NextState, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"Next-step entity state"</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_morphism!</span>(D, <span class="op">:</span>dynamics, <span class="op">:</span>State, <span class="op">:</span>NextState,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>                  description<span class="op">=</span><span class="st">"Entity self-dynamics f: X → F(X)"</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_coalgebra!</span>(D, <span class="op">:</span>entity_coalgebra,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>                   state<span class="op">=:</span>State, transition<span class="op">=:</span>dynamics, functor_type<span class="op">=:</span>identity)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> D</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>N <span class="op">=</span> <span class="fl">5</span>  <span class="co"># number of entity slots</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>slot_dim <span class="op">=</span> <span class="fl">16</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>entities <span class="op">=</span> [<span class="fu">entity_diagram</span>(<span class="fu">Symbol</span>(<span class="st">"Entity_</span><span class="sc">$</span>i<span class="st">"</span>), slot_dim) for i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>N]</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Created </span><span class="sc">$</span>(<span class="fu">length</span>(entities))<span class="st"> entity coalgebras"</span>)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i, <span class="cn">e</span>) <span class="kw">in</span> <span class="fu">enumerate</span>(entities)</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    coalgs <span class="op">=</span> <span class="fu">get_coalgebras</span>(<span class="cn">e</span>)</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  Entity </span><span class="sc">$</span>i<span class="st">: coalgebra=</span><span class="sc">$</span>(<span class="fu">first</span>(<span class="fu">keys</span>(coalgs)))<span class="st">"</span>)</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Created 5 entity coalgebras
+  Entity 1: coalgebra=entity_coalgebra
+  Entity 2: coalgebra=entity_coalgebra
+  Entity 3: coalgebra=entity_coalgebra
+  Entity 4: coalgebra=entity_coalgebra
+  Entity 5: coalgebra=entity_coalgebra</code></pre>
+</div>
+</div>
+<p>The <strong>product</strong> construction gives us projection morphisms <span class="math inline">\(\pi_i\)</span> from the scene to each entity, and the universal property ensures that any compatible mapping factors through the product:</p>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>scene <span class="op">=</span> <span class="fu">product</span>(entities<span class="op">...</span>; name<span class="op">=:</span>Scene)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>scene_check <span class="op">=</span> <span class="fu">verify</span>(scene)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Scene product: </span><span class="sc">$</span>(scene_check)<span class="st">"</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Projections: </span><span class="sc">$</span>(scene.projections)<span class="st">"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(scene.product_diagram))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Scene product: (passed = true, checks = Dict{Symbol, Bool}(:has_factor_factor_4 =&gt; 1, :has_factor_factor_1 =&gt; 1, :has_factor_factor_2 =&gt; 1, :has_factor_factor_5 =&gt; 1, :has_factor_factor_3 =&gt; 1), construction = :product)
+Projections: [:factor_1, :factor_2, :factor_3, :factor_4, :factor_5]
+FunctorFlow.Diagram</code></pre>
+</div>
+</div>
+</section>
+<section id="object-level-masking-as-a-categorical-intervention" class="level2">
+<h2 class="anchored" data-anchor-id="object-level-masking-as-a-categorical-intervention">Object-Level Masking as a Categorical Intervention</h2>
+<p>This is the core conceptual bridge. In C-JEPA, <strong>masking object <span class="math inline">\(i\)</span> across history</strong> means replacing its self-dynamics with a learnable mask token (anchored by its initial state at <span class="math inline">\(t=0\)</span>). The remaining unmasked entities form the <em>context</em>. The predictor must recover the masked entity’s state from context alone.</p>
+<p>In FunctorFlow’s <strong>RN-Kan-Do-Calculus</strong>:</p>
+<ul>
+<li><strong>Observational regime</strong>: Full history <span class="math inline">\(Z_T\)</span> with all entities visible</li>
+<li><strong>Interventional regime</strong>: Masked history <span class="math inline">\(\bar{Z}_T\)</span> where entity <span class="math inline">\(i\)</span>’s history is replaced by mask tokens — this is <span class="math inline">\(\text{do}(\text{entity}_i = \text{mask})\)</span></li>
+</ul>
+<p>The left-Kan extension <span class="math inline">\(\Sigma\)</span> implements the do-operation (intervention), and the right-Kan extension <span class="math inline">\(\Delta\)</span> implements conditioning (observing the context).</p>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>obs_regime <span class="op">=</span> <span class="fu">CausalContext</span>(<span class="op">:</span>full_observation;</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    observational_regime<span class="op">=:</span>all_entities_visible,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    interventional_regime<span class="op">=:</span>entity_masked)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>causal_d <span class="op">=</span> <span class="fu">build_causal_diagram</span>(<span class="op">:</span>EntityInteraction;</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    context<span class="op">=</span>obs_regime,</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    observation_source<span class="op">=:</span>EntityStates,</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    causal_relation<span class="op">=:</span>InteractionGraph,</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    intervention_target<span class="op">=:</span>InterventionalPrediction,</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    conditioning_target<span class="op">=:</span>ConditionalState)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Causal diagram: </span><span class="sc">$</span>(causal_d.name)<span class="st">"</span>)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Conditioning (Δ, right-Kan): </span><span class="sc">$</span>(causal_d.conditioning_kan)<span class="st">"</span>)</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Intervention (Σ, left-Kan):  </span><span class="sc">$</span>(causal_d.intervention_kan)<span class="st">"</span>)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(causal_d.base_diagram))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Causal diagram: EntityInteraction
+  Conditioning (Δ, right-Kan): condition
+  Intervention (Σ, left-Kan):  intervene
+FunctorFlow.Diagram</code></pre>
+</div>
+</div>
+<p>The masking operation is categorically a <strong>left-Kan extension</strong> (colimit / aggregation): we push forward along the masking relation, which removes entity <span class="math inline">\(i\)</span>’s self-dynamics from the diagram. The prediction of the masked entity then requires a <strong>right-Kan extension</strong> (limit / completion) from the remaining context.</p>
+<p>We can check identifiability — is the masked entity’s state recoverable from context?</p>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>ident <span class="op">=</span> <span class="fu">is_identifiable</span>(causal_d, <span class="op">:</span>InterventionalPrediction;</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>                        observed<span class="op">=</span>[<span class="op">:</span>EntityStates])</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Identifiability: </span><span class="sc">$</span>(ident)<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Identifiability: (identifiable = true, rule = :adjustment, reasoning = "Both Kan extensions share source and causal structure; adjustment formula applies via back-door criterion")</code></pre>
+</div>
+</div>
+</section>
+<section id="influence-neighborhood-as-right-kan-completion" class="level2">
+<h2 class="anchored" data-anchor-id="influence-neighborhood-as-right-kan-completion">Influence Neighborhood as Right-Kan Completion</h2>
+<p>C-JEPA’s <strong>influence neighborhood</strong> <span class="math inline">\(\mathcal{N}_t(i)\)</span> is the minimal sufficient subset <span class="math inline">\(\mathcal{N}_t(i) \subseteq Z_T^{(-i)}\)</span> needed to predict masked entity <span class="math inline">\(i\)</span>. In categorical terms, this is the <strong>kernel of the right-Kan extension</strong> — the smallest subdiagram whose <span class="math inline">\(\Delta\)</span>-completion recovers the masked state.</p>
+<p><strong>Theorem 1</strong> (Interaction Necessity) states: under object-level masking, minimizing the prediction loss necessarily identifies <span class="math inline">\(\mathcal{N}_t(i)\)</span>. Categorically, the optimal predictor’s right-Kan extension is supported exactly on the influence neighborhood.</p>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>D_influence <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>InfluenceNeighborhood)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_influence, <span class="op">:</span>MaskedEntity, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Entity whose history is masked (target)"</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_influence, <span class="op">:</span>ContextEntities, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Unmasked entities forming the context"</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_influence, <span class="op">:</span>InteractionRelation, kind<span class="op">=:</span>relation,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Which context entities influence the target"</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_influence, <span class="op">:</span>CompletedState, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Inferred state of masked entity via right-Kan"</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Right-Kan: complete the masked entity from context</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="fu">Δ</span>(D_influence, <span class="op">:</span>ContextEntities;</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  along<span class="op">=:</span>InteractionRelation,</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>  name<span class="op">=:</span>infer_from_context,</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>  target<span class="op">=:</span>CompletedState,</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>  reducer<span class="op">=:</span>first_non_null)</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(D_influence))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>FunctorFlow.Diagram</code></pre>
+</div>
+</div>
+<p>The right-Kan extension <span class="math inline">\(\Delta_J F\)</span> computes the <strong>best approximation</strong> of the masked entity given the context, mediated by the interaction relation <span class="math inline">\(J\)</span>. The influence neighborhood is precisely the support of <span class="math inline">\(J\)</span> — the minimal set of context entities for which <span class="math inline">\(\Delta_J F \cong F\)</span> (the completion is exact).</p>
+</section>
+<section id="c-jepa-training-as-coalgebraic-obstruction" class="level2">
+<h2 class="anchored" data-anchor-id="c-jepa-training-as-coalgebraic-obstruction">C-JEPA Training as Coalgebraic Obstruction</h2>
+<p>The C-JEPA training loss has two complementary components, each corresponding to a Kan extension:</p>
+<ul>
+<li><span class="math inline">\(\mathcal{L}_\text{history}\)</span>: Recover masked slots from context → <strong>right-Kan completion</strong> (<span class="math inline">\(\Delta\)</span>) — repair missing data by conditioning on context</li>
+<li><span class="math inline">\(\mathcal{L}_\text{future}\)</span>: Predict future slots from history → <strong>left-Kan aggregation</strong> (<span class="math inline">\(\Sigma\)</span>) — forward prediction by pushing history forward</li>
+</ul>
+<p>The total loss measures the <strong>obstruction to commutativity</strong> — the failure of the predicted state to match the target encoder’s output.</p>
+<div id="14" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>D_cjepa <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>CJEPA)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># -- History branch (right-Kan: repair masked entities) --</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cjepa, <span class="op">:</span>HistoryContext, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Unmasked history slots (context encoder output)"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cjepa, <span class="op">:</span>MaskRelation, kind<span class="op">=:</span>relation,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Which slots are masked vs. visible"</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cjepa, <span class="op">:</span>ReconstructedHistory, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Recovered masked history slots"</span>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cjepa, <span class="op">:</span>TargetHistory, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Ground truth masked history (from EMA target encoder)"</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="fu">Δ</span>(D_cjepa, <span class="op">:</span>HistoryContext;</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  along<span class="op">=:</span>MaskRelation,</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>  name<span class="op">=:</span>recover_masked,</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  target<span class="op">=:</span>ReconstructedHistory,</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  reducer<span class="op">=:</span>first_non_null)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Morphism from target encoder (EMA-frozen) to produce ground truth</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_cjepa, <span class="op">:</span>target_enc_history, <span class="op">:</span>HistoryContext, <span class="op">:</span>TargetHistory,</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>              description<span class="op">=</span><span class="st">"EMA target encoder for history (frozen)"</span>)</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="fu">add_obstruction_loss!</span>(D_cjepa, <span class="op">:</span>history_loss;</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    paths<span class="op">=</span>[(<span class="op">:</span>recover_masked, <span class="op">:</span>target_enc_history)],</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    comparator<span class="op">=:</span>l2, weight<span class="op">=</span><span class="fl">1.0</span>,</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"L_history: masked slot reconstruction"</span>)</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a><span class="co"># -- Future branch (left-Kan: predict future from context) --</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cjepa, <span class="op">:</span>CausalRelation, kind<span class="op">=:</span>relation,</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Temporal causal structure (history → future)"</span>)</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cjepa, <span class="op">:</span>PredictedFuture, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Predicted future slots"</span>)</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cjepa, <span class="op">:</span>TargetFuture, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Ground truth future slots (from EMA target encoder)"</span>)</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a><span class="fu">Σ</span>(D_cjepa, <span class="op">:</span>HistoryContext;</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>  along<span class="op">=:</span>CausalRelation,</span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>  name<span class="op">=:</span>predict_future,</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>  target<span class="op">=:</span>PredictedFuture,</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>  reducer<span class="op">=:</span>sum)</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_cjepa, <span class="op">:</span>target_enc_future, <span class="op">:</span>HistoryContext, <span class="op">:</span>TargetFuture,</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>              description<span class="op">=</span><span class="st">"EMA target encoder for future (frozen)"</span>)</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a><span class="fu">add_obstruction_loss!</span>(D_cjepa, <span class="op">:</span>future_loss;</span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a>    paths<span class="op">=</span>[(<span class="op">:</span>predict_future, <span class="op">:</span>target_enc_future)],</span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>    comparator<span class="op">=:</span>l2, weight<span class="op">=</span><span class="fl">1.0</span>,</span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"L_future: forward prediction"</span>)</span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(D_cjepa))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>FunctorFlow.Diagram</code></pre>
+</div>
+</div>
+<p>The two losses interact: <span class="math inline">\(\mathcal{L}_\text{history}\)</span> forces the model to learn the <strong>interaction structure</strong> (which entities influence which), while <span class="math inline">\(\mathcal{L}_\text{future}\)</span> forces it to learn <strong>temporal dynamics</strong> conditioned on that interaction structure. Together, they are the obstruction to a fully commutative diagram — the residual measures how far the learned world model is from perfect causal understanding.</p>
+</section>
+<section id="synthetic-multi-object-interaction-simulation" class="level2">
+<h2 class="anchored" data-anchor-id="synthetic-multi-object-interaction-simulation">Synthetic Multi-Object Interaction Simulation</h2>
+<p>To make these ideas concrete, we create a synthetic scene with <span class="math inline">\(N = 5\)</span> particles on a 1D line interacting via spring-like forces. This is simple enough to analyze exactly, yet rich enough to demonstrate C-JEPA’s key insight: without masking, a model can exploit self-dynamics shortcuts; with masking, it <em>must</em> learn interactions.</p>
+<div id="16" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> <span class="bu">Random</span>.<span class="fu">MersenneTwister</span>(<span class="fl">42</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>N_objects <span class="op">=</span> <span class="fl">5</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>slot_dim <span class="op">=</span> <span class="fl">4</span>  <span class="co"># (position, velocity, mass, charge)</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>T_history <span class="op">=</span> <span class="fl">3</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>T_future <span class="op">=</span> <span class="fl">2</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>T_total <span class="op">=</span> T_history <span class="op">+</span> T_future</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">simulate_scene</span>(rng, N; steps<span class="op">=</span><span class="fl">5</span>, dt<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    positions <span class="op">=</span> <span class="fu">randn</span>(rng, N) <span class="op">*</span> <span class="fl">2.0</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    velocities <span class="op">=</span> <span class="fu">randn</span>(rng, N) <span class="op">*</span> <span class="fl">0.5</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    masses <span class="op">=</span> <span class="fu">ones</span>(N)</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    charges <span class="op">=</span> <span class="fu">rand</span>(rng, [<span class="op">-</span><span class="fl">1.0</span>, <span class="fl">1.0</span>], N)</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    trajectory <span class="op">=</span> []</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>steps</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>        state <span class="op">=</span> <span class="fu">hcat</span>(positions, velocities, masses, charges)  <span class="co"># N × 4</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">push!</span>(trajectory, state)</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Pairwise forces (Coulomb-like)</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>        forces <span class="op">=</span> <span class="fu">zeros</span>(N)</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>N, j <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>N</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>            i <span class="op">==</span> j <span class="op">&amp;&amp;</span> <span class="cf">continue</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>            dx <span class="op">=</span> positions[j] <span class="op">-</span> positions[i]</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>            forces[i] <span class="op">+=</span> charges[i] <span class="op">*</span> charges[j] <span class="op">*</span> <span class="fu">sign</span>(dx) <span class="op">/</span> (<span class="fu">abs</span>(dx)<span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="fl">0.1</span>)</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>        velocities <span class="op">=</span> velocities <span class="op">.+</span> forces <span class="op">./</span> masses <span class="op">.*</span> dt</span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>        positions <span class="op">=</span> positions <span class="op">.+</span> velocities <span class="op">.*</span> dt</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> trajectory</span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>trajectories <span class="op">=</span> [<span class="fu">simulate_scene</span>(rng, N_objects; steps<span class="op">=</span>T_total) for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">32</span>]</span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Generated </span><span class="sc">$</span>(<span class="fu">length</span>(trajectories))<span class="st"> trajectories, each with </span><span class="sc">$</span>(T_total)<span class="st"> frames"</span>)</span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Frame shape: </span><span class="sc">$</span>(<span class="fu">size</span>(trajectories[<span class="fl">1</span>][<span class="fl">1</span>]))<span class="st"> = (</span><span class="sc">$</span>N_objects<span class="st"> objects × </span><span class="sc">$</span>slot_dim<span class="st"> features)"</span>)</span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Show the first trajectory's positions over time</span></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>traj1 <span class="op">=</span> trajectories[<span class="fl">1</span>]</span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Entity positions over time (trajectory 1):"</span>)</span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>T_total</span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a>    pos <span class="op">=</span> <span class="fu">round</span>.(traj1[t][<span class="op">:</span>, <span class="fl">1</span>]; digits<span class="op">=</span><span class="fl">3</span>)</span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  t=</span><span class="sc">$</span>t<span class="st">: </span><span class="sc">$</span>pos<span class="st">"</span>)</span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Generated 32 trajectories, each with 5 frames
+Frame shape: (5, 4) = (5 objects × 4 features)
+
+Entity positions over time (trajectory 1):
+  t=1: [2.421, -0.158, 0.807, 0.58, -0.134]
+  t=2: [2.461, 0.016, 0.715, 0.583, -0.251]
+  t=3: [2.51, 0.171, 0.508, 0.631, -0.289]
+  t=4: [2.567, 0.371, 0.324, 0.548, -0.273]
+  t=5: [2.632, 0.527, 0.282, 0.306, -0.203]</code></pre>
+</div>
+</div>
+</section>
+<section id="masking-and-counterfactual-queries" class="level2">
+<h2 class="anchored" data-anchor-id="masking-and-counterfactual-queries">Masking and Counterfactual Queries</h2>
+<p>Object-level masking replaces an entity’s history (after <span class="math inline">\(t=0\)</span>) with NaN tokens, preserving only the <strong>identity anchor</strong> at <span class="math inline">\(t=0\)</span>. In FunctorFlow, this is a <strong>do-operation</strong>: we intervene on the entity’s state, severing its self-dynamics.</p>
+<div id="18" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">mask_entity</span>(trajectory, entity_idx; anchor_frame<span class="op">=</span><span class="fl">1</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    T <span class="op">=</span> <span class="fu">length</span>(trajectory)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    masked <span class="op">=</span> [<span class="fu">copy</span>(frame) for frame <span class="kw">in</span> trajectory]</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    anchor <span class="op">=</span> trajectory[anchor_frame][entity_idx, <span class="op">:</span>]</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t <span class="kw">in</span> (anchor_frame <span class="op">+</span> <span class="fl">1</span>)<span class="op">:</span>T</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        masked[t][entity_idx, <span class="op">:</span>] <span class="op">.=</span> <span class="cn">NaN</span>  <span class="co"># mask token placeholder</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> masked, anchor</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Mask entity 3 — this is do(entity_3 = mask_token)</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>masked_traj, anchor <span class="op">=</span> <span class="fu">mask_entity</span>(trajectories[<span class="fl">1</span>], <span class="fl">3</span>)</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Identity anchor for entity 3 (t=0): </span><span class="sc">$</span>(<span class="fu">round</span>.(anchor; digits<span class="op">=</span><span class="fl">3</span>))<span class="st">"</span>)</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Entity 3 at t=2 after masking: </span><span class="sc">$</span>(masked_traj[<span class="fl">2</span>][<span class="fl">3</span>, <span class="op">:</span>])<span class="st">"</span>)</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Entity 1 at t=2 (unmasked):     </span><span class="sc">$</span>(<span class="fu">round</span>.(masked_traj[<span class="fl">2</span>][<span class="fl">1</span>, <span class="op">:</span>]; digits<span class="op">=</span><span class="fl">3</span>))<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Identity anchor for entity 3 (t=0): [0.807, -0.027, 1.0, 1.0]
+Entity 3 at t=2 after masking: [NaN, NaN, NaN, NaN]
+Entity 1 at t=2 (unmasked):     [2.461, 0.403, 1.0, -1.0]</code></pre>
+</div>
+</div>
+<p>Now we use FunctorFlow’s causal machinery to compute the <strong>interventional expectation</strong> — what is the expected state of entity 3 given the intervention?</p>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The CausalDiagram uses observation_source=:EntityStates and causal_relation=:InteractionGraph</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>obs_data <span class="op">=</span> <span class="fu">Dict</span><span class="dt">{Symbol,Any}</span>(</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>EntityStates <span class="op">=&gt;</span> trajectories[<span class="fl">1</span>][<span class="fl">2</span>][<span class="op">:</span>, <span class="fl">1</span>],    <span class="co"># entity positions at t=2</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>InteractionGraph <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="st">"full"</span> <span class="op">=&gt;</span> <span class="fu">collect</span>(<span class="fl">1</span><span class="op">:</span>N)),  <span class="co"># all entities interact</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Bind reducers for the causal diagram's Kan extensions</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_reducer!</span>(causal_d.base_diagram, <span class="op">:</span>sum,</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    (data, relation, meta) <span class="op">-&gt;</span> data)  <span class="co"># identity aggregation for demo</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_reducer!</span>(causal_d.base_diagram, <span class="op">:</span>first_non_null,</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    (data, relation, meta) <span class="op">-&gt;</span> data)  <span class="co"># identity completion for demo</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>ie_result <span class="op">=</span> <span class="fu">interventional_expectation</span>(causal_d, obs_data)</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Interventional expectation keys: </span><span class="sc">$</span>(<span class="fu">keys</span>(ie_result))<span class="st">"</span>)</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Intervention result: </span><span class="sc">$</span>(ie_result[<span class="op">:</span>intervention])<span class="st">"</span>)</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Conditioning result: </span><span class="sc">$</span>(ie_result[<span class="op">:</span>conditioning])<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Interventional expectation keys: [:conditioning, :intervention, :all_values]
+Intervention result: [2.4608197268247225, 0.01601258820176013, 0.7148194917284902, 0.5825704526616224, -0.25136721974573484]
+Conditioning result: [2.4608197268247225, 0.01601258820176013, 0.7148194917284902, 0.5825704526616224, -0.25136721974573484]</code></pre>
+</div>
+</div>
+<p>We can compile and execute the influence neighborhood diagram with concrete implementations:</p>
+<div id="22" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Bind reducer with correct 3-arg signature: (data, relation, metadata)</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_reducer!</span>(D_influence, <span class="op">:</span>first_non_null,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    (data, relation, meta) <span class="op">-&gt;</span> data)  <span class="co"># passthrough for symbolic demo</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>compiled_influence <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_influence)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute the context: all entities except the masked one</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>context_states <span class="op">=</span> masked_traj[<span class="fl">2</span>][[<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">4</span>, <span class="fl">5</span>], <span class="op">:</span>]  <span class="co"># exclude entity 3</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>interaction_mask <span class="op">=</span> [<span class="cn">true</span>, <span class="cn">true</span>, <span class="cn">true</span>, <span class="cn">true</span>]  <span class="co"># all context entities participate</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_influence, <span class="fu">Dict</span>(</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>MaskedEntity <span class="op">=&gt;</span> <span class="fu">fill</span>(<span class="cn">NaN</span>, slot_dim),</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>ContextEntities <span class="op">=&gt;</span> context_states,</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>InteractionRelation <span class="op">=&gt;</span> interaction_mask</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Influence neighborhood result keys: </span><span class="sc">$</span>(<span class="fu">keys</span>(result.values))<span class="st">"</span>)</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>predicted <span class="op">=</span> result.values[<span class="op">:</span>infer_from_context]</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Predicted entity 3 state (from context): </span><span class="sc">$</span>(<span class="fu">round</span>.(predicted; digits<span class="op">=</span><span class="fl">3</span>))<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Influence neighborhood result keys: [:InteractionRelation, :infer_from_context, :MaskedEntity, :CompletedState, :ContextEntities]
+Predicted entity 3 state (from context): [2.461 0.403 1.0 -1.0; 0.016 1.74 1.0 1.0; 0.583 0.027 1.0 1.0; -0.251 -1.173 1.0 1.0]</code></pre>
+</div>
+</div>
+</section>
+<section id="counterfactual-reasoning-via-σ-δ-composition" class="level2">
+<h2 class="anchored" data-anchor-id="counterfactual-reasoning-via-σ-δ-composition">Counterfactual Reasoning via Σ ∘ Δ Composition</h2>
+<p>The key categorical insight: <strong>counterfactual = intervene (<span class="math inline">\(\Sigma\)</span>) then condition (<span class="math inline">\(\Delta\)</span>)</strong>.</p>
+<p>“What would entity <span class="math inline">\(i\)</span>’s trajectory be if entity <span class="math inline">\(j\)</span> had been removed from the scene?”</p>
+<p>This is the composition <span class="math inline">\(\Delta_Q \circ \Sigma_J\)</span>: first push forward along the intervention relation <span class="math inline">\(J\)</span> (removing entity <span class="math inline">\(j\)</span>), then complete along the query relation <span class="math inline">\(Q\)</span> (inferring entity <span class="math inline">\(i\)</span>’s state in the counterfactual world).</p>
+<div id="24" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>D_counterfactual <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>Counterfactual)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_counterfactual, <span class="op">:</span>ObservedScene, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Full observed scene state"</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_counterfactual, <span class="op">:</span>InterventionRelation, kind<span class="op">=:</span>relation,</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Remove entity j from the interaction graph"</span>)</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_counterfactual, <span class="op">:</span>IntervenedScene, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Scene without entity j's influence"</span>)</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_counterfactual, <span class="op">:</span>QueryRelation, kind<span class="op">=:</span>relation,</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Select entity i from the intervened scene"</span>)</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_counterfactual, <span class="op">:</span>CounterfactualState, kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Entity i's state in the counterfactual world"</span>)</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: Σ (intervene — aggregate scene without entity j)</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a><span class="fu">Σ</span>(D_counterfactual, <span class="op">:</span>ObservedScene;</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  along<span class="op">=:</span>InterventionRelation,</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>  name<span class="op">=:</span>intervene,</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>  target<span class="op">=:</span>IntervenedScene,</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>  reducer<span class="op">=:</span>sum)</span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 2: Δ (condition — infer entity i from the intervened scene)</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a><span class="fu">Δ</span>(D_counterfactual, <span class="op">:</span>IntervenedScene;</span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>  along<span class="op">=:</span>QueryRelation,</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>  name<span class="op">=:</span>condition_query,</span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>  target<span class="op">=:</span>CounterfactualState,</span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>  reducer<span class="op">=:</span>first_non_null)</span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="fu">summary</span>(D_counterfactual))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>FunctorFlow.Diagram</code></pre>
+</div>
+</div>
+<p>Execute the counterfactual query: “What would entity 3 do if entity 1 were removed?”</p>
+<div id="26" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Bind reducers with correct 3-arg signatures</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_reducer!</span>(D_counterfactual, <span class="op">:</span>sum,</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    (data, relation, meta) <span class="op">-&gt;</span> data)  <span class="co"># passthrough (symbolic demo)</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_reducer!</span>(D_counterfactual, <span class="op">:</span>first_non_null,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    (data, relation, meta) <span class="op">-&gt;</span> data)  <span class="co"># passthrough (symbolic demo)</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>compiled_cf <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_counterfactual)</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Observed scene at t=2</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>observed_scene <span class="op">=</span> trajectories[<span class="fl">1</span>][<span class="fl">2</span>]</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Intervention: remove entity 1 (keep entities 2,3,4,5)</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>intervened <span class="op">=</span> observed_scene[[<span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">4</span>, <span class="fl">5</span>], <span class="op">:</span>]</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Query: select entity 3 from the counterfactual scene</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>query_state <span class="op">=</span> intervened[<span class="fl">2</span>, <span class="op">:</span>]  <span class="co"># entity 3 is at index 2 after removal</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>cf_result <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_cf, <span class="fu">Dict</span>(</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>ObservedScene <span class="op">=&gt;</span> observed_scene,</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>InterventionRelation <span class="op">=&gt;</span> [<span class="cn">false</span>, <span class="cn">true</span>, <span class="cn">true</span>, <span class="cn">true</span>, <span class="cn">true</span>],  <span class="co"># remove entity 1</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>QueryRelation <span class="op">=&gt;</span> [<span class="cn">false</span>, <span class="cn">true</span>, <span class="cn">false</span>, <span class="cn">false</span>],  <span class="co"># select entity 3</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Counterfactual query: 'What if entity 1 were removed?'"</span>)</span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Entity 3 observed state:       </span><span class="sc">$</span>(<span class="fu">round</span>.(observed_scene[<span class="fl">3</span>, <span class="op">:</span>]; digits<span class="op">=</span><span class="fl">3</span>))<span class="st">"</span>)</span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Entity 3 counterfactual state:  </span><span class="sc">$</span>(<span class="fu">round</span>.(query_state; digits<span class="op">=</span><span class="fl">3</span>))<span class="st">"</span>)</span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Causal effect of entity 1 on 3: </span><span class="sc">$</span>(<span class="fu">round</span>.(observed_scene[<span class="fl">3</span>, <span class="op">:</span>] <span class="op">.-</span> query_state; digits<span class="op">=</span><span class="fl">3</span>))<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Counterfactual query: 'What if entity 1 were removed?'
+  Entity 3 observed state:       [0.715, -0.922, 1.0, 1.0]
+  Entity 3 counterfactual state:  [0.715, -0.922, 1.0, 1.0]
+  Causal effect of entity 1 on 3: [0.0, 0.0, 0.0, 0.0]</code></pre>
+</div>
+</div>
+</section>
+<section id="topos-theoretic-view-subobject-classifier-for-masking" class="level2">
+<h2 class="anchored" data-anchor-id="topos-theoretic-view-subobject-classifier-for-masking">Topos-Theoretic View: Subobject Classifier for Masking</h2>
+<p>FunctorFlow’s topos module provides a precise account of masking as a <strong>subobject classifier</strong>. The mask <span class="math inline">\(M \subseteq \{1, \ldots, N\}\)</span> classifies which entities are visible (context) vs. hidden (target). In a topos, this classification is mediated by the <strong>characteristic morphism</strong> <span class="math inline">\(\chi_M : \{1, \ldots, N\} \to \Omega\)</span>, where <span class="math inline">\(\Omega = \{\text{visible}, \text{masked}\}\)</span> is the subobject classifier.</p>
+<div id="28" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>sc <span class="op">=</span> <span class="fu">SubobjectClassifier</span>(<span class="op">:</span>MaskClassifier;</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    truth_values<span class="op">=</span><span class="fu">Set</span><span class="dt">{Symbol}</span>([<span class="op">:</span>visible, <span class="op">:</span>masked]))</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co"># The mask predicate classifies entities by their visibility</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>mask_pred <span class="op">=</span> <span class="fu">InternalPredicate</span>(<span class="op">:</span>is_visible, sc;</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    characteristic_map <span class="op">=</span> x <span class="op">-&gt;</span> <span class="fu">any</span>(isnan, x) ? <span class="op">:</span>masked <span class="op">:</span> <span class="op">:</span>visible)</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Classify entities in a masked frame</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>masked_frame <span class="op">=</span> masked_traj[<span class="fl">2</span>]  <span class="co"># frame where entity 3 is masked</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>entity_data <span class="op">=</span> [masked_frame[i, <span class="op">:</span>] for i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>N_objects]</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Entity classification under masking:"</span>)</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i, entity) <span class="kw">in</span> <span class="fu">enumerate</span>(entity_data)</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>    label <span class="op">=</span> <span class="fu">evaluate_predicate</span>(mask_pred, entity)</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  Entity </span><span class="sc">$</span>i<span class="st">: </span><span class="sc">$</span>label<span class="st">"</span>)</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Entity classification under masking:
+  Entity 1: visible
+  Entity 2: visible
+  Entity 3: masked
+  Entity 4: visible
+  Entity 5: visible</code></pre>
+</div>
+</div>
+<p>We can also use <code>classify_subobject</code> to get the full classification as a dictionary:</p>
+<div id="30" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>classification <span class="op">=</span> <span class="fu">classify_subobject</span>(sc,</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    x <span class="op">-&gt;</span> <span class="fu">any</span>(isnan, x) ? <span class="op">:</span>masked <span class="op">:</span> <span class="op">:</span>visible,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    entity_data)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Subobject classification: </span><span class="sc">$</span>classification<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Subobject classification: Dict{Any, Symbol}(5 =&gt; Symbol("false"), 4 =&gt; Symbol("false"), 2 =&gt; Symbol("false"), 3 =&gt; Symbol("false"), 1 =&gt; Symbol("false"))</code></pre>
+</div>
+</div>
+<p>The topos perspective reveals that different masking strategies correspond to different subobject classifiers over the same entity set — and the C-JEPA objective is a <strong>sheaf condition</strong>: the local predictions (one per masked entity) must glue consistently into a global scene prediction.</p>
+</section>
+<section id="bisimulation-when-two-masking-strategies-are-equivalent" class="level2">
+<h2 class="anchored" data-anchor-id="bisimulation-when-two-masking-strategies-are-equivalent">Bisimulation: When Two Masking Strategies Are Equivalent</h2>
+<p>Two masking strategies are <strong>bisimilar</strong> if they induce the same interaction structure — that is, if the influence neighborhoods they produce are identical. In coalgebraic terms, this means the world models trained under different masks are <strong>behaviorally equivalent</strong>: they generate the same observable predictions for all future queries.</p>
+<div id="32" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create two masking-strategy world models as diagrams</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>D_mask3 <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>Mask3Strategy)</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mask3, <span class="op">:</span>State, kind<span class="op">=:</span>hidden_state)</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mask3, <span class="op">:</span>NextState, kind<span class="op">=:</span>hidden_state)</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_mask3, <span class="op">:</span>dynamics, <span class="op">:</span>State, <span class="op">:</span>NextState,</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>              description<span class="op">=</span><span class="st">"Dynamics under masking entity 3"</span>)</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="fu">add_coalgebra!</span>(D_mask3, <span class="op">:</span>cjepa_mask_3,</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>               state<span class="op">=:</span>State, transition<span class="op">=:</span>dynamics, functor_type<span class="op">=:</span>identity)</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>D_mask4 <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>Mask4Strategy)</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mask4, <span class="op">:</span>State, kind<span class="op">=:</span>hidden_state)</span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_mask4, <span class="op">:</span>NextState, kind<span class="op">=:</span>hidden_state)</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_mask4, <span class="op">:</span>dynamics, <span class="op">:</span>State, <span class="op">:</span>NextState,</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>              description<span class="op">=</span><span class="st">"Dynamics under masking entity 4"</span>)</span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a><span class="fu">add_coalgebra!</span>(D_mask4, <span class="op">:</span>cjepa_mask_4,</span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>               state<span class="op">=:</span>State, transition<span class="op">=:</span>dynamics, functor_type<span class="op">=:</span>identity)</span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Declare bisimulation: these strategies are equivalent if they produce</span></span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a><span class="co"># the same influence neighborhood</span></span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a><span class="fu">add_bisimulation!</span>(D_mask3, <span class="op">:</span>masking_equivalence;</span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>    coalgebra_a<span class="op">=:</span>cjepa_mask_3,</span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>    coalgebra_b<span class="op">=:</span>cjepa_mask_4,</span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a>    relation<span class="op">=:</span>dynamics,</span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>    description<span class="op">=</span><span class="st">"Masking entities 3 and 4 produces equivalent interaction structure"</span>)</span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a>bisims <span class="op">=</span> <span class="fu">get_bisimulations</span>(D_mask3)</span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Bisimulation declared: </span><span class="sc">$</span>(<span class="fu">first</span>(<span class="fu">keys</span>(bisims)))<span class="st">"</span>)</span>
+<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Coalgebra A: </span><span class="sc">$</span>(<span class="fu">first</span>(<span class="fu">values</span>(bisims)).coalgebra_a)<span class="st">"</span>)</span>
+<span id="cb30-29"><a href="#cb30-29" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Coalgebra B: </span><span class="sc">$</span>(<span class="fu">first</span>(<span class="fu">values</span>(bisims)).coalgebra_b)<span class="st">"</span>)</span>
+<span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Relation:    </span><span class="sc">$</span>(<span class="fu">first</span>(<span class="fu">values</span>(bisims)).relation)<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Bisimulation declared: masking_equivalence
+  Coalgebra A: cjepa_mask_3
+  Coalgebra B: cjepa_mask_4
+  Relation:    dynamics</code></pre>
+</div>
+</div>
+<p>When two masks are bisimilar, C-JEPA’s learned representations will be <strong>invariant</strong> to the choice between them — the model extracts the same causal structure regardless of which specific entity is masked, provided the influence neighborhoods are isomorphic.</p>
+</section>
+<section id="ema-target-encoder-as-frozen-coalgebra" class="level2">
+<h2 class="anchored" data-anchor-id="ema-target-encoder-as-frozen-coalgebra">EMA Target Encoder as Frozen Coalgebra</h2>
+<p>C-JEPA uses an <strong>exponential moving average</strong> (EMA) target encoder to produce stable prediction targets. In coalgebraic terms, the target encoder is a <strong>frozen reference coalgebra</strong> — its transition dynamics are fixed, providing a stable attractor for the online encoder to converge toward.</p>
+<div id="34" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate EMA update between online and target parameters</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ema_update! expects iterable-of-arrays (e.g., tuple/vector of parameter arrays)</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>online_params <span class="op">=</span> [<span class="fu">randn</span>(rng, <span class="fl">4</span>, <span class="fl">4</span>), <span class="fu">randn</span>(rng, <span class="fl">4</span>)]  <span class="co"># e.g., weight matrix + bias</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>target_params <span class="op">=</span> [<span class="fu">randn</span>(rng, <span class="fl">4</span>, <span class="fl">4</span>), <span class="fu">randn</span>(rng, <span class="fl">4</span>)]</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>dist_before <span class="op">=</span> <span class="fu">sum</span>(<span class="fu">sum</span>((o <span class="op">.-</span> t)<span class="op">.^</span><span class="fl">2</span>) <span class="cf">for</span> (o, t) <span class="kw">in</span> <span class="fu">zip</span>(online_params, target_params))</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Before EMA update:"</span>)</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Online-Target distance: </span><span class="sc">$</span>(<span class="fu">round</span>(dist_before; digits<span class="op">=</span><span class="fl">4</span>))<span class="st">"</span>)</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ema_update!</span>(target_params, online_params; decay<span class="op">=</span><span class="fl">0.996</span>)</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>dist_after <span class="op">=</span> <span class="fu">sum</span>(<span class="fu">sum</span>((o <span class="op">.-</span> t)<span class="op">.^</span><span class="fl">2</span>) <span class="cf">for</span> (o, t) <span class="kw">in</span> <span class="fu">zip</span>(online_params, target_params))</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"After EMA update (decay=0.996):"</span>)</span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Online-Target distance: </span><span class="sc">$</span>(<span class="fu">round</span>(dist_after; digits<span class="op">=</span><span class="fl">4</span>))<span class="st">"</span>)</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Multiple updates converge the target toward the online encoder</span></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span></span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ema_update!</span>(target_params, online_params; decay<span class="op">=</span><span class="fl">0.996</span>)</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"After 100 EMA updates:"</span>)</span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>dist_final <span class="op">=</span> <span class="fu">sum</span>(<span class="fu">sum</span>((o <span class="op">.-</span> t)<span class="op">.^</span><span class="fl">2</span>) <span class="cf">for</span> (o, t) <span class="kw">in</span> <span class="fu">zip</span>(online_params, target_params))</span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Online-Target distance: </span><span class="sc">$</span>(<span class="fu">round</span>(dist_final; digits<span class="op">=</span><span class="fl">6</span>))<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Before EMA update:
+  Online-Target distance: 18.2989
+After EMA update (decay=0.996):
+  Online-Target distance: 18.1528
+After 100 EMA updates:
+  Online-Target distance: 8.143523</code></pre>
+</div>
+</div>
+<p>The coalgebraic interpretation: each EMA step is a <strong>coalgebra morphism</strong> that contracts the distance between the online and target state spaces. The fixed point (after many updates) is where the two coalgebras become <strong>bisimilar</strong> — the target encoder faithfully represents the online encoder’s learned dynamics.</p>
+</section>
+<section id="summary-and-correspondence-table" class="level2">
+<h2 class="anchored" data-anchor-id="summary-and-correspondence-table">Summary and Correspondence Table</h2>
+<p>C-JEPA demonstrates that object-level masking is not merely a data augmentation strategy — it is a <strong>causal intervention</strong> that makes interaction reasoning functionally necessary. FunctorFlow provides the categorical language to make this precise:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>C-JEPA</th>
+<th>Category Theory</th>
+<th>FunctorFlow</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Object slots <span class="math inline">\(S_t\)</span></td>
+<td>Objects in Prod category</td>
+<td><code>product(entities...)</code></td>
+</tr>
+<tr class="even">
+<td>Object masking</td>
+<td>do-intervention</td>
+<td><span class="math inline">\(\Sigma\)</span> (left-Kan) in <code>CausalDiagram</code></td>
+</tr>
+<tr class="odd">
+<td>Context (unmasked)</td>
+<td>Conditioning</td>
+<td><span class="math inline">\(\Delta\)</span> (right-Kan) in <code>CausalDiagram</code></td>
+</tr>
+<tr class="even">
+<td>Influence neighborhood</td>
+<td>Markov blanket / right-Kan kernel</td>
+<td><span class="math inline">\(\Delta\)</span> completion sufficiency</td>
+</tr>
+<tr class="odd">
+<td><span class="math inline">\(\mathcal{L}_\text{history}\)</span> (reconstruction)</td>
+<td>Right-Kan obstruction</td>
+<td><code>add_obstruction_loss!(:history_loss, ...)</code></td>
+</tr>
+<tr class="even">
+<td><span class="math inline">\(\mathcal{L}_\text{future}\)</span> (prediction)</td>
+<td>Left-Kan obstruction</td>
+<td><code>add_obstruction_loss!(:future_loss, ...)</code></td>
+</tr>
+<tr class="odd">
+<td>EMA target encoder</td>
+<td>Frozen coalgebra reference</td>
+<td><code>ema_update!</code></td>
+</tr>
+<tr class="even">
+<td>Identity anchor (<span class="math inline">\(t=0\)</span>)</td>
+<td>Initial object</td>
+<td>Coalgebra initial state</td>
+</tr>
+<tr class="odd">
+<td>Interaction Necessity (Thm 1)</td>
+<td>Minimality of influence presheaf</td>
+<td>Right-Kan kernel sufficiency</td>
+</tr>
+<tr class="even">
+<td>Slot Attention</td>
+<td>Entity decomposition</td>
+<td>Entity sub-diagrams</td>
+</tr>
+<tr class="odd">
+<td>Counterfactual query</td>
+<td><span class="math inline">\(\Sigma \circ \Delta\)</span> composition</td>
+<td><code>intervene</code> then <code>condition</code></td>
+</tr>
+<tr class="even">
+<td>Mask predicate</td>
+<td>Subobject classifier</td>
+<td><code>SubobjectClassifier</code> in topos.jl</td>
+</tr>
+<tr class="odd">
+<td>Masking equivalence</td>
+<td>Bisimulation of coalgebras</td>
+<td><code>add_bisimulation!</code></td>
+</tr>
+</tbody>
+</table>
+<p>The key insight is that C-JEPA’s empirical success (~20% improvement on counterfactual VQA, 8× faster MPC planning) has a precise categorical explanation: object-level masking enforces the <strong>right universal property</strong> — it forces the predictor to factor through the influence neighborhood, which is exactly the causal structure needed for counterfactual reasoning and efficient planning.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

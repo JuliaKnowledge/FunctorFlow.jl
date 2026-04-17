@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Simon Frost">
+
+<title>Getting Started with FunctorFlow.jl</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="getting-started_files/libs/clipboard/clipboard.min.js"></script>
+<script src="getting-started_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="getting-started_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="getting-started_files/libs/quarto-html/popper.min.js"></script>
+<script src="getting-started_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="getting-started_files/libs/quarto-html/anchor.min.js"></script>
+<link href="getting-started_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="getting-started_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="getting-started_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="getting-started_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="getting-started_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#core-concepts" id="toc-core-concepts" class="nav-link" data-scroll-target="#core-concepts">Core Concepts</a></li>
+  <li><a href="#your-first-diagram" id="toc-your-first-diagram" class="nav-link" data-scroll-target="#your-first-diagram">Your First Diagram</a></li>
+  <li><a href="#compositions" id="toc-compositions" class="nav-link" data-scroll-target="#compositions">Compositions</a></li>
+  <li><a href="#obstruction-loss" id="toc-obstruction-loss" class="nav-link" data-scroll-target="#obstruction-loss">Obstruction Loss</a></li>
+  <li><a href="#adding-kan-extensions" id="toc-adding-kan-extensions" class="nav-link" data-scroll-target="#adding-kan-extensions">Adding Kan Extensions</a></li>
+  <li><a href="#inspecting-diagrams" id="toc-inspecting-diagrams" class="nav-link" data-scroll-target="#inspecting-diagrams">Inspecting Diagrams</a></li>
+  <li><a href="#catlab-integration" id="toc-catlab-integration" class="nav-link" data-scroll-target="#catlab-integration">Catlab Integration</a></li>
+  <li><a href="#next-steps" id="toc-next-steps" class="nav-link" data-scroll-target="#next-steps">Next Steps</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="getting-started.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="getting-started.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Getting Started with FunctorFlow.jl</h1>
+<p class="subtitle lead">Building your first categorical diagram</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simon Frost </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>FunctorFlow.jl is a categorical DSL and executable intermediate representation for building diagrammatic AI systems in Julia, built on top of the AlgebraicJulia ecosystem (Catlab.jl, ACSets.jl). It is a port of the Python <a href="https://github.com/sridharmahadevan/functorflow">FunctorFlow</a> package by Sridhar Mahadevan. The library provides a principled way to compose computational operations using the language of category theory — objects represent typed interfaces, morphisms represent transformations, and Kan extensions provide universal aggregation and completion patterns.</p>
+<p>The API uses mathematical unicode notation: <strong>Σ</strong> for left Kan extensions (universal aggregation) and <strong>Δ</strong> for right Kan extensions (universal completion), with a <code>@functorflow</code> macro DSL inspired by algebraic Julia packages like DiagrammaticEquations.jl.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="core-concepts" class="level2">
+<h2 class="anchored" data-anchor-id="core-concepts">Core Concepts</h2>
+<p>FunctorFlow is built on three core abstractions:</p>
+<ul>
+<li><strong>Objects</strong> (<code>FFObject</code>): Typed interfaces that represent data flowing through a diagram. Each object has a name, a kind (e.g.&nbsp;<code>:input</code>, <code>:output</code>, <code>:hidden_state</code>), and an optional shape.</li>
+<li><strong>Morphisms</strong> (<code>Morphism</code>): Typed arrows from a source object to a target object. Each morphism can be bound to a concrete implementation — any Julia callable.</li>
+<li><strong>Diagrams</strong> (<code>Diagram</code>): Mutable containers that hold objects, morphisms, Kan extensions, and obstruction losses. Diagrams can be compiled and executed.</li>
+</ul>
+<p>Let’s create each of these individually:</p>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A typed interface with kind and shape metadata</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> <span class="fu">FFObject</span>(<span class="op">:</span>X; kind<span class="op">=:</span>input, shape<span class="op">=</span><span class="st">"(n,)"</span>, description<span class="op">=</span><span class="st">"Input vector"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(x)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>X::input [(n,)]</code></pre>
+</div>
+</div>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A typed transformation from X to Y</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>f <span class="op">=</span> <span class="fu">Morphism</span>(<span class="op">:</span>f, <span class="op">:</span>X, <span class="op">:</span>Y; description<span class="op">=</span><span class="st">"Linear transform"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(f)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>f: X → Y</code></pre>
+</div>
+</div>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A mutable diagram container</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>D <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>MyFirstDiagram)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :MyFirstDiagram ⟨0 objects, 0 morphisms, 0 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+</section>
+<section id="your-first-diagram" class="level2">
+<h2 class="anchored" data-anchor-id="your-first-diagram">Your First Diagram</h2>
+<p>Let’s build a simple diagram with two objects and one morphism, then compile and execute it.</p>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>D <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>DoubleDiagram)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Add typed objects</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D, <span class="op">:</span>X; kind<span class="op">=:</span>input, description<span class="op">=</span><span class="st">"Input value"</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D, <span class="op">:</span>Y; kind<span class="op">=:</span>output, description<span class="op">=</span><span class="st">"Doubled value"</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Add a morphism with an implementation bound inline</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D, <span class="op">:</span>double, <span class="op">:</span>X, <span class="op">:</span>Y;</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>              implementation<span class="op">=</span>x <span class="op">-&gt;</span> x <span class="op">*</span> <span class="fl">2</span>,</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>              description<span class="op">=</span><span class="st">"Doubles the input"</span>)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Compile the diagram</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>compiled <span class="op">=</span> <span class="fu">compile_to_callable</span>(D)</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Execute with concrete inputs</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled, <span class="fu">Dict</span>(<span class="op">:</span>X <span class="op">=&gt;</span> <span class="fl">5</span>))</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"double(5) = "</span>, result.values[<span class="op">:</span>double])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>double(5) = 10</code></pre>
+</div>
+</div>
+<p>We can also bind implementations after construction:</p>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>D2 <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>SquareDiagram)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D2, <span class="op">:</span>A; kind<span class="op">=:</span>input)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D2, <span class="op">:</span>B; kind<span class="op">=:</span>output)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D2, <span class="op">:</span>square, <span class="op">:</span>A, <span class="op">:</span>B)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Bind later</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(D2, <span class="op">:</span>square, x <span class="op">-&gt;</span> x<span class="op">^</span><span class="fl">2</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>compiled2 <span class="op">=</span> <span class="fu">compile_to_callable</span>(D2)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>result2 <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled2, <span class="fu">Dict</span>(<span class="op">:</span>A <span class="op">=&gt;</span> <span class="fl">7</span>))</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"square(7) = "</span>, result2.values[<span class="op">:</span>square])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>square(7) = 49</code></pre>
+</div>
+</div>
+</section>
+<section id="compositions" class="level2">
+<h2 class="anchored" data-anchor-id="compositions">Compositions</h2>
+<p>Morphisms can be composed sequentially using <code>compose!()</code>. FunctorFlow validates that each morphism’s target matches the next morphism’s source, ensuring type safety in the composition chain.</p>
+<div id="14" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>D3 <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>Pipeline)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D3, <span class="op">:</span>Raw; kind<span class="op">=:</span>input, description<span class="op">=</span><span class="st">"Raw text input"</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D3, <span class="op">:</span>Cleaned; kind<span class="op">=:</span>intermediate, description<span class="op">=</span><span class="st">"Cleaned text"</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D3, <span class="op">:</span>Embedded; kind<span class="op">=:</span>output, description<span class="op">=</span><span class="st">"Numeric embedding"</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D3, <span class="op">:</span>clean, <span class="op">:</span>Raw, <span class="op">:</span>Cleaned;</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>              implementation<span class="op">=</span>x <span class="op">-&gt;</span> <span class="fu">lowercase</span>(<span class="fu">strip</span>(x)),</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>              description<span class="op">=</span><span class="st">"Normalize whitespace and case"</span>)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D3, <span class="op">:</span>embed, <span class="op">:</span>Cleaned, <span class="op">:</span>Embedded;</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>              implementation<span class="op">=</span>x <span class="op">-&gt;</span> <span class="fu">length</span>(x),</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>              description<span class="op">=</span><span class="st">"Simple length-based embedding"</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Compose the two morphisms into a named pipeline</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="fu">compose!</span>(D3, <span class="op">:</span>clean, <span class="op">:</span>embed; name<span class="op">=:</span>pipeline)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>compiled3 <span class="op">=</span> <span class="fu">compile_to_callable</span>(D3)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>result3 <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled3, <span class="fu">Dict</span>(<span class="op">:</span>Raw <span class="op">=&gt;</span> <span class="st">"  HELLO World  "</span>))</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Cleaned: "</span>, result3.values[<span class="op">:</span>clean])</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Embedded: "</span>, result3.values[<span class="op">:</span>embed])</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Pipeline: "</span>, result3.values[<span class="op">:</span>pipeline])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Cleaned: hello world
+Embedded: 11
+Pipeline: 11</code></pre>
+</div>
+</div>
+<p>When a composition is created, all intermediate morphisms still execute individually (their results stored under both the morphism name and target object name). The composition provides a named reference to the sequential chain and validates type compatibility at construction time.</p>
+</section>
+<section id="obstruction-loss" class="level2">
+<h2 class="anchored" data-anchor-id="obstruction-loss">Obstruction Loss</h2>
+<p>FunctorFlow can also measure how much two diagram paths fail to commute. An <code>ObstructionLoss</code> compares outputs of different paths and computes a scalar loss — the foundation of Diagrammatic Backpropagation.</p>
+<div id="16" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>D_obs <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>CommutativityCheck)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_obs, <span class="op">:</span>S; kind<span class="op">=:</span>state)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_obs, <span class="op">:</span>f, <span class="op">:</span>S, <span class="op">:</span>S; implementation<span class="op">=</span>x <span class="op">-&gt;</span> x <span class="op">+</span> <span class="fl">1.0</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_obs, <span class="op">:</span>g, <span class="op">:</span>S, <span class="op">:</span>S; implementation<span class="op">=</span>x <span class="op">-&gt;</span> x <span class="op">*</span> <span class="fl">2.0</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">compose!</span>(D_obs, <span class="op">:</span>f, <span class="op">:</span>g; name<span class="op">=:</span>fg)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="fu">compose!</span>(D_obs, <span class="op">:</span>g, <span class="op">:</span>f; name<span class="op">=:</span>gf)</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="fu">add_obstruction_loss!</span>(D_obs, <span class="op">:</span>comm_loss; paths<span class="op">=</span>[(<span class="op">:</span>fg, <span class="op">:</span>gf)], comparator<span class="op">=:</span>l2)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>compiled_obs <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_obs)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>result_obs <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_obs, <span class="fu">Dict</span>(<span class="op">:</span>S <span class="op">=&gt;</span> <span class="fl">3.0</span>))</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"f∘g(3) = "</span>, result_obs.values[<span class="op">:</span>fg], <span class="st">", g∘f(3) = "</span>, result_obs.values[<span class="op">:</span>gf])</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Commutativity loss: "</span>, result_obs.losses[<span class="op">:</span>comm_loss])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>f∘g(3) = 8.0, g∘f(3) = 7.0
+Commutativity loss: 1.0</code></pre>
+</div>
+</div>
+<p>The loss is zero when the paths produce identical results (i.e.&nbsp;the diagram commutes).</p>
+</section>
+<section id="adding-kan-extensions" class="level2">
+<h2 class="anchored" data-anchor-id="adding-kan-extensions">Adding Kan Extensions</h2>
+<p>Kan extensions are the crown jewel of FunctorFlow. A <strong>left Kan extension</strong> (denoted <strong>Σ</strong>) performs universal aggregation — it pushes forward values along a relation and reduces them. This single pattern subsumes attention, pooling, and message passing.</p>
+<div id="18" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>D4 <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>AggregationDemo)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D4, <span class="op">:</span>Values; kind<span class="op">=:</span>messages, description<span class="op">=</span><span class="st">"Node values"</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D4, <span class="op">:</span>Incidence; kind<span class="op">=:</span>relation, description<span class="op">=</span><span class="st">"Edge incidence"</span>)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D4, <span class="op">:</span>Aggregated; kind<span class="op">=:</span>output)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Use the Σ operator (unicode left Kan extension)</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="fu">Σ</span>(D4, <span class="op">:</span>Values; along<span class="op">=:</span>Incidence, target<span class="op">=:</span>Aggregated, reducer<span class="op">=:</span>sum, name<span class="op">=:</span>aggregate)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>compiled4 <span class="op">=</span> <span class="fu">compile_to_callable</span>(D4)</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Values is a dict mapping source keys to values</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Incidence maps target keys to their source neighborhoods</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>result4 <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled4, <span class="fu">Dict</span>(</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Values <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>a <span class="op">=&gt;</span> <span class="fl">1</span>, <span class="op">:</span>b <span class="op">=&gt;</span> <span class="fl">2</span>, <span class="op">:</span>c <span class="op">=&gt;</span> <span class="fl">3</span>),</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Incidence <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>x <span class="op">=&gt;</span> [<span class="op">:</span>a, <span class="op">:</span>b], <span class="op">:</span>y <span class="op">=&gt;</span> [<span class="op">:</span>b, <span class="op">:</span>c])</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Aggregated: "</span>, result4.values[<span class="op">:</span>aggregate])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Aggregated: Dict(:y =&gt; 5, :x =&gt; 3)</code></pre>
+</div>
+</div>
+<p>The <code>:sum</code> reducer sums values within each neighborhood. Target <code>:x</code> gets <code>1 + 2 = 3</code> and target <code>:y</code> gets <code>2 + 3 = 5</code>.</p>
+<p>The dual concept is the <strong>right Kan extension</strong> (denoted <strong>Δ</strong>), which performs universal completion — filling in missing values from compatible neighbors:</p>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>D5 <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>CompletionDemo)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D5, <span class="op">:</span>Partial; kind<span class="op">=:</span>partial)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D5, <span class="op">:</span>Compat; kind<span class="op">=:</span>relation)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Use the Δ operator (unicode right Kan extension)</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="fu">Δ</span>(D5, <span class="op">:</span>Partial; along<span class="op">=:</span>Compat, name<span class="op">=:</span>complete)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>compiled5 <span class="op">=</span> <span class="fu">compile_to_callable</span>(D5)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>result5 <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled5, <span class="fu">Dict</span>(</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Partial <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>a <span class="op">=&gt;</span> <span class="cn">nothing</span>, <span class="op">:</span>b <span class="op">=&gt;</span> <span class="fl">42</span>, <span class="op">:</span>c <span class="op">=&gt;</span> <span class="cn">nothing</span>),</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Compat <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>a <span class="op">=&gt;</span> [<span class="op">:</span>b, <span class="op">:</span>c], <span class="op">:</span>c <span class="op">=&gt;</span> [<span class="op">:</span>b])</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Completed: "</span>, result5.values[<span class="op">:</span>complete])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Completed: Dict{Any, Any}(:a =&gt; 42, :c =&gt; 42)</code></pre>
+</div>
+</div>
+<p>Here, <code>:a</code> was <code>nothing</code> but got filled with <code>42</code> from its compatible neighbor <code>:b</code>. Together, left and right Kan extensions form the predict-and-repair duality central to FunctorFlow.</p>
+</section>
+<section id="inspecting-diagrams" class="level2">
+<h2 class="anchored" data-anchor-id="inspecting-diagrams">Inspecting Diagrams</h2>
+<p>FunctorFlow provides several ways to inspect diagram structure.</p>
+<div id="22" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># JSON serialization</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>json_str <span class="op">=</span> <span class="fu">to_json</span>(D4)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(json_str[<span class="fl">1</span><span class="op">:</span><span class="fu">min</span>(<span class="fl">200</span>, <span class="fu">length</span>(json_str))], <span class="st">"..."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>{"operations":[{"kind":"kanextension","name":"aggregate","source":"Values","direction":"left","metadata":{},"target":"Aggregated","description":"","reducer":"sum","along":"Incidence"}],"name":"Aggrega...</code></pre>
+</div>
+</div>
+<div id="24" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Dictionary representation</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> <span class="fu">as_dict</span>(<span class="fu">to_ir</span>(D4))</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(d[<span class="st">"objects"</span>])))</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Operations: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(d[<span class="st">"operations"</span>])))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Objects: [1, 2, 3]
+Operations: [1]</code></pre>
+</div>
+</div>
+<div id="26" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># IR representation</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>ir <span class="op">=</span> <span class="fu">to_ir</span>(D4)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(ir)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>DiagramIR :AggregationDemo ⟨3 objects, 1 operations, 0 losses⟩</code></pre>
+</div>
+</div>
+</section>
+<section id="catlab-integration" class="level2">
+<h2 class="anchored" data-anchor-id="catlab-integration">Catlab Integration</h2>
+<p>FunctorFlow.jl integrates with the AlgebraicJulia ecosystem. You can convert any diagram to an ACSet (Attributed C-Set) for use with Catlab.jl’s categorical algebra tools:</p>
+<div id="28" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert diagram to ACSet representation</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>acs <span class="op">=</span> <span class="fu">to_acset</span>(D4)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"ACSet nodes: "</span>, <span class="fu">nparts</span>(acs, <span class="op">:</span>Node))</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"ACSet Kan extensions: "</span>, <span class="fu">nparts</span>(acs, <span class="op">:</span>Kan))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>ACSet nodes: 3
+ACSet Kan extensions: 1</code></pre>
+</div>
+</div>
+<div id="30" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to a Catlab Presentation for symbolic reasoning</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>pres <span class="op">=</span> <span class="fu">to_presentation</span>(D4)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Generators: "</span>, <span class="fu">length</span>(FunctorFlow.Catlab.<span class="fu">generators</span>(pres)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Generators: 3</code></pre>
+</div>
+</div>
+</section>
+<section id="next-steps" class="level2">
+<h2 class="anchored" data-anchor-id="next-steps">Next Steps</h2>
+<p>Now that you understand the basics, explore the other vignettes:</p>
+<ul>
+<li><strong>DSL Macros</strong> — build diagrams with the concise <code>@functorflow</code> macro syntax</li>
+<li><strong>Kan Extensions</strong> — deep dive into Σ (aggregation) and Δ (completion) patterns</li>
+<li><strong>Block Library</strong> — use pre-built architectural patterns (KET, DB Square, BASKET, ROCKET, etc.)</li>
+<li><strong>Diagram Composition</strong> — compose sub-diagrams using ports and adapters</li>
+</ul>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

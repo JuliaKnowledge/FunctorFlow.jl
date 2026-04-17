@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Simon Frost">
+
+<title>KET Language Model on Penn Treebank</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="ket-language-model_files/libs/clipboard/clipboard.min.js"></script>
+<script src="ket-language-model_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="ket-language-model_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="ket-language-model_files/libs/quarto-html/popper.min.js"></script>
+<script src="ket-language-model_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="ket-language-model_files/libs/quarto-html/anchor.min.js"></script>
+<link href="ket-language-model_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="ket-language-model_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="ket-language-model_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="ket-language-model_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="ket-language-model_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#data-loading" id="toc-data-loading" class="nav-link" data-scroll-target="#data-loading">Data Loading</a></li>
+  <li><a href="#batching" id="toc-batching" class="nav-link" data-scroll-target="#batching">Batching</a></li>
+  <li><a href="#functorflow-diagram" id="toc-functorflow-diagram" class="nav-link" data-scroll-target="#functorflow-diagram">FunctorFlow Diagram</a></li>
+  <li><a href="#neural-backend" id="toc-neural-backend" class="nav-link" data-scroll-target="#neural-backend">Neural Backend</a></li>
+  <li><a href="#device-setup" id="toc-device-setup" class="nav-link" data-scroll-target="#device-setup">Device Setup</a></li>
+  <li><a href="#training-loop" id="toc-training-loop" class="nav-link" data-scroll-target="#training-loop">Training Loop</a>
+  <ul class="collapse">
+  <li><a href="#loss-curve" id="toc-loss-curve" class="nav-link" data-scroll-target="#loss-curve">Loss Curve</a></li>
+  </ul></li>
+  <li><a href="#evaluation" id="toc-evaluation" class="nav-link" data-scroll-target="#evaluation">Evaluation</a></li>
+  <li><a href="#categorical-interpretation" id="toc-categorical-interpretation" class="nav-link" data-scroll-target="#categorical-interpretation">Categorical Interpretation</a></li>
+  <li><a href="#wikitext-2-comparison" id="toc-wikitext-2-comparison" class="nav-link" data-scroll-target="#wikitext-2-comparison">WikiText-2 Comparison</a></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="ket-language-model.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="../../ket-language-model.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">KET Language Model on Penn Treebank</h1>
+<p class="subtitle lead">Training a Word-Level Language Model with Kan Extension Transformers</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simon Frost </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>In this vignette we train a word-level language model on the Penn Treebank (PTB) corpus using FunctorFlow’s <strong>KET</strong> (Kan Extension Transformer) architecture with Metal GPU acceleration on Apple Silicon.</p>
+<p>The central idea is that attention—the core mechanism of modern transformers—can be understood as a <strong>left Kan extension</strong> <span class="math inline">\(\Sigma_J(F)\)</span>: a universal way of aggregating information along a relation. In our language model:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Categorical concept</th>
+<th>Neural interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Source functor <span class="math inline">\(F\)</span></td>
+<td>Token embeddings</td>
+</tr>
+<tr class="even">
+<td>Indexing functor <span class="math inline">\(J\)</span></td>
+<td>Causal (autoregressive) mask</td>
+</tr>
+<tr class="odd">
+<td>Left Kan extension <span class="math inline">\(\Sigma_J(F)\)</span></td>
+<td>Masked multi-head attention</td>
+</tr>
+<tr class="even">
+<td>Morphism <span class="math inline">\(\text{decode}\)</span></td>
+<td>Linear projection to vocabulary</td>
+</tr>
+<tr class="odd">
+<td>Cross-entropy loss</td>
+<td>How well the diagram “commutes” with ground truth</td>
+</tr>
+</tbody>
+</table>
+<p>We build the model as a FunctorFlow <code>Diagram</code>, compile it to a Lux neural network via <code>compile_to_lux</code>, and train it on PTB’s ~10K-word vocabulary. At the end we briefly compare results on WikiText-2.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Pkg</span>.<span class="fu">activate</span>(<span class="fu">joinpath</span>(<span class="pp">@__DIR__</span>, <span class="st">".."</span>))</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Lux</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">LuxCore</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Random</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Optimisers</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Zygote</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Statistics</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="data-loading" class="level2">
+<h2 class="anchored" data-anchor-id="data-loading">Data Loading</h2>
+<p>The Penn Treebank dataset ships as one sentence per line with space-separated tokens. We load the raw tokens, insert <code>&lt;eos&gt;</code> at sentence boundaries, and build a vocabulary from the training split.</p>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> DATA_DIR <span class="op">=</span> <span class="fu">joinpath</span>(<span class="pp">@__DIR__</span>, <span class="st">".."</span>, <span class="st">".."</span>, <span class="st">"data"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">load_ptb</span>(; split_name<span class="op">=</span><span class="st">"train"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    path <span class="op">=</span> <span class="fu">joinpath</span>(DATA_DIR, <span class="st">"ptb"</span>, <span class="st">"ptb.</span><span class="sc">$</span>(split_name)<span class="st">.txt"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    tokens <span class="op">=</span> <span class="dt">String</span>[]</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> line <span class="kw">in</span> <span class="fu">eachline</span>(path)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        stripped <span class="op">=</span> <span class="fu">strip</span>(line)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="fu">isempty</span>(stripped) <span class="op">&amp;&amp;</span> <span class="cf">continue</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">append!</span>(tokens, <span class="bu">Base</span>.<span class="fu">split</span>(stripped))</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">push!</span>(tokens, <span class="st">"&lt;eos&gt;"</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> tokens</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">build_vocab</span>(tokens)</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    unique_tokens <span class="op">=</span> <span class="fu">sort</span>(<span class="fu">unique</span>(tokens))</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    token_to_id <span class="op">=</span> <span class="fu">Dict</span>(t <span class="op">=&gt;</span> i <span class="cf">for</span> (i, t) <span class="kw">in</span> <span class="fu">enumerate</span>(unique_tokens))</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> token_to_id, unique_tokens</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">encode</span>(tokens, vocab<span class="op">::</span><span class="dt">Dict{String, Int}</span>)</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [vocab[t] for t <span class="kw">in</span> tokens]</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>encode (generic function with 1 method)</code></pre>
+</div>
+</div>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>train_tokens <span class="op">=</span> <span class="fu">load_ptb</span>(split_name<span class="op">=</span><span class="st">"train"</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>valid_tokens <span class="op">=</span> <span class="fu">load_ptb</span>(split_name<span class="op">=</span><span class="st">"valid"</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>test_tokens  <span class="op">=</span> <span class="fu">load_ptb</span>(split_name<span class="op">=</span><span class="st">"test"</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>vocab, id_to_token <span class="op">=</span> <span class="fu">build_vocab</span>(train_tokens)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>vocab_size <span class="op">=</span> <span class="fu">length</span>(vocab)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Vocabulary size : </span><span class="sc">$</span>vocab_size<span class="st">"</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Train tokens    : </span><span class="sc">$</span>(<span class="fu">length</span>(train_tokens))<span class="st">"</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Valid tokens    : </span><span class="sc">$</span>(<span class="fu">length</span>(valid_tokens))<span class="st">"</span>)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Test tokens     : </span><span class="sc">$</span>(<span class="fu">length</span>(test_tokens))<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Vocabulary size : 10000
+Train tokens    : 929589
+Valid tokens    : 73760
+Test tokens     : 82430</code></pre>
+</div>
+</div>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>train_ids <span class="op">=</span> <span class="fu">encode</span>(train_tokens, vocab)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>valid_ids <span class="op">=</span> <span class="fu">encode</span>(valid_tokens, vocab)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>test_ids  <span class="op">=</span> <span class="fu">encode</span>(test_tokens, vocab)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Sample IDs (first 10): "</span>, train_ids[<span class="fl">1</span><span class="op">:</span><span class="fl">10</span>])</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Decoded back         : "</span>, [id_to_token[i] for i <span class="kw">in</span> train_ids[<span class="fl">1</span><span class="op">:</span><span class="fl">10</span>]])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sample IDs (first 10): [238, 808, 951, 1326, 1477, 1692, 3774, 3921, 4068, 4381]
+Decoded back         : ["aer", "banknote", "berlitz", "calloway", "centrust", "cluett", "fromstein", "gitano", "guterman", "hydro-quebec"]</code></pre>
+</div>
+</div>
+</section>
+<section id="batching" class="level2">
+<h2 class="anchored" data-anchor-id="batching">Batching</h2>
+<p>For next-token prediction we sample random windows of length <code>seq_len</code> from the tokenised corpus. The input is the first <code>seq_len</code> tokens and the target is the subsequent <code>seq_len</code> tokens (shifted by one position).</p>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">make_batches</span>(ids<span class="op">::</span><span class="dt">Vector{Int}</span>; seq_len<span class="op">=</span><span class="fl">64</span>, batch_size<span class="op">=</span><span class="fl">32</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="fu">length</span>(ids)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    max_start <span class="op">=</span> n <span class="op">-</span> seq_len</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    starts <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1</span><span class="op">:</span>max_start, batch_size)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    inputs  <span class="op">=</span> <span class="fu">hcat</span>([ids[s<span class="op">:</span>s<span class="op">+</span>seq_len<span class="op">-</span><span class="fl">1</span>] for s <span class="kw">in</span> starts]<span class="op">...</span>)   <span class="co"># seq_len × batch_size</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    targets <span class="op">=</span> <span class="fu">hcat</span>([ids[s<span class="op">+</span><span class="fl">1</span><span class="op">:</span>s<span class="op">+</span>seq_len] for s <span class="kw">in</span> starts]<span class="op">...</span>)   <span class="co"># seq_len × batch_size</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> inputs, targets</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>make_batches (generic function with 1 method)</code></pre>
+</div>
+</div>
+<p>Quick sanity check:</p>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>inp, tgt <span class="op">=</span> <span class="fu">make_batches</span>(train_ids; seq_len<span class="op">=</span><span class="fl">8</span>, batch_size<span class="op">=</span><span class="fl">2</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Input shape : "</span>, <span class="fu">size</span>(inp))</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Target shape: "</span>, <span class="fu">size</span>(tgt))</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Input col 1 : "</span>, [id_to_token[i] for i <span class="kw">in</span> inp[<span class="op">:</span>, <span class="fl">1</span>]])</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Target col 1: "</span>, [id_to_token[i] for i <span class="kw">in</span> tgt[<span class="op">:</span>, <span class="fl">1</span>]])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Input shape : (8, 2)
+Target shape: (8, 2)
+Input col 1 : ["N", "a", "common", "share", "&lt;eos&gt;", "exxon", "corp.", "filed"]
+Target col 1: ["a", "common", "share", "&lt;eos&gt;", "exxon", "corp.", "filed", "suit"]</code></pre>
+</div>
+</div>
+</section>
+<section id="functorflow-diagram" class="level2">
+<h2 class="anchored" data-anchor-id="functorflow-diagram">FunctorFlow Diagram</h2>
+<p>We build the language model as a categorical diagram. The key components are:</p>
+<ol type="1">
+<li><strong>Objects</strong>: <code>Embeddings</code> (the token embedding vectors), <code>CausalRelation</code> (the autoregressive mask), <code>Contextualized</code> (the KET output), and <code>Logits</code> (vocabulary-sized predictions).</li>
+<li><strong>Left Kan extension</strong> <span class="math inline">\(\Sigma\)</span>: aggregates embeddings along the causal relation using learned multi-head attention—the core KET pattern.</li>
+<li><strong>Morphism</strong> <code>decode</code>: projects the contextualized representations to vocabulary logits.</li>
+</ol>
+<div id="14" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>D <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>KET_LM)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Objects</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D, <span class="op">:</span>Embeddings;      kind<span class="op">=:</span>messages,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Token embedding vectors (d_model × seq_len × batch)"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D, <span class="op">:</span>CausalRelation;   kind<span class="op">=:</span>relation,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Lower-triangular causal mask (seq_len × seq_len)"</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D, <span class="op">:</span>Contextualized;   kind<span class="op">=:</span>contextualized_messages,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Context vectors after Kan extension"</span>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D, <span class="op">:</span>Logits;           kind<span class="op">=:</span>output,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Vocabulary logits (vocab_size × seq_len × batch)"</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Left Kan extension Σ: the core KET attention pattern</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="fu">Σ</span>(D, <span class="op">:</span>Embeddings;</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>  along   <span class="op">=</span> <span class="op">:</span>CausalRelation,</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  name    <span class="op">=</span> <span class="op">:</span>aggregate,</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  target  <span class="op">=</span> <span class="op">:</span>Contextualized,</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  reducer <span class="op">=</span> <span class="op">:</span>ket_attention,</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  description <span class="op">=</span> <span class="st">"Aggregate embeddings via causal attention (left Kan extension)"</span>)</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Decode morphism: project to vocabulary</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D, <span class="op">:</span>decode, <span class="op">:</span>Contextualized, <span class="op">:</span>Logits;</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>              description<span class="op">=</span><span class="st">"Linear projection to vocabulary logits"</span>)</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :KET_LM ⟨4 objects, 1 morphisms, 1 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+</section>
+<section id="neural-backend" class="level2">
+<h2 class="anchored" data-anchor-id="neural-backend">Neural Backend</h2>
+<p>We now assign neural implementations to the diagram’s operations. The embedding layer (integer IDs → dense vectors) sits outside the diagram as a preprocessing step; everything after that is captured by the compiled Lux model.</p>
+<div id="16" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> d_model <span class="op">=</span> <span class="fl">64</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> n_heads <span class="op">=</span> <span class="fl">2</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> seq_len <span class="op">=</span> <span class="fl">32</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> batch_size <span class="op">=</span> <span class="fl">8</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Compile the diagram to a Lux model</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>ket_model <span class="op">=</span> <span class="fu">compile_to_lux</span>(D;</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    reducer_layers  <span class="op">=</span> <span class="fu">Dict</span>(<span class="op">:</span>ket_attention <span class="op">=&gt;</span> <span class="fu">KETAttentionLayer</span>(d_model; n_heads<span class="op">=</span>n_heads)),</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    morphism_layers <span class="op">=</span> <span class="fu">Dict</span>(<span class="op">:</span>decode <span class="op">=&gt;</span> <span class="fu">DiagramDenseLayer</span>(d_model, vocab_size; name<span class="op">=:</span>decode))</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> <span class="bu">Random</span>.<span class="fu">default_rng</span>()</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="bu">Random</span>.<span class="fu">seed!</span>(rng, <span class="fl">42</span>)</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialise embedding matrix manually (not part of the diagram)</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>embed_init <span class="op">=</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, d_model, vocab_size) <span class="op">.*</span> <span class="fu">Float32</span>(<span class="fu">sqrt</span>(<span class="fl">2.0</span> <span class="op">/</span> d_model))</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialise diagram model parameters and state</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>ket_ps, ket_st <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, ket_model)</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Diagram model parameters: "</span>, <span class="fu">keys</span>(ket_ps))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-yellow-fg ansi-bold">┌ </span><span class="ansi-yellow-fg ansi-bold">Warning: </span>`replicate` doesn't work for `TaskLocalRNG`. Returning the same `TaskLocalRNG`.
+<span class="ansi-yellow-fg ansi-bold">└ </span><span class="ansi-bright-black-fg">@ LuxCore ~/.julia/packages/LuxCore/kQC9S/src/LuxCore.jl:18</span>
+Diagram model parameters: (:morph_decode, :red_ket_attention)
+</pre>
+</div>
+</div>
+</div>
+<p>We combine all trainable parameters into a single <code>NamedTuple</code> so Zygote can differentiate through them in one pass:</p>
+<div id="18" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>ps_all <span class="op">=</span> (embed <span class="op">=</span> embed_init, ket <span class="op">=</span> ket_ps)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Combined parameter groups: "</span>, <span class="fu">keys</span>(ps_all))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Combined parameter groups: (:embed, :ket)</code></pre>
+</div>
+</div>
+</section>
+<section id="device-setup" class="level2">
+<h2 class="anchored" data-anchor-id="device-setup">Device Setup</h2>
+<p>We use CPU for this tutorial. For Apple Silicon GPU acceleration, load <code>Metal.jl</code> and replace <code>dev = identity</code> with <code>dev = mtl</code> (see vignette 13 for a Metal example).</p>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>dev <span class="op">=</span> identity  <span class="co"># CPU; use `mtl` from Metal.jl for Apple Silicon GPU</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>ps_cpu <span class="op">=</span> (embed <span class="op">=</span> ps_all.embed, ket <span class="op">=</span> ket_ps)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>st_cpu <span class="op">=</span> ket_st</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Device: CPU"</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Embedding type: "</span>, <span class="fu">typeof</span>(ps_cpu.embed))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Device: CPU
+Embedding type: Matrix{Float32}</code></pre>
+</div>
+</div>
+</section>
+<section id="training-loop" class="level2">
+<h2 class="anchored" data-anchor-id="training-loop">Training Loop</h2>
+<p>We define a numerically stable cross-entropy loss and a full forward pass that goes from integer token IDs to loss.</p>
+<div id="22" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Numerically stable logsumexp</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">logsumexp</span>(x; dims)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> <span class="fu">maximum</span>(x; dims<span class="op">=</span>dims)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> m <span class="op">.+</span> <span class="fu">log</span>.(<span class="fu">sum</span>(<span class="fu">exp</span>.(x <span class="op">.-</span> m); dims<span class="op">=</span>dims))</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">forward_and_loss</span>(ket_model, ps, st, input_ids, target_ids, causal_mask)</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 1. Embedding lookup: (d_model, vocab) × one-hot(seq_len × batch) → (d_model, seq_len, batch)</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    sl, bs <span class="op">=</span> <span class="fu">size</span>(input_ids)</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    flat_ids <span class="op">=</span> <span class="fu">reshape</span>(input_ids, <span class="op">:</span>)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    emb_flat <span class="op">=</span> ps.embed[<span class="op">:</span>, flat_ids]                       <span class="co"># d_model × (seq_len*batch)</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    embeddings <span class="op">=</span> <span class="fu">reshape</span>(emb_flat, <span class="fu">size</span>(ps.embed, <span class="fl">1</span>), sl, bs)  <span class="co"># d_model × seq_len × batch</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 2. Run the diagram: Σ (KET attention) + decode morphism</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>    diagram_inputs <span class="op">=</span> <span class="fu">Dict</span>(</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>Embeddings    <span class="op">=&gt;</span> embeddings,</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>CausalRelation <span class="op">=&gt;</span> causal_mask</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>    result, st_new <span class="op">=</span> <span class="fu">ket_model</span>(diagram_inputs, ps.ket, st)</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>    logits <span class="op">=</span> result[<span class="op">:</span>values][<span class="op">:</span>Logits]  <span class="co"># vocab × seq_len × batch</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 3. Cross-entropy loss</span></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>    log_probs <span class="op">=</span> logits <span class="op">.-</span> <span class="fu">logsumexp</span>(logits; dims<span class="op">=</span><span class="fl">1</span>)  <span class="co"># vocab × seq_len × batch</span></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Gather log-probs at target positions</span></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>    v <span class="op">=</span> <span class="fu">size</span>(logits, <span class="fl">1</span>)</span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>    tgt_flat <span class="op">=</span> <span class="fu">reshape</span>(target_ids, <span class="op">:</span>)                      <span class="co"># (seq_len*batch,)</span></span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>    lp_flat  <span class="op">=</span> <span class="fu">reshape</span>(log_probs, v, <span class="op">:</span>)                    <span class="co"># vocab × (seq_len*batch)</span></span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Build one-hot indicator matrix</span></span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>    onehot <span class="op">=</span> <span class="fu">Float32</span>.(<span class="fu">collect</span>(<span class="fl">1</span><span class="op">:</span>v) <span class="op">.==</span> <span class="fu">reshape</span>(tgt_flat, <span class="fl">1</span>, <span class="op">:</span>))</span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>    loss <span class="op">=</span> <span class="fu">-mean</span>(<span class="fu">sum</span>(onehot <span class="op">.*</span> lp_flat; dims<span class="op">=</span><span class="fl">1</span>))</span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> loss, st_new</span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Build the causal mask once (lower-triangular, so each position can attend only to itself and earlier positions):</p>
+<div id="24" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">LinearAlgebra</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>causal_mask <span class="op">=</span> <span class="fu">Float32</span>.(<span class="fu">tril</span>(<span class="fu">ones</span>(seq_len, seq_len)))</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Causal mask shape: "</span>, <span class="fu">size</span>(causal_mask))</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Causal mask corner (5×5):"</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="fu">display</span>(causal_mask[<span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Causal mask shape: (32, 32)
+Causal mask corner (5×5):</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<pre><code>5×5 Matrix{Float32}:
+ 1.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  0.0
+ 1.0  1.0  1.0  1.0  1.0</code></pre>
+</div>
+</div>
+<p>Set up the optimiser and train for 50 steps:</p>
+<div id="26" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>opt <span class="op">=</span> Optimisers.<span class="fu">Adam</span>(<span class="fl">1.0f-3</span>)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>opt_state <span class="op">=</span> Optimisers.<span class="fu">setup</span>(opt, ps_cpu)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>n_steps <span class="op">=</span> <span class="fl">50</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>log_interval <span class="op">=</span> <span class="fl">10</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>losses <span class="op">=</span> <span class="dt">Float64</span>[]</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Starting training (</span><span class="sc">$</span>n_steps<span class="st"> steps, seq_len=</span><span class="sc">$</span>seq_len<span class="st">, batch_size=</span><span class="sc">$</span>batch_size<span class="st">, d_model=</span><span class="sc">$</span>d_model<span class="st">)"</span>)</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"="</span><span class="op">^</span><span class="fl">70</span>)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_steps</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample a mini-batch</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    inp, tgt <span class="op">=</span> <span class="fu">make_batches</span>(train_ids; seq_len<span class="op">=</span>seq_len, batch_size<span class="op">=</span>batch_size)</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Compute gradients</span></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>    (loss_val, st_new), grads <span class="op">=</span> Zygote.<span class="fu">withgradient</span>(ps_cpu) <span class="cf">do</span> p</span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">forward_and_loss</span>(ket_model, p, st_cpu, inp, tgt, causal_mask)</span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>    st_cpu <span class="op">=</span> st_new</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Update parameters</span></span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>    opt_state, ps_cpu <span class="op">=</span> Optimisers.<span class="fu">update</span>(opt_state, ps_cpu, grads[<span class="fl">1</span>])</span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">push!</span>(losses, <span class="fu">Float64</span>(loss_val))</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> step <span class="op">%</span> log_interval <span class="op">==</span> <span class="fl">0</span> <span class="op">||</span> step <span class="op">==</span> <span class="fl">1</span></span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>        ppl <span class="op">=</span> <span class="fu">exp</span>(<span class="fu">Float64</span>(loss_val))</span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"Step </span><span class="sc">$</span>step<span class="st"> / </span><span class="sc">$</span>n_steps<span class="st">  |  loss = </span><span class="sc">$</span>(<span class="fu">round</span>(loss_val; digits<span class="op">=</span><span class="fl">4</span>))<span class="st">  |  perplexity = </span><span class="sc">$</span>(<span class="fu">round</span>(ppl; digits<span class="op">=</span><span class="fl">1</span>))<span class="st">"</span>)</span>
+<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"="</span><span class="op">^</span><span class="fl">70</span>)</span>
+<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Final training loss: </span><span class="sc">$</span>(<span class="fu">round</span>(losses[<span class="kw">end</span>]; digits<span class="op">=</span><span class="fl">4</span>))<span class="st">"</span>)</span>
+<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Final training perplexity: </span><span class="sc">$</span>(<span class="fu">round</span>(<span class="fu">exp</span>(losses[<span class="kw">end</span>]); digits<span class="op">=</span><span class="fl">1</span>))<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Starting training (50 steps, seq_len=32, batch_size=8, d_model=64)
+======================================================================
+Step 1 / 50  |  loss = 9.2036  |  perplexity = 9932.8
+Step 10 / 50  |  loss = 9.1612  |  perplexity = 9520.7
+Step 20 / 50  |  loss = 9.0432  |  perplexity = 8460.8
+Step 30 / 50  |  loss = 8.7367  |  perplexity = 6227.1
+Step 40 / 50  |  loss = 8.3088  |  perplexity = 4059.3
+Step 50 / 50  |  loss = 7.7667  |  perplexity = 2360.6
+======================================================================
+Final training loss: 7.7667
+Final training perplexity: 2360.6</code></pre>
+</div>
+</div>
+<section id="loss-curve" class="level3">
+<h3 class="anchored" data-anchor-id="loss-curve">Loss Curve</h3>
+<div id="28" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Training loss curve (every </span><span class="sc">$</span>(log_interval)<span class="st"> steps):</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i, step) <span class="kw">in</span> <span class="fu">enumerate</span>(log_interval<span class="op">:</span>log_interval<span class="op">:</span>n_steps)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    bar_len <span class="op">=</span> <span class="fu">max</span>(<span class="fl">0</span>, <span class="fu">round</span>(<span class="dt">Int</span>, (<span class="fu">maximum</span>(losses) <span class="op">-</span> losses[step]) <span class="op">/</span> (<span class="fu">maximum</span>(losses) <span class="op">-</span> <span class="fu">minimum</span>(losses) <span class="op">+</span> <span class="fl">1e-8</span>) <span class="op">*</span> <span class="fl">40</span>))</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    bar <span class="op">=</span> <span class="st">"█"</span> <span class="op">^</span> bar_len</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  Step </span><span class="sc">$</span>(<span class="fu">lpad</span>(step, <span class="fl">3</span>))<span class="st"> │ </span><span class="sc">$</span>(<span class="fu">round</span>(losses[step]; digits<span class="op">=</span><span class="fl">3</span>))<span class="st"> │ </span><span class="sc">$</span>bar<span class="st">"</span>)</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Training loss curve (every 10 steps):
+
+  Step  10 │ 9.161 │ ██
+  Step  20 │ 9.043 │ █████
+  Step  30 │ 8.737 │ ██████████████
+  Step  40 │ 8.309 │ █████████████████████████
+  Step  50 │ 7.767 │ ████████████████████████████████████████</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="evaluation" class="level2">
+<h2 class="anchored" data-anchor-id="evaluation">Evaluation</h2>
+<p>We estimate perplexity on the held-out validation set by averaging the cross-entropy loss over many random windows.</p>
+<div id="30" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">estimate_perplexity</span>(ket_model, ps, st, ids; seq_len<span class="op">=</span><span class="fl">32</span>, n_batches<span class="op">=</span><span class="fl">10</span>, batch_size<span class="op">=</span><span class="fl">8</span>)</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    total_loss <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    cm <span class="op">=</span> <span class="fu">Float32</span>.(<span class="fu">tril</span>(<span class="fu">ones</span>(seq_len, seq_len)))</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_batches</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>        inp, tgt <span class="op">=</span> <span class="fu">make_batches</span>(ids; seq_len<span class="op">=</span>seq_len, batch_size<span class="op">=</span>batch_size)</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>        loss_val, _ <span class="op">=</span> <span class="fu">forward_and_loss</span>(ket_model, ps, st, inp, tgt, cm)</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>        total_loss <span class="op">+=</span> <span class="fu">Float64</span>(loss_val)</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>    avg_loss <span class="op">=</span> total_loss <span class="op">/</span> n_batches</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">exp</span>(avg_loss), avg_loss</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>val_ppl, val_loss <span class="op">=</span> <span class="fu">estimate_perplexity</span>(ket_model, ps_cpu, st_cpu, valid_ids)</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Validation perplexity: </span><span class="sc">$</span>(<span class="fu">round</span>(val_ppl; digits<span class="op">=</span><span class="fl">1</span>))<span class="st">"</span>)</span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Validation loss      : </span><span class="sc">$</span>(<span class="fu">round</span>(val_loss; digits<span class="op">=</span><span class="fl">4</span>))<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Validation perplexity: 2007.5
+Validation loss      : 7.6047</code></pre>
+</div>
+</div>
+</section>
+<section id="categorical-interpretation" class="level2">
+<h2 class="anchored" data-anchor-id="categorical-interpretation">Categorical Interpretation</h2>
+<p>What just happened, viewed through the lens of category theory?</p>
+<p><strong>The diagram as a functor.</strong> Our FunctorFlow diagram defines a functor <span class="math inline">\(\mathcal{F}\)</span> from a small indexing category (with objects <code>Embeddings</code>, <code>CausalRelation</code>, <code>Contextualized</code>, <code>Logits</code> and morphisms between them) into the category of vector spaces and linear maps. Training adjusts <span class="math inline">\(\mathcal{F}\)</span> so that the diagram’s predictions approximate the ground-truth next-token distribution.</p>
+<p><strong>The KET attention layer as a left Kan extension.</strong> The left Kan extension <span class="math inline">\(\Sigma_J(F)\)</span> is the universal construction that extends a functor <span class="math inline">\(F\)</span> (token embeddings) along an indexing functor <span class="math inline">\(J\)</span> (the causal mask). Concretely:</p>
+<p><span class="math display">\[
+\Sigma_J(F)(t) = \mathrm{colim}_{s \leq t} \; \alpha(t, s) \cdot F(s)
+\]</span></p>
+<p>where <span class="math inline">\(\alpha(t,s)\)</span> are the attention weights—learned as the softmax of scaled dot-product scores <span class="math inline">\(QK^\top / \sqrt{d_k}\)</span>, masked by <span class="math inline">\(J\)</span> so that <span class="math inline">\(\alpha(t,s) = 0\)</span> whenever <span class="math inline">\(s &gt; t\)</span>. This is exactly multi-head causal attention.</p>
+<p><strong>The causal mask as the indexing functor <span class="math inline">\(J\)</span>.</strong> The lower-triangular mask defines which tokens can attend to which: position <span class="math inline">\(t\)</span> can see positions <span class="math inline">\(\{1, \ldots, t\}\)</span>. This is a functor from the poset <span class="math inline">\((\mathbb{N}, \leq)\)</span> into the category of relations.</p>
+<p><strong>The decode morphism.</strong> A natural transformation from the contextualized representation space to the vocabulary simplex—projecting the universal completion back to observable predictions.</p>
+<p><strong>Cross-entropy as an obstruction measure.</strong> The cross-entropy loss measures how far the diagram is from “commuting” with the ground truth distribution: a perfectly trained model would make the diagram commute exactly, with zero loss corresponding to zero obstruction.</p>
+</section>
+<section id="wikitext-2-comparison" class="level2">
+<h2 class="anchored" data-anchor-id="wikitext-2-comparison">WikiText-2 Comparison</h2>
+<p>We briefly repeat the experiment on WikiText-2 to compare perplexities across corpora using the same architecture.</p>
+<div id="32" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">load_wikitext2</span>(; split_name<span class="op">=</span><span class="st">"train"</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    path <span class="op">=</span> <span class="fu">joinpath</span>(DATA_DIR, <span class="st">"wikitext-2"</span>, <span class="st">"wiki.</span><span class="sc">$</span>(split_name)<span class="st">.tokens"</span>)</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    tokens <span class="op">=</span> <span class="dt">String</span>[]</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> line <span class="kw">in</span> <span class="fu">eachline</span>(path)</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>        stripped <span class="op">=</span> <span class="fu">strip</span>(line)</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">isempty</span>(stripped) <span class="op">&amp;&amp;</span> <span class="cf">continue</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>        words <span class="op">=</span> <span class="bu">Base</span>.<span class="fu">split</span>(stripped)</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>        <span class="fu">isempty</span>(words) <span class="op">&amp;&amp;</span> <span class="cf">continue</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">append!</span>(tokens, words)</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">push!</span>(tokens, <span class="st">"&lt;eos&gt;"</span>)</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> tokens</span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>wt2_train <span class="op">=</span> <span class="fu">load_wikitext2</span>(split_name<span class="op">=</span><span class="st">"train"</span>)</span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>wt2_valid <span class="op">=</span> <span class="fu">load_wikitext2</span>(split_name<span class="op">=</span><span class="st">"valid"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>216347-element Vector{String}:
+ "="
+ "Homarus"
+ "gammarus"
+ "="
+ "&lt;eos&gt;"
+ "Homarus"
+ "gammarus"
+ ","
+ "known"
+ "as"
+ ⋮
+ "="
+ "="
+ "="
+ "Television"
+ "roles"
+ "="
+ "="
+ "="
+ "&lt;eos&gt;"</code></pre>
+</div>
+</div>
+<p>WikiText-2 has a larger vocabulary than PTB. We build a new vocabulary, re-initialise the model, and train briefly:</p>
+<div id="34" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>wt2_vocab, wt2_id_to_token <span class="op">=</span> <span class="fu">build_vocab</span>(wt2_train)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>wt2_vocab_size <span class="op">=</span> <span class="fu">length</span>(wt2_vocab)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>wt2_train_ids <span class="op">=</span> <span class="fu">encode</span>(wt2_train, wt2_vocab)</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>wt2_valid_ids <span class="op">=</span> <span class="fu">encode</span>(wt2_valid, wt2_vocab)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"WikiText-2 vocabulary size: </span><span class="sc">$</span>wt2_vocab_size<span class="st">"</span>)</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"WikiText-2 train tokens   : </span><span class="sc">$</span>(<span class="fu">length</span>(wt2_train_ids))<span class="st">"</span>)</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"WikiText-2 valid tokens   : </span><span class="sc">$</span>(<span class="fu">length</span>(wt2_valid_ids))<span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>WikiText-2 vocabulary size: 33278
+WikiText-2 train tokens   : 2075677
+WikiText-2 valid tokens   : 216347</code></pre>
+</div>
+</div>
+<div id="36" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a fresh model for the WikiText-2 vocabulary</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>wt2_diagram <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>KET_LM_WT2)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(wt2_diagram, <span class="op">:</span>Embeddings;    kind<span class="op">=:</span>messages)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(wt2_diagram, <span class="op">:</span>CausalRelation; kind<span class="op">=:</span>relation)</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(wt2_diagram, <span class="op">:</span>Contextualized; kind<span class="op">=:</span>contextualized_messages)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(wt2_diagram, <span class="op">:</span>Logits;         kind<span class="op">=:</span>output)</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a><span class="fu">Σ</span>(wt2_diagram, <span class="op">:</span>Embeddings;</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  along<span class="op">=:</span>CausalRelation, name<span class="op">=:</span>aggregate,</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>  target<span class="op">=:</span>Contextualized, reducer<span class="op">=:</span>ket_attention)</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(wt2_diagram, <span class="op">:</span>decode, <span class="op">:</span>Contextualized, <span class="op">:</span>Logits)</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>wt2_model <span class="op">=</span> <span class="fu">compile_to_lux</span>(wt2_diagram;</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>    reducer_layers  <span class="op">=</span> <span class="fu">Dict</span>(<span class="op">:</span>ket_attention <span class="op">=&gt;</span> <span class="fu">KETAttentionLayer</span>(d_model; n_heads<span class="op">=</span>n_heads)),</span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    morphism_layers <span class="op">=</span> <span class="fu">Dict</span>(<span class="op">:</span>decode <span class="op">=&gt;</span> <span class="fu">DiagramDenseLayer</span>(d_model, wt2_vocab_size; name<span class="op">=:</span>decode))</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a><span class="bu">Random</span>.<span class="fu">seed!</span>(rng, <span class="fl">42</span>)</span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>wt2_embed <span class="op">=</span> <span class="fu">randn</span>(rng, <span class="dt">Float32</span>, d_model, wt2_vocab_size) <span class="op">.*</span> <span class="fu">Float32</span>(<span class="fu">sqrt</span>(<span class="fl">2.0</span> <span class="op">/</span> d_model))</span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>wt2_ket_ps, wt2_ket_st <span class="op">=</span> Lux.<span class="fu">setup</span>(rng, wt2_model)</span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>wt2_ps_cpu <span class="op">=</span> (embed <span class="op">=</span> wt2_embed, ket <span class="op">=</span> wt2_ket_ps)</span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>wt2_st_cpu <span class="op">=</span> wt2_ket_st</span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>wt2_opt_state <span class="op">=</span> Optimisers.<span class="fu">setup</span>(Optimisers.<span class="fu">Adam</span>(<span class="fl">1.0f-3</span>), wt2_ps_cpu)</span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>wt2_causal <span class="op">=</span> <span class="fu">Float32</span>.(<span class="fu">tril</span>(<span class="fu">ones</span>(seq_len, seq_len)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-yellow-fg ansi-bold">┌ </span><span class="ansi-yellow-fg ansi-bold">Warning: </span>`replicate` doesn't work for `TaskLocalRNG`. Returning the same `TaskLocalRNG`.
+<span class="ansi-yellow-fg ansi-bold">└ </span><span class="ansi-bright-black-fg">@ LuxCore ~/.julia/packages/LuxCore/kQC9S/src/LuxCore.jl:18</span>
+</pre>
+</div>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>32×32 Matrix{Float32}:
+ 1.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  …  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  0.0  0.0  0.0  0.0  0.0  0.0     0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  0.0  0.0  0.0  0.0  0.0     0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  0.0  0.0  0.0  0.0     0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  0.0  0.0  0.0     0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  0.0  0.0  …  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  0.0     0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ ⋮                        ⋮              ⋱  ⋮                        ⋮    
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     0.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  0.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  0.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  0.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  0.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  0.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  0.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0</code></pre>
+</div>
+</div>
+<div id="38" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>wt2_n_steps <span class="op">=</span> <span class="fl">50</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Training KET-LM on WikiText-2 (</span><span class="sc">$</span>wt2_n_steps<span class="st"> steps)"</span>)</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"="</span><span class="op">^</span><span class="fl">70</span>)</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>wt2_n_steps</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>    inp, tgt <span class="op">=</span> <span class="fu">make_batches</span>(wt2_train_ids; seq_len<span class="op">=</span>seq_len, batch_size<span class="op">=</span>batch_size)</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>    (loss_val, wt2_st_new), grads <span class="op">=</span> Zygote.<span class="fu">withgradient</span>(wt2_ps_cpu) <span class="cf">do</span> p</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">forward_and_loss</span>(wt2_model, p, wt2_st_cpu, inp, tgt, wt2_causal)</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    wt2_st_cpu <span class="op">=</span> wt2_st_new</span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>    wt2_opt_state, wt2_ps_cpu <span class="op">=</span> Optimisers.<span class="fu">update</span>(wt2_opt_state, wt2_ps_cpu, grads[<span class="fl">1</span>])</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> step <span class="op">%</span> <span class="fl">10</span> <span class="op">==</span> <span class="fl">0</span> <span class="op">||</span> step <span class="op">==</span> <span class="fl">1</span></span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>        ppl <span class="op">=</span> <span class="fu">exp</span>(<span class="fu">Float64</span>(loss_val))</span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"Step </span><span class="sc">$</span>step<span class="st"> / </span><span class="sc">$</span>wt2_n_steps<span class="st">  |  loss = </span><span class="sc">$</span>(<span class="fu">round</span>(loss_val; digits<span class="op">=</span><span class="fl">4</span>))<span class="st">  |  perplexity = </span><span class="sc">$</span>(<span class="fu">round</span>(ppl; digits<span class="op">=</span><span class="fl">1</span>))<span class="st">"</span>)</span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Training KET-LM on WikiText-2 (50 steps)
+======================================================================
+Step 1 / 50  |  loss = 10.4561  |  perplexity = 34755.6
+Step 10 / 50  |  loss = 10.3604  |  perplexity = 31584.2
+Step 20 / 50  |  loss = 10.2749  |  perplexity = 28995.1
+Step 30 / 50  |  loss = 10.0973  |  perplexity = 24276.5
+Step 40 / 50  |  loss = 9.8084  |  perplexity = 18186.3
+Step 50 / 50  |  loss = 9.2471  |  perplexity = 10374.0</code></pre>
+</div>
+</div>
+<div id="40" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>wt2_val_ppl, wt2_val_loss <span class="op">=</span> <span class="fu">estimate_perplexity</span>(wt2_model, wt2_ps_cpu, wt2_st_cpu, wt2_valid_ids)</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">"</span> <span class="op">*</span> <span class="st">"="</span><span class="op">^</span><span class="fl">70</span>)</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Comparison (single KET block, d_model=</span><span class="sc">$</span>d_model<span class="st">, </span><span class="sc">$</span>n_heads<span class="st"> heads, </span><span class="sc">$</span>n_steps<span class="st"> steps):</span><span class="sc">\n</span><span class="st">"</span>)</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  Dataset      │ Vocab  │ Val Loss │ Val Perplexity"</span>)</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  ─────────────┼────────┼──────────┼───────────────"</span>)</span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  PTB          │ </span><span class="sc">$</span>(<span class="fu">lpad</span>(vocab_size, <span class="fl">5</span>))<span class="st">  │ </span><span class="sc">$</span>(<span class="fu">lpad</span>(<span class="fu">round</span>(val_loss; digits<span class="op">=</span><span class="fl">3</span>), <span class="fl">7</span>))<span class="st">  │ </span><span class="sc">$</span>(<span class="fu">lpad</span>(<span class="fu">round</span>(val_ppl; digits<span class="op">=</span><span class="fl">1</span>), <span class="fl">10</span>))<span class="st">"</span>)</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  WikiText-2   │ </span><span class="sc">$</span>(<span class="fu">lpad</span>(wt2_vocab_size, <span class="fl">5</span>))<span class="st">  │ </span><span class="sc">$</span>(<span class="fu">lpad</span>(<span class="fu">round</span>(wt2_val_loss; digits<span class="op">=</span><span class="fl">3</span>), <span class="fl">7</span>))<span class="st">  │ </span><span class="sc">$</span>(<span class="fu">lpad</span>(<span class="fu">round</span>(wt2_val_ppl; digits<span class="op">=</span><span class="fl">1</span>), <span class="fl">10</span>))<span class="st">"</span>)</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"  ─────────────┴────────┴──────────┴───────────────"</span>)</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Note: These are intentionally small models (single KET block) trained briefly."</span>)</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"State-of-the-art PTB perplexity is ~55; our goal is to demonstrate the KET pattern."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+======================================================================
+Comparison (single KET block, d_model=64, 2 heads, 50 steps):
+
+  Dataset      │ Vocab  │ Val Loss │ Val Perplexity
+  ─────────────┼────────┼──────────┼───────────────
+  PTB          │ 10000  │   7.605  │     2007.5
+  WikiText-2   │ 33278  │   8.815  │     6732.1
+  ─────────────┴────────┴──────────┴───────────────
+
+Note: These are intentionally small models (single KET block) trained briefly.
+State-of-the-art PTB perplexity is ~55; our goal is to demonstrate the KET pattern.</code></pre>
+</div>
+</div>
+</section>
+<section id="summary" class="level2">
+<h2 class="anchored" data-anchor-id="summary">Summary</h2>
+<p>We demonstrated how to build and train a word-level language model using FunctorFlow’s categorical abstractions:</p>
+<ol type="1">
+<li><strong>Diagram construction</strong> — the model architecture is a categorical diagram with objects (embedding space, causal relation, contextualized space, logits) connected by a left Kan extension and a decode morphism.</li>
+<li><strong>Neural compilation</strong> — <code>compile_to_lux</code> turns the diagram into a differentiable Lux model, with <code>KETAttentionLayer</code> implementing the Kan extension as multi-head attention and <code>DiagramDenseLayer</code> implementing the decode morphism.</li>
+<li><strong>GPU training</strong> — Metal.jl moves all parameters and computation to Apple Silicon, while Zygote provides automatic differentiation through the entire pipeline.</li>
+<li><strong>Categorical semantics</strong> — the attention mechanism is not an ad hoc design choice but a principled instance of a universal construction (left Kan extension), and training minimises the obstruction to the diagram’s commutativity with ground truth.</li>
+</ol>
+<p>This pattern generalises naturally: stacking multiple KET blocks gives a deep transformer, composing with DB squares adds consistency constraints, and swapping the causal mask for a graph adjacency matrix turns the language model into a graph transformer—all within the same categorical framework.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

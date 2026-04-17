@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Simon Frost">
+
+<title>Universal Constructions</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="universal-constructions_files/libs/clipboard/clipboard.min.js"></script>
+<script src="universal-constructions_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="universal-constructions_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="universal-constructions_files/libs/quarto-html/popper.min.js"></script>
+<script src="universal-constructions_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="universal-constructions_files/libs/quarto-html/anchor.min.js"></script>
+<link href="universal-constructions_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="universal-constructions_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="universal-constructions_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="universal-constructions_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="universal-constructions_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#products" id="toc-products" class="nav-link" data-scroll-target="#products">Products</a></li>
+  <li><a href="#coproducts" id="toc-coproducts" class="nav-link" data-scroll-target="#coproducts">Coproducts</a></li>
+  <li><a href="#pullbacks" id="toc-pullbacks" class="nav-link" data-scroll-target="#pullbacks">Pullbacks</a></li>
+  <li><a href="#pushouts" id="toc-pushouts" class="nav-link" data-scroll-target="#pushouts">Pushouts</a></li>
+  <li><a href="#equalizers" id="toc-equalizers" class="nav-link" data-scroll-target="#equalizers">Equalizers</a></li>
+  <li><a href="#coequalizers" id="toc-coequalizers" class="nav-link" data-scroll-target="#coequalizers">Coequalizers</a>
+  <ul class="collapse">
+  <li><a href="#running-a-coequalizer" id="toc-running-a-coequalizer" class="nav-link" data-scroll-target="#running-a-coequalizer">Running a coequalizer</a></li>
+  <li><a href="#verifying-a-coequalizer" id="toc-verifying-a-coequalizer" class="nav-link" data-scroll-target="#verifying-a-coequalizer">Verifying a coequalizer</a></li>
+  </ul></li>
+  <li><a href="#composing-universal-constructions" id="toc-composing-universal-constructions" class="nav-link" data-scroll-target="#composing-universal-constructions">Composing Universal Constructions</a></li>
+  <li><a href="#verification" id="toc-verification" class="nav-link" data-scroll-target="#verification">Verification</a>
+  <ul class="collapse">
+  <li><a href="#verifying-a-product" id="toc-verifying-a-product" class="nav-link" data-scroll-target="#verifying-a-product">Verifying a product</a></li>
+  <li><a href="#verifying-a-coproduct" id="toc-verifying-a-coproduct" class="nav-link" data-scroll-target="#verifying-a-coproduct">Verifying a coproduct</a></li>
+  <li><a href="#verifying-a-pullback" id="toc-verifying-a-pullback" class="nav-link" data-scroll-target="#verifying-a-pullback">Verifying a pullback</a></li>
+  <li><a href="#verifying-a-pushout" id="toc-verifying-a-pushout" class="nav-link" data-scroll-target="#verifying-a-pushout">Verifying a pushout</a></li>
+  <li><a href="#verifying-an-equalizer" id="toc-verifying-an-equalizer" class="nav-link" data-scroll-target="#verifying-an-equalizer">Verifying an equalizer</a></li>
+  </ul></li>
+  <li><a href="#compilation" id="toc-compilation" class="nav-link" data-scroll-target="#compilation">Compilation</a></li>
+  <li><a href="#universal-morphisms" id="toc-universal-morphisms" class="nav-link" data-scroll-target="#universal-morphisms">Universal Morphisms</a></li>
+  <li><a href="#proof-certificates" id="toc-proof-certificates" class="nav-link" data-scroll-target="#proof-certificates">Proof Certificates</a></li>
+  <li><a href="#unicode-operators-and" id="toc-unicode-operators-and" class="nav-link" data-scroll-target="#unicode-operators-and">Unicode Operators: ⊗ and ⊕</a></li>
+  <li><a href="#interpretation" id="toc-interpretation" class="nav-link" data-scroll-target="#interpretation">Interpretation</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="universal-constructions.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="universal-constructions.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Universal Constructions</h1>
+<p class="subtitle lead">Pullbacks, pushouts, products, and coproducts</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simon Frost </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p><strong>Universal constructions</strong> are the canonical patterns of category theory — limits and colimits that characterize how objects and morphisms can be combined. They include:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Construction</th>
+<th style="text-align: left;">Type</th>
+<th style="text-align: left;">Intuition</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Product</td>
+<td style="text-align: left;">Limit</td>
+<td style="text-align: left;">Parallel combination (AND)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Coproduct</td>
+<td style="text-align: left;">Colimit</td>
+<td style="text-align: left;">Choice / branching (OR)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Pullback</td>
+<td style="text-align: left;">Limit</td>
+<td style="text-align: left;">Join / merge over shared target</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Pushout</td>
+<td style="text-align: left;">Colimit</td>
+<td style="text-align: left;">Gluing over shared source</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Equalizer</td>
+<td style="text-align: left;">Limit</td>
+<td style="text-align: left;">Subspace where two maps agree</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Coequalizer</td>
+<td style="text-align: left;">Colimit</td>
+<td style="text-align: left;">Quotient forcing two maps to agree</td>
+</tr>
+</tbody>
+</table>
+<p>FunctorFlow.jl provides first-class functions for all six constructions. Each returns a result struct containing the new diagram elements (objects and morphisms) that realize the universal property.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="products" class="level2">
+<h2 class="anchored" data-anchor-id="products">Products</h2>
+<p>A <strong>product</strong> of two objects <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> is an object <span class="math inline">\(A \times B\)</span> equipped with projection morphisms <span class="math inline">\(\pi_1 : A \times B \to A\)</span> and <span class="math inline">\(\pi_2 : A \times B \to B\)</span>. It represents the most general way to “observe both <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> simultaneously.”</p>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>D_A <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>ComponentA)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_A, <span class="op">:</span>A; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"First component"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>D_B <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>ComponentB)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_B, <span class="op">:</span>B; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Second component"</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> FunctorFlow.<span class="fu">product</span>(D_A, D_B)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>ProductResult(:Product, Diagram :Product ⟨2 objects, 0 morphisms, 0 Kan, 0 losses⟩, [:factor_1, :factor_2], Dict{Symbol, Any}(:n_factors =&gt; 2))</code></pre>
+</div>
+</div>
+<p>The result struct contains the product diagram and the namespace prefixes for each factor.</p>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Product name:  "</span>, result.name)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Projections:   "</span>, result.projections)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Product diagram objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result.product_diagram.objects)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Product name:  Product
+Projections:   [:factor_1, :factor_2]
+Product diagram objects: [:factor_1__A, :factor_2__B]</code></pre>
+</div>
+</div>
+</section>
+<section id="coproducts" class="level2">
+<h2 class="anchored" data-anchor-id="coproducts">Coproducts</h2>
+<p>A <strong>coproduct</strong> of <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> is the dual: an object <span class="math inline">\(A \sqcup B\)</span> with injection morphisms <span class="math inline">\(\iota_1 : A \to A \sqcup B\)</span> and <span class="math inline">\(\iota_2 : B \to A \sqcup B\)</span>. It represents a choice — data arrives from either <span class="math inline">\(A\)</span> or <span class="math inline">\(B\)</span>.</p>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>D_L <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>LeftBranch)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_L, <span class="op">:</span>A; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Left branch"</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>D_R <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>RightBranch)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_R, <span class="op">:</span>B; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Right branch"</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>result_cp <span class="op">=</span> FunctorFlow.<span class="fu">coproduct</span>(D_L, D_R)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>CoproductResult(:Coproduct, Diagram :Coproduct ⟨2 objects, 0 morphisms, 0 Kan, 0 losses⟩, [:summand_1, :summand_2], Dict{Symbol, Any}(:n_summands =&gt; 2))</code></pre>
+</div>
+</div>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Coproduct name:  "</span>, result_cp.name)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Injections:      "</span>, result_cp.injections)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Coproduct diagram objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_cp.coproduct_diagram.objects)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Coproduct name:  Coproduct
+Injections:      [:summand_1, :summand_2]
+Coproduct diagram objects: [:summand_1__A, :summand_2__B]</code></pre>
+</div>
+</div>
+<p>In an AI context, coproducts model branching architectures: the system can receive input from multiple sources and route them into a unified representation.</p>
+</section>
+<section id="pullbacks" class="level2">
+<h2 class="anchored" data-anchor-id="pullbacks">Pullbacks</h2>
+<p>A <strong>pullback</strong> is the limit of a cospan: given morphisms <span class="math inline">\(f : A \to C\)</span> and <span class="math inline">\(g : B \to C\)</span> that share a common target, the pullback <span class="math inline">\(P\)</span> is the “most general” object that maps into both <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> such that the resulting square commutes.</p>
+<p><span class="math display">\[
+\begin{array}{ccc}
+P &amp; \xrightarrow{p_1} &amp; A \\
+\downarrow^{p_2} &amp; &amp; \downarrow^{f} \\
+B &amp; \xrightarrow{g} &amp; C
+\end{array}
+\]</span></p>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>D1 <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>LeftSource)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D1, <span class="op">:</span>A; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Left source"</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D1, <span class="op">:</span>C; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Shared target"</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D1, <span class="op">:</span>f, <span class="op">:</span>A, <span class="op">:</span>C; description<span class="op">=</span><span class="st">"Left map"</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>D2 <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>RightSource)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D2, <span class="op">:</span>B; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Right source"</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D2, <span class="op">:</span>C; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Shared target"</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D2, <span class="op">:</span>g, <span class="op">:</span>B, <span class="op">:</span>C; description<span class="op">=</span><span class="st">"Right map"</span>)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>result_pb <span class="op">=</span> FunctorFlow.<span class="fu">pullback</span>(D1, D2; over<span class="op">=:</span>SharedInterface)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>PullbackResult(:Pullback, Diagram :Pullback ⟨5 objects, 2 morphisms, 0 Kan, 0 losses⟩, :left, :right, :SharedInterface, Symbol[], nothing, Dict{Symbol, Any}(:over =&gt; :SharedInterface))</code></pre>
+</div>
+</div>
+<div id="14" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Pullback name:       "</span>, result_pb.name)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Projection 1:        "</span>, result_pb.projection1)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Projection 2:        "</span>, result_pb.projection2)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Pullback objects:    "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_pb.cone.objects)))</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Pullback operations: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_pb.cone.operations)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Pullback name:       Pullback
+Projection 1:        left
+Projection 2:        right
+Pullback objects:    [:left__A, :left__C, :right__B, :right__C, :SharedInterface]
+Pullback operations: [:left__f, :right__g]</code></pre>
+</div>
+</div>
+<p>The pullback object <span class="math inline">\(P\)</span> comes equipped with projections <span class="math inline">\(p_1 : P \to A\)</span> and <span class="math inline">\(p_2 : P \to B\)</span>. The universal property guarantees that <span class="math inline">\(f \circ p_1 = g \circ p_2\)</span>.</p>
+<p>In data terms, a pullback is a <strong>join</strong>: given two datasets that map into a common schema, the pullback is their join on that schema.</p>
+</section>
+<section id="pushouts" class="level2">
+<h2 class="anchored" data-anchor-id="pushouts">Pushouts</h2>
+<p>A <strong>pushout</strong> is the colimit of a span: given <span class="math inline">\(f : C \to A\)</span> and <span class="math inline">\(g : C \to B\)</span> that share a common source, the pushout <span class="math inline">\(Q\)</span> is the “smallest” object that both <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> map into, identifying elements that came from the same element of <span class="math inline">\(C\)</span>.</p>
+<p><span class="math display">\[
+\begin{array}{ccc}
+C &amp; \xrightarrow{f} &amp; A \\
+\downarrow^{g} &amp; &amp; \downarrow^{q_1} \\
+B &amp; \xrightarrow{q_2} &amp; Q
+\end{array}
+\]</span></p>
+<div id="16" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>D3 <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>LeftTarget)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D3, <span class="op">:</span>C; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Shared source"</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D3, <span class="op">:</span>A; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Left target"</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D3, <span class="op">:</span>f, <span class="op">:</span>C, <span class="op">:</span>A; description<span class="op">=</span><span class="st">"Left map"</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>D4 <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>RightTarget)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D4, <span class="op">:</span>C; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Shared source"</span>)</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D4, <span class="op">:</span>B; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Right target"</span>)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D4, <span class="op">:</span>g, <span class="op">:</span>C, <span class="op">:</span>B; description<span class="op">=</span><span class="st">"Right map"</span>)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>result_po <span class="op">=</span> FunctorFlow.<span class="fu">pushout</span>(D3, D4; along<span class="op">=:</span>SharedSubobject)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>PushoutResult(:Pushout, Diagram :Pushout ⟨5 objects, 2 morphisms, 0 Kan, 0 losses⟩, :left, :right, :SharedSubobject, Symbol[], nothing, Dict{Symbol, Any}(:along =&gt; :SharedSubobject))</code></pre>
+</div>
+</div>
+<div id="18" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Pushout name:       "</span>, result_po.name)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Injection 1:        "</span>, result_po.injection1)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Injection 2:        "</span>, result_po.injection2)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Pushout objects:    "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_po.cocone.objects)))</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Pushout operations: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_po.cocone.operations)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Pushout name:       Pushout
+Injection 1:        left
+Injection 2:        right
+Pushout objects:    [:left__C, :left__A, :right__C, :right__B, :SharedSubobject]
+Pushout operations: [:left__f, :right__g]</code></pre>
+</div>
+</div>
+<p>The pushout <span class="math inline">\(Q\)</span> comes with injections <span class="math inline">\(q_1 : A \to Q\)</span> and <span class="math inline">\(q_2 : B \to Q\)</span>. In practice, pushouts model <strong>gluing</strong>: two data sources that share a common origin are merged into one, with the shared part identified.</p>
+</section>
+<section id="equalizers" class="level2">
+<h2 class="anchored" data-anchor-id="equalizers">Equalizers</h2>
+<p>An <strong>equalizer</strong> is the limit of a parallel pair: given two morphisms <span class="math inline">\(f, g : A \to B\)</span>, the equalizer <span class="math inline">\(E\)</span> is the subobject of <span class="math inline">\(A\)</span> on which <span class="math inline">\(f\)</span> and <span class="math inline">\(g\)</span> agree.</p>
+<p><span class="math display">\[E \xrightarrow{e} A \underset{g}{\overset{f}{\rightrightarrows}} B\]</span></p>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>D_eq <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>EqualizerExample)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_eq, <span class="op">:</span>A; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Source"</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_eq, <span class="op">:</span>B; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Target"</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_eq, <span class="op">:</span>f, <span class="op">:</span>A, <span class="op">:</span>B; description<span class="op">=</span><span class="st">"First parallel map"</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_eq, <span class="op">:</span>g, <span class="op">:</span>A, <span class="op">:</span>B; description<span class="op">=</span><span class="st">"Second parallel map"</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>result_eq <span class="op">=</span> FunctorFlow.<span class="fu">equalizer</span>(D_eq, <span class="op">:</span>f, <span class="op">:</span>g)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>EqualizerResult(:Equalizer, Diagram :Equalizer ⟨2 objects, 2 morphisms, 0 Kan, 1 losses⟩, :base__f, Dict{Symbol, Any}(:f =&gt; :f, :g =&gt; :g))</code></pre>
+</div>
+</div>
+<div id="22" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Equalizer name: "</span>, result_eq.name)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Equalizer map:  "</span>, result_eq.equalizer_map)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Equalizer diagram objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_eq.equalizer_diagram.objects)))</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Equalizer diagram losses:  "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_eq.equalizer_diagram.losses)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Equalizer name: Equalizer
+Equalizer map:  base__f
+Equalizer diagram objects: [:base__A, :base__B]
+Equalizer diagram losses:  [:Equalizer_eq_loss]</code></pre>
+</div>
+</div>
+<p>The equalizer is useful in learning contexts: it identifies the subspace of inputs where two different processing paths produce identical outputs — the “agreement kernel.”</p>
+</section>
+<section id="coequalizers" class="level2">
+<h2 class="anchored" data-anchor-id="coequalizers">Coequalizers</h2>
+<p>A <strong>coequalizer</strong> is the colimit dual of the equalizer: given two morphisms <span class="math inline">\(f, g : A \to B\)</span>, the coequalizer <span class="math inline">\(Q\)</span> is the quotient of <span class="math inline">\(B\)</span> that identifies <span class="math inline">\(f(a)\)</span> with <span class="math inline">\(g(a)\)</span> for all <span class="math inline">\(a \in A\)</span>.</p>
+<p><span class="math display">\[A \underset{g}{\overset{f}{\rightrightarrows}} B \xrightarrow{q} Q\]</span></p>
+<p>Where an equalizer <em>finds</em> where two maps agree (a subobject), a coequalizer <em>forces</em> two maps to agree (a quotient).</p>
+<div id="24" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>D_coeq <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>CoequalizerExample)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_coeq, <span class="op">:</span>A; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Source"</span>)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_coeq, <span class="op">:</span>B; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Target"</span>)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_coeq, <span class="op">:</span>f, <span class="op">:</span>A, <span class="op">:</span>B; description<span class="op">=</span><span class="st">"First parallel map"</span>)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_coeq, <span class="op">:</span>g, <span class="op">:</span>A, <span class="op">:</span>B; description<span class="op">=</span><span class="st">"Second parallel map"</span>)</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>result_coeq <span class="op">=</span> <span class="fu">coequalizer</span>(D_coeq, <span class="op">:</span>f, <span class="op">:</span>g)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>CoequalizerResult(:Coequalizer, Diagram :Coequalizer ⟨3 objects, 3 morphisms, 0 Kan, 1 losses⟩, :Coequalizer_q, :Coequalizer_Quotient, Dict{Symbol, Any}(:f =&gt; :f, :g =&gt; :g, :source =&gt; :A, :target =&gt; :B))</code></pre>
+</div>
+</div>
+<div id="26" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Coequalizer name:     "</span>, result_coeq.name)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Quotient object:      "</span>, result_coeq.quotient_object)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Coequalizer map (q):  "</span>, result_coeq.coequalizer_map)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Diagram objects:      "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_coeq.coequalizer_diagram.objects)))</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Diagram losses:       "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(result_coeq.coequalizer_diagram.losses)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Coequalizer name:     Coequalizer
+Quotient object:      Coequalizer_Quotient
+Coequalizer map (q):  Coequalizer_q
+Diagram objects:      [:base__A, :base__B, :Coequalizer_Quotient]
+Diagram losses:       [:Coequalizer_coeq_loss]</code></pre>
+</div>
+</div>
+<p>The coequalizer enforces <span class="math inline">\(q \circ f = q \circ g\)</span> via an obstruction loss. In AI terms, coequalizers model:</p>
+<ul>
+<li><strong>Equivalence classes</strong>: collapsing representations that two maps agree should be identified</li>
+<li><strong>Symmetry quotienting</strong>: removing redundant structure by identifying symmetric states</li>
+<li><strong>Consensus merging</strong>: merging outputs that multiple processing paths declare equivalent</li>
+</ul>
+<section id="running-a-coequalizer" class="level3">
+<h3 class="anchored" data-anchor-id="running-a-coequalizer">Running a coequalizer</h3>
+<div id="28" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(result_coeq.coequalizer_diagram, <span class="fu">Symbol</span>(<span class="op">:</span>base__, <span class="op">:</span>f), x <span class="op">-&gt;</span> x <span class="op">*</span> <span class="fl">2</span>)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(result_coeq.coequalizer_diagram, <span class="fu">Symbol</span>(<span class="op">:</span>base__, <span class="op">:</span>g), x <span class="op">-&gt;</span> x <span class="op">.+</span> <span class="fl">1</span>)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">bind_morphism!</span>(result_coeq.coequalizer_diagram, result_coeq.coequalizer_map, identity)</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>compiled_coeq <span class="op">=</span> <span class="fu">compile_construction</span>(result_coeq)</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>result_coeq_run <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_coeq, <span class="fu">Dict</span>(<span class="fu">Symbol</span>(<span class="op">:</span>base__, <span class="op">:</span>A) <span class="op">=&gt;</span> [<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>]))</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"q∘f: "</span>, result_coeq_run.values[<span class="fu">Symbol</span>(<span class="op">:</span>Coequalizer, <span class="op">:</span>_qf)])</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"q∘g: "</span>, result_coeq_run.values[<span class="fu">Symbol</span>(<span class="op">:</span>Coequalizer, <span class="op">:</span>_qg)])</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Coequalizer loss: "</span>, result_coeq_run.losses)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>q∘f: [2.0, 4.0, 6.0]
+q∘g: [2.0, 3.0, 4.0]
+Coequalizer loss: Dict(:Coequalizer_coeq_loss =&gt; 2.23606797749979)</code></pre>
+</div>
+</div>
+<p>The loss measures how far <span class="math inline">\(q \circ f\)</span> and <span class="math inline">\(q \circ g\)</span> are from agreeing — training on this loss pushes the quotient map <span class="math inline">\(q\)</span> toward identifying the images of <span class="math inline">\(f\)</span> and <span class="math inline">\(g\)</span>.</p>
+</section>
+<section id="verifying-a-coequalizer" class="level3">
+<h3 class="anchored" data-anchor-id="verifying-a-coequalizer">Verifying a coequalizer</h3>
+<div id="30" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>v_coeq <span class="op">=</span> <span class="fu">verify</span>(result_coeq)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Verification passed: "</span>, v_coeq.passed)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Checks: "</span>, v_coeq.checks)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Verification passed: true
+Checks: Dict{Symbol, Bool}(:has_coeq_loss =&gt; 1, :has_coequalizer_map =&gt; 1, :map_targets_quotient =&gt; 1, :has_quotient_object =&gt; 1)</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="composing-universal-constructions" class="level2">
+<h2 class="anchored" data-anchor-id="composing-universal-constructions">Composing Universal Constructions</h2>
+<p>Universal constructions compose naturally. For example, we can first take a product, then use the result as input to a pullback.</p>
+<div id="32" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>D_X <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>ComponentX)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_X, <span class="op">:</span>X; kind<span class="op">=:</span>state)</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>D_Y <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>ComponentY)</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_Y, <span class="op">:</span>Y; kind<span class="op">=:</span>state)</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Step 1: Product of X and Y</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>prod_result <span class="op">=</span> FunctorFlow.<span class="fu">product</span>(D_X, D_Y; name<span class="op">=:</span>XY_Product)</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Product projections: "</span>, prod_result.projections)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Product projections: [:factor_1, :factor_2]</code></pre>
+</div>
+</div>
+<p>Now take the product diagram and another diagram with a shared morphism target, then form the pullback.</p>
+<div id="34" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>D_W <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>ComponentW)</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_W, <span class="op">:</span>W; kind<span class="op">=:</span>state)</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>pb_result <span class="op">=</span> FunctorFlow.<span class="fu">pullback</span>(prod_result.product_diagram, D_W; over<span class="op">=:</span>SharedInterface)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>PullbackResult(:Pullback, Diagram :Pullback ⟨4 objects, 0 morphisms, 0 Kan, 0 losses⟩, :left, :right, :SharedInterface, Symbol[], nothing, Dict{Symbol, Any}(:over =&gt; :SharedInterface))</code></pre>
+</div>
+</div>
+<div id="36" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Composed pullback objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(pb_result.cone.objects)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Composed pullback objects: [:left__factor_1__X, :left__factor_2__Y, :right__W, :SharedInterface]</code></pre>
+</div>
+</div>
+<p>This pattern — product then pullback — arises naturally when you want to join two parallel channels (<span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>) and then intersect the result with a third source (<span class="math inline">\(W\)</span>) over a shared target (<span class="math inline">\(Z\)</span>).</p>
+</section>
+<section id="verification" class="level2">
+<h2 class="anchored" data-anchor-id="verification">Verification</h2>
+<p>Every universal construction returned by FunctorFlow can be <strong>verified</strong> — the <code>verify</code> function checks that the result satisfies the required universal property (e.g., commutativity of the pullback square, existence of projections for products).</p>
+<section id="verifying-a-product" class="level3">
+<h3 class="anchored" data-anchor-id="verifying-a-product">Verifying a product</h3>
+<div id="38" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>v_prod <span class="op">=</span> <span class="fu">verify</span>(result)</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Verification passed: "</span>, v_prod.passed)</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Checks: "</span>, v_prod.checks)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Verification passed: true
+Checks: Dict{Symbol, Bool}(:has_factor_factor_1 =&gt; 1, :has_factor_factor_2 =&gt; 1)</code></pre>
+</div>
+</div>
+</section>
+<section id="verifying-a-coproduct" class="level3">
+<h3 class="anchored" data-anchor-id="verifying-a-coproduct">Verifying a coproduct</h3>
+<div id="40" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>v_cp <span class="op">=</span> <span class="fu">verify</span>(result_cp)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Verification passed: "</span>, v_cp.passed)</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Checks: "</span>, v_cp.checks)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Verification passed: true
+Checks: Dict{Symbol, Bool}(:has_summand_summand_1 =&gt; 1, :has_summand_summand_2 =&gt; 1)</code></pre>
+</div>
+</div>
+</section>
+<section id="verifying-a-pullback" class="level3">
+<h3 class="anchored" data-anchor-id="verifying-a-pullback">Verifying a pullback</h3>
+<div id="42" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>v_pb <span class="op">=</span> <span class="fu">verify</span>(result_pb)</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Verification passed: "</span>, v_pb.passed)</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Checks: "</span>, v_pb.checks)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Verification passed: false
+Checks: Dict{Symbol, Bool}(:has_commuting_constraint =&gt; 0, :has_left_factor =&gt; 1, :has_interface_morphisms =&gt; 0, :has_shared_object =&gt; 1, :has_right_factor =&gt; 1)</code></pre>
+</div>
+</div>
+</section>
+<section id="verifying-a-pushout" class="level3">
+<h3 class="anchored" data-anchor-id="verifying-a-pushout">Verifying a pushout</h3>
+<div id="44" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>v_po <span class="op">=</span> <span class="fu">verify</span>(result_po)</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Verification passed: "</span>, v_po.passed)</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Checks: "</span>, v_po.checks)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Verification passed: false
+Checks: Dict{Symbol, Bool}(:has_left_factor =&gt; 1, :has_interface_morphisms =&gt; 0, :has_shared_object =&gt; 1, :has_right_factor =&gt; 1)</code></pre>
+</div>
+</div>
+</section>
+<section id="verifying-an-equalizer" class="level3">
+<h3 class="anchored" data-anchor-id="verifying-an-equalizer">Verifying an equalizer</h3>
+<div id="46" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>v_eq <span class="op">=</span> <span class="fu">verify</span>(result_eq)</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Verification passed: "</span>, v_eq.passed)</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Checks: "</span>, v_eq.checks)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Verification passed: true
+Checks: Dict{Symbol, Bool}(:has_eq_loss =&gt; 1, :has_equalizer_map =&gt; 1)</code></pre>
+</div>
+</div>
+<p>Verification is lightweight and runs entirely on the symbolic diagram — no numerical computation is needed. If a construction is ill-formed (e.g., a missing projection), the <code>checks</code> list will contain the failing condition.</p>
+</section>
+</section>
+<section id="compilation" class="level2">
+<h2 class="anchored" data-anchor-id="compilation">Compilation</h2>
+<p>Once a construction is verified, it can be <strong>compiled</strong> into a <code>CompiledDiagram</code> — a lower-level representation ready for code generation or execution. The <code>compile_construction</code> function performs this step.</p>
+<div id="48" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>compiled_pb <span class="op">=</span> <span class="fu">compile_construction</span>(result_pb)</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Compiled type: "</span>, <span class="fu">typeof</span>(compiled_pb))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Compiled type: CompiledDiagram</code></pre>
+</div>
+</div>
+<div id="50" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>compiled_po <span class="op">=</span> <span class="fu">compile_construction</span>(result_po)</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Compiled type: "</span>, <span class="fu">typeof</span>(compiled_po))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Compiled type: CompiledDiagram</code></pre>
+</div>
+</div>
+<div id="52" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>compiled_eq <span class="op">=</span> <span class="fu">compile_construction</span>(result_eq)</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Compiled type: "</span>, <span class="fu">typeof</span>(compiled_eq))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Compiled type: CompiledDiagram</code></pre>
+</div>
+</div>
+<p>Compilation freezes the diagram structure and resolves all symbolic references, producing an object that downstream tooling (e.g., Julia code emitters or ONNX exporters) can consume directly.</p>
+</section>
+<section id="universal-morphisms" class="level2">
+<h2 class="anchored" data-anchor-id="universal-morphisms">Universal Morphisms</h2>
+<p>The defining feature of a universal construction is its <strong>universal morphism</strong>: given any other cone (or cocone) over the same diagram, there exists a unique mediating morphism from the external cone into the limit (or from the colimit into the external cocone).</p>
+<p>FunctorFlow makes this explicit via <code>universal_morphism</code>. We construct a test cone — a diagram that maps into the same cospan as the pullback — and ask for the mediating morphism.</p>
+<div id="54" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>D_cone <span class="op">=</span> FunctorFlow.<span class="fu">Diagram</span>(<span class="op">:</span>TestCone)</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cone, <span class="op">:</span>T; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Test apex"</span>)</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cone, <span class="op">:</span>A; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Left leg target"</span>)</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cone, <span class="op">:</span>B; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Right leg target"</span>)</span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cone, <span class="op">:</span>C; kind<span class="op">=:</span>state, description<span class="op">=</span><span class="st">"Shared target"</span>)</span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_cone, <span class="op">:</span>t_to_a, <span class="op">:</span>T, <span class="op">:</span>A; description<span class="op">=</span><span class="st">"Left leg"</span>)</span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_cone, <span class="op">:</span>t_to_b, <span class="op">:</span>T, <span class="op">:</span>B; description<span class="op">=</span><span class="st">"Right leg"</span>)</span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_cone, <span class="op">:</span>f, <span class="op">:</span>A, <span class="op">:</span>C; description<span class="op">=</span><span class="st">"Left map"</span>)</span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_cone, <span class="op">:</span>g, <span class="op">:</span>B, <span class="op">:</span>C; description<span class="op">=</span><span class="st">"Right map"</span>)</span>
+<span id="cb52-10"><a href="#cb52-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-11"><a href="#cb52-11" aria-hidden="true" tabindex="-1"></a>mediating <span class="op">=</span> <span class="fu">universal_morphism</span>(result_pb, D_cone)</span>
+<span id="cb52-12"><a href="#cb52-12" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Universal morphism diagram: "</span>, mediating.name)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Universal morphism diagram: mediating</code></pre>
+</div>
+</div>
+<p>The returned diagram encodes the unique mediating morphism <span class="math inline">\(u : T \to P\)</span> such that <span class="math inline">\(p_1 \circ u = t\_to\_a\)</span> and <span class="math inline">\(p_2 \circ u = t\_to\_b\)</span>. This is the categorical guarantee: the pullback is the “best” such object.</p>
+</section>
+<section id="proof-certificates" class="level2">
+<h2 class="anchored" data-anchor-id="proof-certificates">Proof Certificates</h2>
+<p>For auditing and documentation, FunctorFlow can render a human-readable <strong>proof certificate</strong> summarizing what was constructed, what universal property it satisfies, and what checks were performed.</p>
+<div id="56" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>cert_pb <span class="op">=</span> <span class="fu">render_construction_certificate</span>(result_pb)</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(cert_pb)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>-- Auto-generated by FunctorFlow.jl
+namespace FunctorFlowProofs.Generated.Pullback
+
+open FunctorFlowProofs in
+
+def exportedDiagram : DiagramDecl := {
+  name := "Pullback",
+  objects := ["left__A", "left__C", "right__B", "right__C", "SharedInterface"],
+  operations := [{ name := "left__f", kind := OperationKind.morphism, refs := ["left__A", "left__C"] }, { name := "right__g", kind := OperationKind.morphism, refs := ["right__B", "right__C"] }],
+  ports := []
+}
+
+def exportedArtifact : LoweringArtifact := {
+  diagram := exportedDiagram,
+  resolvedRefs := true,
+  portsClosed := true
+}
+
+theorem exportedArtifact_checks : exportedArtifact.check = true := by native_decide
+
+theorem exportedArtifact_sound : exportedArtifact.Sound :=
+  LoweringArtifact.sound_of_check exportedArtifact_checks
+
+
+-- Pullback construction declaration
+def pullbackDecl : ConstructionDecl := {
+  kind := ConstructionKind.pullback,
+  diagram := exportedDiagram,
+  projection1 := "left",
+  projection2 := "right",
+  sharedObject := "SharedInterface",
+  interfaceMorphisms := []
+}
+
+-- Commuting square theorem: both projections agree on shared interface
+theorem pullback_commutes : pullbackDecl.CommutingSquare := by
+  exact ConstructionDecl.commuting_of_loss exportedArtifact
+
+end FunctorFlowProofs.Generated.Pullback</code></pre>
+</div>
+</div>
+<div id="58" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb56"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>cert_po <span class="op">=</span> <span class="fu">render_construction_certificate</span>(result_po)</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(cert_po)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>-- Auto-generated by FunctorFlow.jl
+namespace FunctorFlowProofs.Generated.Pushout
+
+open FunctorFlowProofs in
+
+def exportedDiagram : DiagramDecl := {
+  name := "Pushout",
+  objects := ["left__C", "left__A", "right__C", "right__B", "SharedSubobject"],
+  operations := [{ name := "left__f", kind := OperationKind.morphism, refs := ["left__C", "left__A"] }, { name := "right__g", kind := OperationKind.morphism, refs := ["right__C", "right__B"] }],
+  ports := []
+}
+
+def exportedArtifact : LoweringArtifact := {
+  diagram := exportedDiagram,
+  resolvedRefs := true,
+  portsClosed := true
+}
+
+theorem exportedArtifact_checks : exportedArtifact.check = true := by native_decide
+
+theorem exportedArtifact_sound : exportedArtifact.Sound :=
+  LoweringArtifact.sound_of_check exportedArtifact_checks
+
+
+-- Pushout construction declaration
+def pushoutDecl : ConstructionDecl := {
+  kind := ConstructionKind.pushout,
+  diagram := exportedDiagram,
+  injection1 := "left",
+  injection2 := "right",
+  sharedObject := "SharedSubobject",
+  interfaceMorphisms := []
+}
+
+end FunctorFlowProofs.Generated.Pushout</code></pre>
+</div>
+</div>
+<div id="60" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb58"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>cert_eq <span class="op">=</span> <span class="fu">render_construction_certificate</span>(result_eq)</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(cert_eq)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>-- Auto-generated by FunctorFlow.jl
+namespace FunctorFlowProofs.Generated.Equalizer
+
+open FunctorFlowProofs in
+
+def exportedDiagram : DiagramDecl := {
+  name := "Equalizer",
+  objects := ["base__A", "base__B"],
+  operations := [{ name := "base__f", kind := OperationKind.morphism, refs := ["base__A", "base__B"] }, { name := "base__g", kind := OperationKind.morphism, refs := ["base__A", "base__B"] }],
+  ports := []
+}
+
+def exportedArtifact : LoweringArtifact := {
+  diagram := exportedDiagram,
+  resolvedRefs := true,
+  portsClosed := true
+}
+
+theorem exportedArtifact_checks : exportedArtifact.check = true := by native_decide
+
+theorem exportedArtifact_sound : exportedArtifact.Sound :=
+  LoweringArtifact.sound_of_check exportedArtifact_checks
+
+end FunctorFlowProofs.Generated.Equalizer</code></pre>
+</div>
+</div>
+<p>Proof certificates are plain-text summaries intended for inclusion in design documents or automated reports. They provide a traceable record that the construction was well-formed before any code was generated from it.</p>
+</section>
+<section id="unicode-operators-and" class="level2">
+<h2 class="anchored" data-anchor-id="unicode-operators-and">Unicode Operators: ⊗ and ⊕</h2>
+<p>FunctorFlow provides unicode infix operators for the two most common universal constructions:</p>
+<ul>
+<li><strong><code>⊗</code></strong> (product): <code>D1 ⊗ D2</code> is equivalent to <code>product(D1, D2)</code></li>
+<li><strong><code>⊕</code></strong> (coproduct): <code>D1 ⊕ D2</code> is equivalent to <code>coproduct(D1, D2)</code></li>
+</ul>
+<div id="62" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb60"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>D_X <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>X)</span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_X, <span class="op">:</span>X; kind<span class="op">=:</span>state)</span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>D_Y <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>Y)</span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_Y, <span class="op">:</span>Y; kind<span class="op">=:</span>state)</span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Product via unicode operator</span></span>
+<span id="cb60-8"><a href="#cb60-8" aria-hidden="true" tabindex="-1"></a>prod_unicode <span class="op">=</span> D_X <span class="op">⊗</span> D_Y</span>
+<span id="cb60-9"><a href="#cb60-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"⊗ product name: "</span>, prod_unicode.name)</span>
+<span id="cb60-10"><a href="#cb60-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"⊗ product objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(prod_unicode.product_diagram.objects)))</span>
+<span id="cb60-11"><a href="#cb60-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-12"><a href="#cb60-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Coproduct via unicode operator</span></span>
+<span id="cb60-13"><a href="#cb60-13" aria-hidden="true" tabindex="-1"></a>coprod_unicode <span class="op">=</span> D_X <span class="op">⊕</span> D_Y</span>
+<span id="cb60-14"><a href="#cb60-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"⊕ coproduct name: "</span>, coprod_unicode.name)</span>
+<span id="cb60-15"><a href="#cb60-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"⊕ coproduct objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(coprod_unicode.coproduct_diagram.objects)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>⊗ product name: X_⊗_Y
+⊗ product objects: [:factor_1__X, :factor_2__Y]
+⊕ coproduct name: X_⊕_Y
+⊕ coproduct objects: [:summand_1__X, :summand_2__Y]</code></pre>
+</div>
+</div>
+<p>These operators make categorical architecture code read like mathematical notation.</p>
+</section>
+<section id="interpretation" class="level2">
+<h2 class="anchored" data-anchor-id="interpretation">Interpretation</h2>
+<p>Universal constructions provide a <strong>design vocabulary</strong> for AI architectures:</p>
+<ul>
+<li><p><strong>Products</strong> model parallel channels: process <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> independently but keep both results available. This is the pattern behind multi-modal architectures where vision and text features are maintained in parallel.</p></li>
+<li><p><strong>Coproducts</strong> model choice or branching: the system handles inputs from either <span class="math inline">\(A\)</span> or <span class="math inline">\(B\)</span>. This captures routing, mixture-of-experts gates, or any architecture that selects among alternatives.</p></li>
+<li><p><strong>Pullbacks</strong> model joins: given two representations that share a common target schema, the pullback is their intersection. This is the categorical version of a database join, or in neural terms, a cross-attention merge.</p></li>
+<li><p><strong>Pushouts</strong> model gluing: two representations that share a common origin are fused into one, identifying the shared part. This is the pattern behind data fusion and the Democritus gluing block.</p></li>
+<li><p><strong>Equalizers</strong> model agreement: the subspace where two different computations produce the same answer. This is related to consensus mechanisms and can serve as a learned filter.</p></li>
+<li><p><strong>Coequalizers</strong> model quotienting: collapsing a representation by identifying elements that two maps declare equivalent. This captures symmetry reduction, equivalence-class learning, and representation compression — the dual of the equalizer’s “agreement kernel.”</p></li>
+</ul>
+<p>By expressing architectures in terms of these universal constructions, FunctorFlow ensures that the resulting diagrams have well-defined compositional semantics — they can be combined, nested, and reasoned about using the full machinery of category theory.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

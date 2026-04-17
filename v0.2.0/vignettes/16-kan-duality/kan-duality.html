@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Simon Frost">
+
+<title>Left-Kan / Right-Kan Duality for Language Modeling</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="kan-duality_files/libs/clipboard/clipboard.min.js"></script>
+<script src="kan-duality_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="kan-duality_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="kan-duality_files/libs/quarto-html/popper.min.js"></script>
+<script src="kan-duality_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="kan-duality_files/libs/quarto-html/anchor.min.js"></script>
+<link href="kan-duality_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="kan-duality_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="kan-duality_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="kan-duality_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="kan-duality_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#synthetic-data" id="toc-synthetic-data" class="nav-link" data-scroll-target="#synthetic-data">Synthetic Data</a></li>
+  <li><a href="#left-kan-block-prediction-σ" id="toc-left-kan-block-prediction-σ" class="nav-link" data-scroll-target="#left-kan-block-prediction-σ">Left Kan: Block Prediction (Σ)</a>
+  <ul class="collapse">
+  <li><a href="#building-the-prediction-diagram" id="toc-building-the-prediction-diagram" class="nav-link" data-scroll-target="#building-the-prediction-diagram">Building the prediction diagram</a></li>
+  <li><a href="#executing-the-prediction" id="toc-executing-the-prediction" class="nav-link" data-scroll-target="#executing-the-prediction">Executing the prediction</a></li>
+  </ul></li>
+  <li><a href="#right-kan-block-denoising-δ" id="toc-right-kan-block-denoising-δ" class="nav-link" data-scroll-target="#right-kan-block-denoising-δ">Right Kan: Block Denoising (Δ)</a>
+  <ul class="collapse">
+  <li><a href="#building-the-denoising-diagram" id="toc-building-the-denoising-diagram" class="nav-link" data-scroll-target="#building-the-denoising-diagram">Building the denoising diagram</a></li>
+  <li><a href="#corruption-and-repair" id="toc-corruption-and-repair" class="nav-link" data-scroll-target="#corruption-and-repair">Corruption and repair</a></li>
+  </ul></li>
+  <li><a href="#the-duality-diagram" id="toc-the-duality-diagram" class="nav-link" data-scroll-target="#the-duality-diagram">The Duality Diagram</a>
+  <ul class="collapse">
+  <li><a href="#manual-construction" id="toc-manual-construction" class="nav-link" data-scroll-target="#manual-construction">Manual construction</a></li>
+  <li><a href="#executing-both-branches" id="toc-executing-both-branches" class="nav-link" data-scroll-target="#executing-both-branches">Executing both branches</a></li>
+  </ul></li>
+  <li><a href="#the-predict-repair-loop" id="toc-the-predict-repair-loop" class="nav-link" data-scroll-target="#the-predict-repair-loop">The Predict-Repair Loop</a></li>
+  <li><a href="#categorical-interpretation" id="toc-categorical-interpretation" class="nav-link" data-scroll-target="#categorical-interpretation">Categorical Interpretation</a>
+  <ul class="collapse">
+  <li><a href="#unit-etacolon-mathrmid-to-delta_j-circ-sigma_j" id="toc-unit-etacolon-mathrmid-to-delta_j-circ-sigma_j" class="nav-link" data-scroll-target="#unit-etacolon-mathrmid-to-delta_j-circ-sigma_j">Unit: <span class="math inline">\(\eta\colon \mathrm{Id} \to \Delta_J \circ \Sigma_J\)</span></a></li>
+  <li><a href="#counit-varepsiloncolon-sigma_j-circ-delta_j-to-mathrmid" id="toc-counit-varepsiloncolon-sigma_j-circ-delta_j-to-mathrmid" class="nav-link" data-scroll-target="#counit-varepsiloncolon-sigma_j-circ-delta_j-to-mathrmid">Counit: <span class="math inline">\(\varepsilon\colon \Sigma_J \circ \Delta_J \to \mathrm{Id}\)</span></a></li>
+  <li><a href="#in-practice" id="toc-in-practice" class="nav-link" data-scroll-target="#in-practice">In practice</a></li>
+  </ul></li>
+  <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="kan-duality.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="../../kan-duality.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Left-Kan / Right-Kan Duality for Language Modeling</h1>
+<p class="subtitle lead">Prediction via Σ and repair via Δ as an adjoint pair</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simon Frost </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>The adjunction <span class="math inline">\(\Sigma_J \dashv \Delta_J\)</span> is one of the deepest patterns in category theory. Given a functor <span class="math inline">\(J \colon \mathcal{A} \to \mathcal{B}\)</span>, the <strong>left Kan extension</strong> <span class="math inline">\(\Sigma_J\)</span> and <strong>right Kan extension</strong> <span class="math inline">\(\Delta_J\)</span> form an adjoint pair:</p>
+<p><span class="math display">\[
+\Sigma_J \dashv \Delta_J
+\]</span></p>
+<p>In FunctorFlow, this duality has a concrete computational interpretation:</p>
+<ul>
+<li><strong><span class="math inline">\(\Sigma\)</span> (left-Kan)</strong>: aggregate information along a relation — the universal <strong>prediction</strong> operation. Categorically, <span class="math inline">\(\Sigma_J(F)(c) = \mathrm{colim}_{j \to c}\, F(j)\)</span>: the best summary of all sources that can attend to target <span class="math inline">\(c\)</span>.</li>
+<li><strong><span class="math inline">\(\Delta\)</span> (right-Kan)</strong>: complete partial information along a compatibility relation — the universal <strong>repair</strong> operation. Categorically, <span class="math inline">\(\Delta_J(F)(c) = \lim_{c \to j}\, F(j)\)</span>: the most compatible completion consistent with all constraints on <span class="math inline">\(c\)</span>.</li>
+</ul>
+<p>In language modeling, these dual operations correspond to two complementary tasks:</p>
+<ol type="1">
+<li><strong>Next-block prediction</strong> (<span class="math inline">\(\Sigma\)</span>): given past context, aggregate it into a prediction for the next token block.</li>
+<li><strong>Block denoising</strong> (<span class="math inline">\(\Delta\)</span>): given a corrupted token block, repair it by completing the missing/corrupted positions.</li>
+</ol>
+<p>Together, prediction and repair form a categorical auto-encoding loop:</p>
+<ul>
+<li><strong>Unit</strong> <span class="math inline">\(\eta\colon \mathrm{Id} \to \Delta_J \circ \Sigma_J\)</span> — predict, then repair, should recover the original.</li>
+<li><strong>Counit</strong> <span class="math inline">\(\varepsilon\colon \Sigma_J \circ \Delta_J \to \mathrm{Id}\)</span> — repair, then predict, should be faithful.</li>
+</ul>
+<p>This vignette demonstrates both operations on a synthetic token sequence task, building all diagrams from scratch and using the <code>structured_lm_duality</code> block builder.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Pkg</span>.<span class="fu">activate</span>(<span class="fu">joinpath</span>(<span class="pp">@__DIR__</span>, <span class="st">".."</span>, <span class="st">".."</span>))</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Random</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Statistics</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="synthetic-data" class="level2">
+<h2 class="anchored" data-anchor-id="synthetic-data">Synthetic Data</h2>
+<p>We create a simple synthetic corpus with clear block structure: sequences are built by concatenating randomly chosen 4-token patterns from a small vocabulary. This makes both prediction and repair tractable — the patterns are learnable.</p>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>vocab_size <span class="op">=</span> <span class="fl">50</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>seq_len <span class="op">=</span> <span class="fl">32</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>block_size <span class="op">=</span> <span class="fl">4</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>n_patterns <span class="op">=</span> <span class="fl">10</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> <span class="bu">Random</span>.<span class="fu">MersenneTwister</span>(<span class="fl">42</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a fixed set of base patterns</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>base_patterns <span class="op">=</span> [<span class="fu">rand</span>(rng, <span class="fl">1</span><span class="op">:</span>vocab_size, block_size) for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_patterns]</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Base patterns:"</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i, p) <span class="kw">in</span> <span class="fu">enumerate</span>(base_patterns)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  Pattern </span><span class="sc">$</span>i<span class="st">: </span><span class="sc">$</span>p<span class="st">"</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Base patterns:
+  Pattern 1: [11, 45, 20, 33]
+  Pattern 2: [35, 36, 49, 38]
+  Pattern 3: [11, 6, 10, 19]
+  Pattern 4: [32, 46, 9, 46]
+  Pattern 5: [10, 21, 3, 36]
+  Pattern 6: [48, 9, 14, 39]
+  Pattern 7: [7, 10, 33, 9]
+  Pattern 8: [38, 9, 44, 37]
+  Pattern 9: [10, 40, 32, 40]
+  Pattern 10: [38, 12, 42, 16]</code></pre>
+</div>
+</div>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">generate_block_sequence</span>(rng, base_patterns; seq_len<span class="op">=</span><span class="fl">32</span>, block_size<span class="op">=</span><span class="fl">4</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    n_blocks <span class="op">=</span> seq_len <span class="op">÷</span> block_size</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    blocks <span class="op">=</span> [base_patterns[<span class="fu">rand</span>(rng, <span class="fl">1</span><span class="op">:</span><span class="fu">length</span>(base_patterns))] for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_blocks]</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">vcat</span>(blocks<span class="op">...</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">make_batch</span>(rng, base_patterns; batch_size<span class="op">=</span><span class="fl">16</span>, seq_len<span class="op">=</span><span class="fl">32</span>, block_size<span class="op">=</span><span class="fl">4</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    seqs <span class="op">=</span> [<span class="fu">generate_block_sequence</span>(rng, base_patterns; seq_len, block_size) for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>batch_size]</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">hcat</span>(seqs<span class="op">...</span>)  <span class="co"># seq_len × batch_size</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>batch <span class="op">=</span> <span class="fu">make_batch</span>(rng, base_patterns; batch_size<span class="op">=</span><span class="fl">8</span>)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Batch shape: "</span>, <span class="fu">size</span>(batch), <span class="st">" (seq_len × batch_size)"</span>)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"First sequence: "</span>, batch[<span class="op">:</span>, <span class="fl">1</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Batch shape: (32, 8) (seq_len × batch_size)
+First sequence: [48, 9, 14, 39, 10, 21, 3, 36, 35, 36  …  49, 38, 11, 6, 10, 19, 48, 9, 14, 39]</code></pre>
+</div>
+</div>
+</section>
+<section id="left-kan-block-prediction-σ" class="level2">
+<h2 class="anchored" data-anchor-id="left-kan-block-prediction-σ">Left Kan: Block Prediction (Σ)</h2>
+<p>The left Kan extension <span class="math inline">\(\Sigma_J(F)\)</span> computes the <strong>colimit</strong> — the universal aggregation of source values along a relation. In the language modeling setting:</p>
+<ul>
+<li><strong>Source values</strong>: hidden-state embeddings at each position (simulated as one-hot token IDs).</li>
+<li><strong>Relation</strong>: a causal mask — position <span class="math inline">\(j\)</span> can attend to position <span class="math inline">\(c\)</span> only if <span class="math inline">\(j \leq c\)</span>.</li>
+<li><strong>Reducer</strong>: aggregates the attended values (here, <code>:sum</code> for simplicity).</li>
+<li><strong>Result</strong>: a contextualized representation at each position that summarizes all past tokens.</li>
+</ul>
+<p>We then decode this aggregated context into predictions for the next token block.</p>
+<section id="building-the-prediction-diagram" class="level3">
+<h3 class="anchored" data-anchor-id="building-the-prediction-diagram">Building the prediction diagram</h3>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>D_predict <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>LeftKanPredict)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Objects</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_predict, <span class="op">:</span>HiddenStates; kind<span class="op">=:</span>messages,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Token embeddings at each position"</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_predict, <span class="op">:</span>CausalRelation; kind<span class="op">=:</span>relation,</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Causal mask: which positions attend to which"</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_predict, <span class="op">:</span>Contextualized; kind<span class="op">=:</span>contextualized_messages,</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Aggregated context per position"</span>)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Left-Kan: aggregate past context via causal relation</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="fu">Σ</span>(D_predict, <span class="op">:</span>HiddenStates;</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  along<span class="op">=:</span>CausalRelation,</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  name<span class="op">=:</span>causal_aggregate,</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  target<span class="op">=:</span>Contextualized,</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  reducer<span class="op">=:</span>sum)</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_predict, <span class="op">:</span>BlockLogits; kind<span class="op">=:</span>output,</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Predicted next-block token offsets"</span>)</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Decode to block offset predictions</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_predict, <span class="op">:</span>decode_block, <span class="op">:</span>Contextualized, <span class="op">:</span>BlockLogits;</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>              description<span class="op">=</span><span class="st">"Map aggregated context to block-level predictions"</span>)</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_predict)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :LeftKanPredict ⟨4 objects, 1 morphisms, 1 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+</section>
+<section id="executing-the-prediction" class="level3">
+<h3 class="anchored" data-anchor-id="executing-the-prediction">Executing the prediction</h3>
+<p>We build a causal relation as a dictionary mapping each position to the set of positions it can attend to (all earlier positions within the same block boundary).</p>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>seq <span class="op">=</span> batch[<span class="op">:</span>, <span class="fl">1</span>]</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>n_blocks_seq <span class="op">=</span> seq_len <span class="op">÷</span> block_size</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Hidden states: map each position to its token ID</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>hidden_states <span class="op">=</span> <span class="fu">Dict</span>(<span class="fu">Symbol</span>(<span class="st">"pos_</span><span class="sc">$</span>i<span class="st">"</span>) <span class="op">=&gt;</span> seq[i] <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>seq_len)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Causal relation: each block-boundary position attends to all positions</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co"># in the current and previous blocks</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>causal_relation <span class="op">=</span> <span class="fu">Dict</span><span class="dt">{Any, Any}</span>()</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> b <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_blocks_seq</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    target_pos <span class="op">=</span> b <span class="op">*</span> block_size  <span class="co"># last position of block b</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    target_key <span class="op">=</span> <span class="fu">Symbol</span>(<span class="st">"block_</span><span class="sc">$</span>b<span class="st">"</span>)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    sources <span class="op">=</span> [<span class="fu">Symbol</span>(<span class="st">"pos_</span><span class="sc">$</span>i<span class="st">"</span>) for i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>target_pos]</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    causal_relation[target_key] <span class="op">=</span> sources</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Causal relation (block 1 attends to): "</span>, causal_relation[<span class="op">:</span>block_1])</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Causal relation (block 3 attends to): "</span>, causal_relation[<span class="op">:</span>block_3])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Causal relation (block 1 attends to): [:pos_1, :pos_2, :pos_3, :pos_4]
+Causal relation (block 3 attends to): [:pos_1, :pos_2, :pos_3, :pos_4, :pos_5, :pos_6, :pos_7, :pos_8, :pos_9, :pos_10, :pos_11, :pos_12]</code></pre>
+</div>
+</div>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>compiled_predict <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_predict)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Provide a simple decode function: identity (pass through the aggregated sum)</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>result_predict <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_predict,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Dict</span>(<span class="op">:</span>HiddenStates <span class="op">=&gt;</span> hidden_states,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>         <span class="op">:</span>CausalRelation <span class="op">=&gt;</span> causal_relation);</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    morphisms<span class="op">=</span><span class="fu">Dict</span>(<span class="op">:</span>decode_block <span class="op">=&gt;</span> x <span class="op">-&gt;</span> x)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Σ aggregation result (causal_aggregate):"</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>agg <span class="op">=</span> result_predict.values[<span class="op">:</span>causal_aggregate]</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> b <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu">min</span>(<span class="fl">4</span>, n_blocks_seq)</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    key <span class="op">=</span> <span class="fu">Symbol</span>(<span class="st">"block_</span><span class="sc">$</span>b<span class="st">"</span>)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="fu">haskey</span>(agg, key)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>key<span class="st"> → </span><span class="sc">$</span>(agg[key])<span class="st">  (sum of token IDs in causal window)"</span>)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Σ aggregation result (causal_aggregate):
+  block_1 → 110  (sum of token IDs in causal window)
+  block_2 → 180  (sum of token IDs in causal window)
+  block_3 → 338  (sum of token IDs in causal window)
+  block_4 → 446  (sum of token IDs in causal window)</code></pre>
+</div>
+</div>
+<p>The left-Kan aggregation <strong>sums all token IDs</strong> in the causal window for each block boundary. In a real model, these would be dense embeddings and the reducer would be learned attention — but the categorical structure is the same.</p>
+</section>
+</section>
+<section id="right-kan-block-denoising-δ" class="level2">
+<h2 class="anchored" data-anchor-id="right-kan-block-denoising-δ">Right Kan: Block Denoising (Δ)</h2>
+<p>The right Kan extension <span class="math inline">\(\Delta_J(F)\)</span> computes the <strong>limit</strong> — the most compatible completion of partial data. In the denoising setting:</p>
+<ul>
+<li><strong>Source values</strong>: a corrupted token block where some positions have been replaced with <code>nothing</code>.</li>
+<li><strong>Relation</strong>: a compatibility structure — each corrupted position checks its neighbors for valid values.</li>
+<li><strong>Reducer</strong>: <code>:first_non_null</code> — fill each missing position with the first available compatible value.</li>
+<li><strong>Result</strong>: a repaired block with missing positions filled in.</li>
+</ul>
+<section id="building-the-denoising-diagram" class="level3">
+<h3 class="anchored" data-anchor-id="building-the-denoising-diagram">Building the denoising diagram</h3>
+<div id="14" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>D_denoise <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>RightKanDenoise)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_denoise, <span class="op">:</span>NoisyBlock; kind<span class="op">=:</span>partial,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Token block with corrupted positions (nothing = missing)"</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_denoise, <span class="op">:</span>CompatibilityRelation; kind<span class="op">=:</span>relation,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Which positions can fill which missing slots"</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_denoise, <span class="op">:</span>CompletedBlock; kind<span class="op">=:</span>completed_values,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Repaired block"</span>)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Right-Kan: complete partial/corrupted data</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="fu">Δ</span>(D_denoise, <span class="op">:</span>NoisyBlock;</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  along<span class="op">=:</span>CompatibilityRelation,</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  name<span class="op">=:</span>repair,</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  target<span class="op">=:</span>CompletedBlock,</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>  reducer<span class="op">=:</span>first_non_null)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_denoise)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :RightKanDenoise ⟨3 objects, 0 morphisms, 1 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+</section>
+<section id="corruption-and-repair" class="level3">
+<h3 class="anchored" data-anchor-id="corruption-and-repair">Corruption and repair</h3>
+<div id="16" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">corrupt_block</span>(rng, block; noise_rate<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    mask <span class="op">=</span> <span class="fu">rand</span>(rng, <span class="fu">length</span>(block)) <span class="op">.&gt;</span> noise_rate</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    corrupted <span class="op">=</span> <span class="fu">Vector</span><span class="dt">{Union{Int, Nothing}}</span>(<span class="fu">copy</span>(block))</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(corrupted)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> !mask[i]</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>            corrupted[i] <span class="op">=</span> <span class="cn">nothing</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> corrupted, mask</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Take one block from the first sequence</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>original_block <span class="op">=</span> seq[<span class="fl">1</span><span class="op">:</span>block_size]</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>corrupted, mask <span class="op">=</span> <span class="fu">corrupt_block</span>(rng, original_block; noise_rate<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Original block: "</span>, original_block)</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Corruption mask: "</span>, mask, <span class="st">"  (true = kept, false = corrupted)"</span>)</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Corrupted block: "</span>, corrupted)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Original block: [48, 9, 14, 39]
+Corruption mask: Bool[1, 1, 0, 1]  (true = kept, false = corrupted)
+Corrupted block: Union{Nothing, Int64}[48, 9, nothing, 39]</code></pre>
+</div>
+</div>
+<div id="18" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build noisy values: position → token or nothing</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>noisy_values <span class="op">=</span> <span class="fu">Dict</span>(<span class="fu">Symbol</span>(<span class="st">"t_</span><span class="sc">$</span>i<span class="st">"</span>) <span class="op">=&gt;</span> corrupted[i] <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Compatibility: each position can look at all other positions for repair</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>compat_relation <span class="op">=</span> <span class="fu">Dict</span><span class="dt">{Any, Any}</span>()</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    others <span class="op">=</span> [<span class="fu">Symbol</span>(<span class="st">"t_</span><span class="sc">$</span>j<span class="st">"</span>) for j <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size if j <span class="op">!=</span> i]</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    compat_relation[<span class="fu">Symbol</span>(<span class="st">"t_</span><span class="sc">$</span>i<span class="st">"</span>)] <span class="op">=</span> others</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>compiled_denoise <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_denoise)</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>result_denoise <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_denoise,</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Dict</span>(<span class="op">:</span>NoisyBlock <span class="op">=&gt;</span> noisy_values,</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>         <span class="op">:</span>CompatibilityRelation <span class="op">=&gt;</span> compat_relation))</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>repaired <span class="op">=</span> result_denoise.values[<span class="op">:</span>repair]</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Right-Kan repair (Δ):"</span>)</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    key <span class="op">=</span> <span class="fu">Symbol</span>(<span class="st">"t_</span><span class="sc">$</span>i<span class="st">"</span>)</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    orig <span class="op">=</span> original_block[i]</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    noisy <span class="op">=</span> corrupted[i]</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    fixed <span class="op">=</span> <span class="fu">get</span>(repaired, key, <span class="cn">nothing</span>)</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>    status <span class="op">=</span> noisy <span class="op">===</span> <span class="cn">nothing</span> ? <span class="st">" ← REPAIRED"</span> <span class="op">:</span> <span class="st">""</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>key<span class="st">: original=</span><span class="sc">$</span>orig<span class="st">, corrupted=</span><span class="sc">$</span>noisy<span class="st">, repaired=</span><span class="sc">$</span>fixed<span class="sc">$</span>status<span class="st">"</span>)</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Right-Kan repair (Δ):
+  t_1: original=48, corrupted=48, repaired=9
+  t_2: original=9, corrupted=9, repaired=48
+  t_3: original=14, corrupted=nothing, repaired=48 ← REPAIRED
+  t_4: original=39, corrupted=39, repaired=48</code></pre>
+</div>
+</div>
+<p>The right-Kan extension fills each <code>nothing</code> slot with the <strong>first non-null value</strong> from compatible neighbors. This is the categorical version of masked token reconstruction — <span class="math inline">\(\Delta_J(F)(c)\)</span> finds the value most consistent with all constraints pointing out of <span class="math inline">\(c\)</span>.</p>
+</section>
+</section>
+<section id="the-duality-diagram" class="level2">
+<h2 class="anchored" data-anchor-id="the-duality-diagram">The Duality Diagram</h2>
+<p>FunctorFlow provides <code>structured_lm_duality</code>, a block builder that combines both operations into a single diagram with a shared input:</p>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>D_dual <span class="op">=</span> <span class="fu">structured_lm_duality</span>()</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_dual)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :StructuredLMDuality ⟨5 objects, 0 morphisms, 2 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+<p>The <code>structured_lm_duality</code> block internally:</p>
+<ol type="1">
+<li>Creates a <strong>KET block</strong> (left-Kan prediction via <span class="math inline">\(\Sigma\)</span>) under the <code>:predict</code> namespace.</li>
+<li>Creates a <strong>completion block</strong> (right-Kan repair via <span class="math inline">\(\Delta\)</span>) under the <code>:repair</code> namespace.</li>
+<li>Aliases both to share a common <code>:SharedInput</code> object.</li>
+</ol>
+<section id="manual-construction" class="level3">
+<h3 class="anchored" data-anchor-id="manual-construction">Manual construction</h3>
+<p>We can also build the duality manually to see the full structure:</p>
+<div id="22" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>D_manual <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>ManualDuality)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Shared embedding space</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_manual, <span class="op">:</span>Tokens; kind<span class="op">=:</span>hidden_state,</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Token embeddings — shared input"</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Left branch: prediction via Σ ---</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_manual, <span class="op">:</span>CausalRelation; kind<span class="op">=:</span>relation)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_manual, <span class="op">:</span>PredictionContext; kind<span class="op">=:</span>contextualized_messages)</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_manual, <span class="op">:</span>PredictedBlock; kind<span class="op">=:</span>output)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="fu">Σ</span>(D_manual, <span class="op">:</span>Tokens;</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  along<span class="op">=:</span>CausalRelation,</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  name<span class="op">=:</span>predict_aggregate,</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>  target<span class="op">=:</span>PredictionContext,</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>  reducer<span class="op">=:</span>sum)</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_manual, <span class="op">:</span>predict_decode, <span class="op">:</span>PredictionContext, <span class="op">:</span>PredictedBlock)</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a><span class="co"># --- Right branch: repair via Δ ---</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_manual, <span class="op">:</span>NoisyTokens; kind<span class="op">=:</span>partial)</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_manual, <span class="op">:</span>RepairRelation; kind<span class="op">=:</span>relation)</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_manual, <span class="op">:</span>RepairedTokens; kind<span class="op">=:</span>completed_values)</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_manual, <span class="op">:</span>DenoisedBlock; kind<span class="op">=:</span>output)</span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a><span class="fu">Δ</span>(D_manual, <span class="op">:</span>NoisyTokens;</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>  along<span class="op">=:</span>RepairRelation,</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>  name<span class="op">=:</span>repair_complete,</span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>  target<span class="op">=:</span>RepairedTokens,</span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>  reducer<span class="op">=:</span>first_non_null)</span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_manual, <span class="op">:</span>repair_decode, <span class="op">:</span>RepairedTokens, <span class="op">:</span>DenoisedBlock)</span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(D_manual)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Diagram :ManualDuality ⟨8 objects, 2 morphisms, 2 Kan, 0 losses⟩</code></pre>
+</div>
+</div>
+</section>
+<section id="executing-both-branches" class="level3">
+<h3 class="anchored" data-anchor-id="executing-both-branches">Executing both branches</h3>
+<div id="24" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>compiled_dual <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_manual)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Prepare inputs for both branches</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>tokens <span class="op">=</span> <span class="fu">Dict</span>(<span class="fu">Symbol</span>(<span class="st">"pos_</span><span class="sc">$</span>i<span class="st">"</span>) <span class="op">=&gt;</span> seq[i] <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>seq_len)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Causal relation for prediction (block-level)</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>causal_rel <span class="op">=</span> <span class="fu">Dict</span><span class="dt">{Any, Any}</span>()</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> b <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_blocks_seq</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    target_pos <span class="op">=</span> b <span class="op">*</span> block_size</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    causal_rel[<span class="fu">Symbol</span>(<span class="st">"block_</span><span class="sc">$</span>b<span class="st">"</span>)] <span class="op">=</span> [<span class="fu">Symbol</span>(<span class="st">"pos_</span><span class="sc">$</span>i<span class="st">"</span>) for i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>target_pos]</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Noisy tokens for repair (corrupt the second block)</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>block2 <span class="op">=</span> seq[(block_size<span class="op">+</span><span class="fl">1</span>)<span class="op">:</span>(<span class="fl">2</span><span class="op">*</span>block_size)]</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>corrupted2, mask2 <span class="op">=</span> <span class="fu">corrupt_block</span>(rng, block2; noise_rate<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>noisy_tokens <span class="op">=</span> <span class="fu">Dict</span>(<span class="fu">Symbol</span>(<span class="st">"b2_</span><span class="sc">$</span>i<span class="st">"</span>) <span class="op">=&gt;</span> corrupted2[i] <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size)</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>repair_rel <span class="op">=</span> <span class="fu">Dict</span><span class="dt">{Any, Any}</span>()</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>    repair_rel[<span class="fu">Symbol</span>(<span class="st">"b2_</span><span class="sc">$</span>i<span class="st">"</span>)] <span class="op">=</span> [<span class="fu">Symbol</span>(<span class="st">"b2_</span><span class="sc">$</span>j<span class="st">"</span>) for j <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size if j <span class="op">!=</span> i]</span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>result_dual <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_dual,</span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Dict</span>(<span class="op">:</span>Tokens <span class="op">=&gt;</span> tokens,</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>         <span class="op">:</span>CausalRelation <span class="op">=&gt;</span> causal_rel,</span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>         <span class="op">:</span>NoisyTokens <span class="op">=&gt;</span> noisy_tokens,</span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>         <span class="op">:</span>RepairRelation <span class="op">=&gt;</span> repair_rel);</span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>    morphisms<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>predict_decode <span class="op">=&gt;</span> x <span class="op">-&gt;</span> x,</span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>repair_decode <span class="op">=&gt;</span> x <span class="op">-&gt;</span> x</span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"=== Left-Kan (Σ): Prediction ==="</span>)</span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a>agg_dual <span class="op">=</span> result_dual.values[<span class="op">:</span>predict_aggregate]</span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> b <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu">min</span>(<span class="fl">3</span>, n_blocks_seq)</span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>    key <span class="op">=</span> <span class="fu">Symbol</span>(<span class="st">"block_</span><span class="sc">$</span>b<span class="st">"</span>)</span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">haskey</span>(agg_dual, key) <span class="op">&amp;&amp;</span> <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>key<span class="st"> → </span><span class="sc">$</span>(agg_dual[key])<span class="st">"</span>)</span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">=== Right-Kan (Δ): Repair ==="</span>)</span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a>rep_dual <span class="op">=</span> result_dual.values[<span class="op">:</span>repair_complete]</span>
+<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size</span>
+<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a>    key <span class="op">=</span> <span class="fu">Symbol</span>(<span class="st">"b2_</span><span class="sc">$</span>i<span class="st">"</span>)</span>
+<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a>    orig <span class="op">=</span> block2[i]</span>
+<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a>    noisy <span class="op">=</span> corrupted2[i]</span>
+<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a>    fixed <span class="op">=</span> <span class="fu">get</span>(rep_dual, key, <span class="cn">nothing</span>)</span>
+<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a>    status <span class="op">=</span> noisy <span class="op">===</span> <span class="cn">nothing</span> ? <span class="st">" ← REPAIRED"</span> <span class="op">:</span> <span class="st">""</span></span>
+<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  </span><span class="sc">$</span>key<span class="st">: original=</span><span class="sc">$</span>orig<span class="st">, corrupted=</span><span class="sc">$</span>noisy<span class="st">, repaired=</span><span class="sc">$</span>fixed<span class="sc">$</span>status<span class="st">"</span>)</span>
+<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>=== Left-Kan (Σ): Prediction ===
+  block_1 → 110
+  block_2 → 180
+  block_3 → 338
+
+=== Right-Kan (Δ): Repair ===
+  b2_1: original=10, corrupted=10, repaired=21
+  b2_2: original=21, corrupted=21, repaired=10
+  b2_3: original=3, corrupted=3, repaired=10
+  b2_4: original=36, corrupted=nothing, repaired=10 ← REPAIRED</code></pre>
+</div>
+</div>
+<p>The two branches compute <strong>different things</strong> from the same conceptual space:</p>
+<ul>
+<li>The <strong>left branch</strong> (<span class="math inline">\(\Sigma\)</span>) merges many source values into a single summary per target — it answers “what is the aggregated context?”.</li>
+<li>The <strong>right branch</strong> (<span class="math inline">\(\Delta\)</span>) fills in missing values from compatible neighbors — it answers “what is the most consistent completion?”.</li>
+</ul>
+</section>
+</section>
+<section id="the-predict-repair-loop" class="level2">
+<h2 class="anchored" data-anchor-id="the-predict-repair-loop">The Predict-Repair Loop</h2>
+<p>The categorical adjunction <span class="math inline">\(\Sigma_J \dashv \Delta_J\)</span> predicts a pipeline:</p>
+<ol type="1">
+<li>Start with a clean sequence <span class="math inline">\(x\)</span>.</li>
+<li><strong>Predict</strong> the next block: <span class="math inline">\(\hat{y} = \Sigma_J(x)\)</span> — aggregate context into a prediction.</li>
+<li><strong>Corrupt</strong> the prediction: <span class="math inline">\(\tilde{y} = \mathrm{noise}(\hat{y})\)</span> — simulate real-world noise.</li>
+<li><strong>Repair</strong> the corrupted block: <span class="math inline">\(\hat{x} = \Delta_J(\tilde{y})\)</span> — complete the partial data.</li>
+</ol>
+<p>The unit of the adjunction says that <span class="math inline">\(\Delta_J \circ \Sigma_J \approx \mathrm{Id}\)</span> — the predict-then-repair cycle should approximately recover the original data. Let us verify this numerically.</p>
+<div id="26" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">predict_repair_loop</span>(seq, block_idx; noise_rate<span class="op">=</span><span class="fl">0.3</span>, block_size<span class="op">=</span><span class="fl">4</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step 1: Prediction via Σ (aggregate tokens up to this block)</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    D_loop <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>PredictRepairLoop)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_object!</span>(D_loop, <span class="op">:</span>Src; kind<span class="op">=:</span>messages)</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_object!</span>(D_loop, <span class="op">:</span>Rel; kind<span class="op">=:</span>relation)</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Σ</span>(D_loop, <span class="op">:</span>Src; along<span class="op">=:</span>Rel, name<span class="op">=:</span>predicted, reducer<span class="op">=:</span>mean)</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    compiled_loop <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_loop)</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    target_end <span class="op">=</span> block_idx <span class="op">*</span> block_size</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    src_vals <span class="op">=</span> <span class="fu">Dict</span>(<span class="fu">Symbol</span>(<span class="st">"p_</span><span class="sc">$</span>i<span class="st">"</span>) <span class="op">=&gt;</span> <span class="fu">Float64</span>(seq[i]) <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>target_end)</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    rel_vals <span class="op">=</span> <span class="fu">Dict</span>(<span class="op">:</span>target <span class="op">=&gt;</span> [<span class="fu">Symbol</span>(<span class="st">"p_</span><span class="sc">$</span>i<span class="st">"</span>) for i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>target_end])</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>    result_pred <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_loop, <span class="fu">Dict</span>(<span class="op">:</span>Src <span class="op">=&gt;</span> src_vals, <span class="op">:</span>Rel <span class="op">=&gt;</span> rel_vals))</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    predicted_mean <span class="op">=</span> result_pred.values[<span class="op">:</span>predicted][<span class="op">:</span>target]</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step 2: Corruption — replace some block positions with nothing</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    true_block <span class="op">=</span> seq[(target_end <span class="op">-</span> block_size <span class="op">+</span> <span class="fl">1</span>)<span class="op">:</span>target_end]</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>    rng_loop <span class="op">=</span> <span class="bu">Random</span>.<span class="fu">MersenneTwister</span>(block_idx)</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>    corrupted_block, cmask <span class="op">=</span> <span class="fu">corrupt_block</span>(rng_loop, true_block; noise_rate)</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Step 3: Repair via Δ (fill missing with predicted mean)</span></span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>    D_repair <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>RepairStep)</span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_object!</span>(D_repair, <span class="op">:</span>Partial; kind<span class="op">=:</span>partial)</span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_object!</span>(D_repair, <span class="op">:</span>Compat; kind<span class="op">=:</span>relation)</span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Δ</span>(D_repair, <span class="op">:</span>Partial; along<span class="op">=:</span>Compat, name<span class="op">=:</span>repaired, reducer<span class="op">=:</span>first_non_null)</span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a>    compiled_repair <span class="op">=</span> <span class="fu">compile_to_callable</span>(D_repair)</span>
+<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Inject predicted mean as a fallback source alongside the corrupted values</span></span>
+<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>    partial_vals <span class="op">=</span> <span class="fu">Dict</span><span class="dt">{Any, Any}</span>(<span class="fu">Symbol</span>(<span class="st">"t_</span><span class="sc">$</span>i<span class="st">"</span>) <span class="op">=&gt;</span> corrupted_block[i] <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size)</span>
+<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>    partial_vals[<span class="op">:</span>predicted] <span class="op">=</span> <span class="fu">round</span>(<span class="dt">Int</span>, predicted_mean)</span>
+<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a>    compat_vals <span class="op">=</span> <span class="fu">Dict</span><span class="dt">{Any, Any}</span>()</span>
+<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size</span>
+<span id="cb24-36"><a href="#cb24-36" aria-hidden="true" tabindex="-1"></a>        neighbors <span class="op">=</span> [<span class="fu">Symbol</span>(<span class="st">"t_</span><span class="sc">$</span>j<span class="st">"</span>) for j <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size if j <span class="op">!=</span> i]</span>
+<span id="cb24-37"><a href="#cb24-37" aria-hidden="true" tabindex="-1"></a>        <span class="fu">push!</span>(neighbors, <span class="op">:</span>predicted)</span>
+<span id="cb24-38"><a href="#cb24-38" aria-hidden="true" tabindex="-1"></a>        compat_vals[<span class="fu">Symbol</span>(<span class="st">"t_</span><span class="sc">$</span>i<span class="st">"</span>)] <span class="op">=</span> neighbors</span>
+<span id="cb24-39"><a href="#cb24-39" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb24-40"><a href="#cb24-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-41"><a href="#cb24-41" aria-hidden="true" tabindex="-1"></a>    result_rep <span class="op">=</span> FunctorFlow.<span class="fu">run</span>(compiled_repair, <span class="fu">Dict</span>(<span class="op">:</span>Partial <span class="op">=&gt;</span> partial_vals, <span class="op">:</span>Compat <span class="op">=&gt;</span> compat_vals))</span>
+<span id="cb24-42"><a href="#cb24-42" aria-hidden="true" tabindex="-1"></a>    repaired <span class="op">=</span> result_rep.values[<span class="op">:</span>repaired]</span>
+<span id="cb24-43"><a href="#cb24-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-44"><a href="#cb24-44" aria-hidden="true" tabindex="-1"></a>    repaired_block <span class="op">=</span> [<span class="fu">get</span>(repaired, <span class="fu">Symbol</span>(<span class="st">"t_</span><span class="sc">$</span>i<span class="st">"</span>), <span class="cn">nothing</span>) for i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size]</span>
+<span id="cb24-45"><a href="#cb24-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-46"><a href="#cb24-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (true_block<span class="op">=</span>true_block, corrupted<span class="op">=</span>corrupted_block,</span>
+<span id="cb24-47"><a href="#cb24-47" aria-hidden="true" tabindex="-1"></a>            predicted_mean<span class="op">=</span>predicted_mean, repaired<span class="op">=</span>repaired_block)</span>
+<span id="cb24-48"><a href="#cb24-48" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb24-49"><a href="#cb24-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-50"><a href="#cb24-50" aria-hidden="true" tabindex="-1"></a><span class="co"># Run for blocks 2 through 5</span></span>
+<span id="cb24-51"><a href="#cb24-51" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> b <span class="kw">in</span> <span class="fl">2</span><span class="op">:</span><span class="fu">min</span>(<span class="fl">5</span>, n_blocks_seq)</span>
+<span id="cb24-52"><a href="#cb24-52" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> <span class="fu">predict_repair_loop</span>(seq, b; noise_rate<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb24-53"><a href="#cb24-53" aria-hidden="true" tabindex="-1"></a>    n_corrupted <span class="op">=</span> <span class="fu">count</span>(x <span class="op">-&gt;</span> x <span class="op">===</span> <span class="cn">nothing</span>, r.corrupted)</span>
+<span id="cb24-54"><a href="#cb24-54" aria-hidden="true" tabindex="-1"></a>    n_recovered <span class="op">=</span> <span class="fu">sum</span>(r.repaired[i] <span class="op">==</span> r.true_block[i] <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size <span class="cf">if</span> r.corrupted[i] <span class="op">===</span> <span class="cn">nothing</span>; init<span class="op">=</span><span class="fl">0</span>)</span>
+<span id="cb24-55"><a href="#cb24-55" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"Block </span><span class="sc">$</span>b<span class="st">: true=</span><span class="sc">$</span>(r.true_block)<span class="st">, predicted_mean=</span><span class="sc">$</span>(<span class="fu">round</span>(r.predicted_mean; digits<span class="op">=</span><span class="fl">1</span>))<span class="st">, "</span> <span class="op">*</span></span>
+<span id="cb24-56"><a href="#cb24-56" aria-hidden="true" tabindex="-1"></a>            <span class="st">"corrupted=</span><span class="sc">$</span>n_corrupted<span class="st"> positions, recovered=</span><span class="sc">$</span>n_recovered<span class="st">/</span><span class="sc">$</span>n_corrupted<span class="st">"</span>)</span>
+<span id="cb24-57"><a href="#cb24-57" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Block 2: true=[10, 21, 3, 36], predicted_mean=22.5, corrupted=2 positions, recovered=0/2
+Block 3: true=[35, 36, 49, 38], predicted_mean=28.2, corrupted=3 positions, recovered=0/3
+Block 4: true=[38, 12, 42, 16], predicted_mean=27.9, corrupted=2 positions, recovered=0/2
+Block 5: true=[38, 9, 44, 37], predicted_mean=28.7, corrupted=0 positions, recovered=0/0</code></pre>
+</div>
+</div>
+<p>Even with this simple symbolic execution (integer token IDs, <code>:mean</code> aggregation, <code>:first_non_null</code> repair), the predict-repair loop demonstrates the categorical structure. In a neural setting, the reducers would be learned (attention for <span class="math inline">\(\Sigma\)</span>, compatibility scoring for <span class="math inline">\(\Delta\)</span>), but the diagrammatic skeleton is identical.</p>
+</section>
+<section id="categorical-interpretation" class="level2">
+<h2 class="anchored" data-anchor-id="categorical-interpretation">Categorical Interpretation</h2>
+<p>The adjunction <span class="math inline">\(\Sigma_J \dashv \Delta_J\)</span> gives us:</p>
+<section id="unit-etacolon-mathrmid-to-delta_j-circ-sigma_j" class="level3">
+<h3 class="anchored" data-anchor-id="unit-etacolon-mathrmid-to-delta_j-circ-sigma_j">Unit: <span class="math inline">\(\eta\colon \mathrm{Id} \to \Delta_J \circ \Sigma_J\)</span></h3>
+<p>Starting from a complete sequence, <span class="math inline">\(\Sigma\)</span> aggregates it into a prediction, and <span class="math inline">\(\Delta\)</span> repairs back toward the original. The unit measures how much information the predict-then-repair cycle preserves:</p>
+<p><span class="math display">\[
+x \xrightarrow{\eta_x} \Delta_J(\Sigma_J(x))
+\]</span></p>
+<p>If <span class="math inline">\(\eta\)</span> is close to an isomorphism, the cycle is <strong>lossless</strong> — prediction captures enough information for exact repair.</p>
+</section>
+<section id="counit-varepsiloncolon-sigma_j-circ-delta_j-to-mathrmid" class="level3">
+<h3 class="anchored" data-anchor-id="counit-varepsiloncolon-sigma_j-circ-delta_j-to-mathrmid">Counit: <span class="math inline">\(\varepsilon\colon \Sigma_J \circ \Delta_J \to \mathrm{Id}\)</span></h3>
+<p>Starting from corrupted data, <span class="math inline">\(\Delta\)</span> repairs it, and <span class="math inline">\(\Sigma\)</span> re-aggregates the repaired version. The counit measures faithfulness:</p>
+<p><span class="math display">\[
+\Sigma_J(\Delta_J(\tilde{x})) \xrightarrow{\varepsilon_{\tilde{x}}} \tilde{x}
+\]</span></p>
+<p>If <span class="math inline">\(\varepsilon\)</span> is close to an isomorphism, repair-then-predict is <strong>faithful</strong> — the repaired data re-aggregates consistently.</p>
+</section>
+<section id="in-practice" class="level3">
+<h3 class="anchored" data-anchor-id="in-practice">In practice</h3>
+<p>This is the categorical version of <strong>auto-encoding</strong>:</p>
+<ul>
+<li>The unit η corresponds to the <strong>reconstruction objective</strong> (VAE / denoising autoencoder).</li>
+<li>The counit ε corresponds to the <strong>consistency objective</strong> (cycle consistency, round-trip loss).</li>
+<li>Training both branches jointly with an obstruction loss on the round-trip error enforces the adjunction.</li>
+</ul>
+<div id="28" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Verify numerically: predict then repair on the first few blocks</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Predict-then-repair round-trip accuracy:"</span>)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> b <span class="kw">in</span> <span class="fl">2</span><span class="op">:</span><span class="fu">min</span>(<span class="fl">6</span>, n_blocks_seq)</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> <span class="fu">predict_repair_loop</span>(seq, b; noise_rate<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    accuracy <span class="op">=</span> <span class="fu">mean</span>(r.repaired[i] <span class="op">==</span> r.true_block[i] <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>block_size)</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"  Block </span><span class="sc">$</span>b<span class="st">: </span><span class="sc">$</span>(<span class="fu">round</span>(accuracy <span class="op">*</span> <span class="fl">100</span>; digits<span class="op">=</span><span class="fl">1</span>))<span class="st">% positions match original"</span>)</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Predict-then-repair round-trip accuracy:
+  Block 2: 0.0% positions match original
+  Block 3: 0.0% positions match original
+  Block 4: 0.0% positions match original
+  Block 5: 0.0% positions match original
+  Block 6: 0.0% positions match original</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="summary" class="level2">
+<h2 class="anchored" data-anchor-id="summary">Summary</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 22%">
+<col style="width: 36%">
+<col style="width: 41%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Aspect</th>
+<th>Σ (Left-Kan)</th>
+<th>Δ (Right-Kan)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Category theory</td>
+<td>Colimit</td>
+<td>Limit</td>
+</tr>
+<tr class="even">
+<td>Universal property</td>
+<td>Best summary given all sources</td>
+<td>Most compatible completion given all constraints</td>
+</tr>
+<tr class="odd">
+<td>Computation</td>
+<td>Aggregation (many → one)</td>
+<td>Completion (partial → complete)</td>
+</tr>
+<tr class="even">
+<td>AI interpretation</td>
+<td>Prediction</td>
+<td>Repair / denoising</td>
+</tr>
+<tr class="odd">
+<td>Default reducer</td>
+<td><code>:sum</code></td>
+<td><code>:first_non_null</code></td>
+</tr>
+<tr class="even">
+<td>Data flow</td>
+<td>Many sources → single target</td>
+<td>Incomplete data → filled data</td>
+</tr>
+<tr class="odd">
+<td>LM example</td>
+<td>Next-block prediction</td>
+<td>Masked token reconstruction</td>
+</tr>
+<tr class="even">
+<td>FunctorFlow operator</td>
+<td><code>Σ(D, src; along=rel, ...)</code></td>
+<td><code>Δ(D, src; along=rel, ...)</code></td>
+</tr>
+</tbody>
+</table>
+<p>The key insight is that <span class="math inline">\(\Sigma\)</span> and <span class="math inline">\(\Delta\)</span> are <strong>not</strong> two separate mechanisms — they are two faces of the same categorical coin. FunctorFlow makes this explicit by giving them the same API shape (source, relation, reducer) while their default reducers encode the duality: <code>:sum</code> aggregates existing values, while <code>:first_non_null</code> fills in missing ones.</p>
+<p>The <code>structured_lm_duality</code> block builder packages this pattern into a reusable component, but as we have shown, the duality can also be constructed manually for full control over the diagram topology.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

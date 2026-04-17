@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Simon Frost">
+
+<title>Causal Semantics</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="causal-semantics_files/libs/clipboard/clipboard.min.js"></script>
+<script src="causal-semantics_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="causal-semantics_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="causal-semantics_files/libs/quarto-html/popper.min.js"></script>
+<script src="causal-semantics_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="causal-semantics_files/libs/quarto-html/anchor.min.js"></script>
+<link href="causal-semantics_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="causal-semantics_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="causal-semantics_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="causal-semantics_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="causal-semantics_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#causalcontext" id="toc-causalcontext" class="nav-link" data-scroll-target="#causalcontext">CausalContext</a></li>
+  <li><a href="#causaldiagram" id="toc-causaldiagram" class="nav-link" data-scroll-target="#causaldiagram">CausalDiagram</a></li>
+  <li><a href="#inspecting-the-diagram" id="toc-inspecting-the-diagram" class="nav-link" data-scroll-target="#inspecting-the-diagram">Inspecting the Diagram</a></li>
+  <li><a href="#causal-transport" id="toc-causal-transport" class="nav-link" data-scroll-target="#causal-transport">Causal Transport</a>
+  <ul class="collapse">
+  <li><a href="#basic-transport" id="toc-basic-transport" class="nav-link" data-scroll-target="#basic-transport">Basic transport</a></li>
+  <li><a href="#transport-with-density-ratio" id="toc-transport-with-density-ratio" class="nav-link" data-scroll-target="#transport-with-density-ratio">Transport with density ratio</a></li>
+  </ul></li>
+  <li><a href="#interventional-expectation" id="toc-interventional-expectation" class="nav-link" data-scroll-target="#interventional-expectation">Interventional Expectation</a></li>
+  <li><a href="#identifiability" id="toc-identifiability" class="nav-link" data-scroll-target="#identifiability">Identifiability</a></li>
+  <li><a href="#radon-nikodym-density-ratio-transport" id="toc-radon-nikodym-density-ratio-transport" class="nav-link" data-scroll-target="#radon-nikodym-density-ratio-transport">Radon-Nikodym Density Ratio Transport</a></li>
+  <li><a href="#causal-verification" id="toc-causal-verification" class="nav-link" data-scroll-target="#causal-verification">Causal Verification</a></li>
+  <li><a href="#counterfactual-reasoning" id="toc-counterfactual-reasoning" class="nav-link" data-scroll-target="#counterfactual-reasoning">Counterfactual Reasoning</a></li>
+  <li><a href="#interpretation" id="toc-interpretation" class="nav-link" data-scroll-target="#interpretation">Interpretation</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="causal-semantics.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="causal-semantics.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Causal Semantics</h1>
+<p class="subtitle lead">RN-Kan-Do-Calculus for causal reasoning</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simon Frost </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>FunctorFlow’s causal semantics are based on the <strong>RN-Kan-Do-Calculus</strong>, a categorical framework that re-interprets Pearl’s do-calculus through Kan extensions:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 29%">
+<col style="width: 43%">
+<col style="width: 26%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Causal operation</th>
+<th style="text-align: left;">Categorical construction</th>
+<th style="text-align: left;">Kan direction</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Conditioning</strong> <span class="math inline">\(P(Y \mid X)\)</span></td>
+<td style="text-align: left;">Right Kan extension</td>
+<td style="text-align: left;">RIGHT</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Intervention</strong> <span class="math inline">\(P(Y \mid \text{do}(X))\)</span></td>
+<td style="text-align: left;">Left Kan extension</td>
+<td style="text-align: left;">LEFT</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Counterfactual</strong> <span class="math inline">\(P(Y_x \mid X')\)</span></td>
+<td style="text-align: left;">Composition of Kan extensions</td>
+<td style="text-align: left;">LEFT + RIGHT</td>
+</tr>
+</tbody>
+</table>
+<p>The key insight is that <strong>conditioning</strong> (passive observation) corresponds to right Kan extension (a limit, computing the “best completion”), while <strong>intervention</strong> (actively setting a variable) corresponds to left Kan extension (a colimit, pushing information forward). This gives the do-calculus a diagrammatic and functorial foundation.</p>
+<p>FunctorFlow provides <code>CausalContext</code>, <code>CausalDiagram</code>, and transport rules to build and reason about causal models purely within the categorical framework.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="causalcontext" class="level2">
+<h2 class="anchored" data-anchor-id="causalcontext">CausalContext</h2>
+<p>A <code>CausalContext</code> declares the observational and interventional regimes. It specifies the two perspectives between which causal reasoning operates.</p>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ctx <span class="op">=</span> <span class="fu">CausalContext</span>(<span class="op">:</span>SmokingContext;</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    observational_regime<span class="op">=:</span>obs,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    interventional_regime<span class="op">=:</span><span class="cf">do</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>CausalContext(:SmokingContext, :obs, :do, Dict{Symbol, Any}())</code></pre>
+</div>
+</div>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Name:                   "</span>, ctx.name)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Observational regime:   "</span>, ctx.observational_regime)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Interventional regime:  "</span>, ctx.interventional_regime)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Name:                   SmokingContext
+Observational regime:   obs
+Interventional regime:  do</code></pre>
+</div>
+</div>
+<p>The context serves as the “type signature” of the causal problem — it tells FunctorFlow which regimes are in play.</p>
+</section>
+<section id="causaldiagram" class="level2">
+<h2 class="anchored" data-anchor-id="causaldiagram">CausalDiagram</h2>
+<p><code>build_causal_diagram</code> creates a <code>CausalDiagram</code> — a diagram with explicit causal Kan semantics. It creates objects for observations, causal structure, and both interventional and conditional state targets. A left Kan extension handles intervention (do-calculus pushforward) and a right Kan extension handles conditioning (observational completion).</p>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>cd <span class="op">=</span> <span class="fu">build_causal_diagram</span>(<span class="op">:</span>SmokingCancer; context<span class="op">=</span>ctx)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>CausalDiagram(:SmokingCancer, CausalContext(:SmokingContext, :obs, :do, Dict{Symbol, Any}()), Diagram :SmokingCancer ⟨4 objects, 0 morphisms, 2 Kan, 0 losses⟩, :condition, :intervene, Dict{Symbol, Any}())</code></pre>
+</div>
+</div>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Name:              "</span>, cd.name)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Conditioning Kan:  "</span>, cd.conditioning_kan)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Intervention Kan:  "</span>, cd.intervention_kan)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Name:              SmokingCancer
+Conditioning Kan:  condition
+Intervention Kan:  intervene</code></pre>
+</div>
+</div>
+<p>This declaration encodes the causal reasoning structure: <strong>intervention</strong> (left Kan) pushes information forward through the causal model, while <strong>conditioning</strong> (right Kan) completes partial observations.</p>
+</section>
+<section id="inspecting-the-diagram" class="level2">
+<h2 class="anchored" data-anchor-id="inspecting-the-diagram">Inspecting the Diagram</h2>
+<p>The <code>CausalDiagram</code> wraps a full FunctorFlow <code>Diagram</code> in <code>.base_diagram</code>. Let’s inspect its structure.</p>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>D <span class="op">=</span> cd.base_diagram</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>Diagram :SmokingCancer
+  Objects:
+    Observations::observations
+    CausalStructure::causal_structure
+    InterventionalState::interventional_state
+    ConditionalState::conditional_state
+  Operations:
+    intervene = Σ(Observations, along=CausalStructure, target=InterventionalState, reducer=:sum)
+    condition = Δ(Observations, along=CausalStructure, target=ConditionalState, reducer=:first_non_null)
+  Ports:
+    → observations (observations)
+    → causal_structure (causal_structure)
+    ← intervention (interventional_state)
+    ← conditioning (conditional_state)</code></pre>
+</div>
+</div>
+<div id="14" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Objects:    "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(D.objects)))</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Operations: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(D.operations)))</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Ports:      "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(D.ports)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Objects:    [:Observations, :CausalStructure, :InterventionalState, :ConditionalState]
+Operations: [:intervene, :condition]
+Ports:      [:observations, :causal_structure, :intervention, :conditioning]</code></pre>
+</div>
+</div>
+<p>The builder creates:</p>
+<ul>
+<li><strong>Objects</strong> for observations, causal structure, interventional state, and conditional state</li>
+<li>A <strong>left Kan extension</strong> (<code>:intervene</code>) for the intervention — pushing forward the do-operator</li>
+<li>A <strong>right Kan extension</strong> (<code>:condition</code>) for conditioning — completing partial observations</li>
+<li><strong>Ports</strong> exposing inputs (observations, causal structure) and outputs (intervention, conditioning)</li>
+</ul>
+<p>This diagrammatic encoding means the causal model is not just metadata — it is an executable categorical structure.</p>
+</section>
+<section id="causal-transport" class="level2">
+<h2 class="anchored" data-anchor-id="causal-transport">Causal Transport</h2>
+<p><code>causal_transport</code> constructs a transport diagram between two causal regimes. It includes both source and target causal diagrams under namespaces, and optionally a density ratio morphism (the RN layer) for reweighting.</p>
+<section id="basic-transport" class="level3">
+<h3 class="anchored" data-anchor-id="basic-transport">Basic transport</h3>
+<div id="16" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a second causal diagram for a target regime</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>ctx_target <span class="op">=</span> <span class="fu">CausalContext</span>(<span class="op">:</span>TargetContext;</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    observational_regime<span class="op">=:</span>obs,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    interventional_regime<span class="op">=:</span><span class="cf">do</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>cd_target <span class="op">=</span> <span class="fu">build_causal_diagram</span>(<span class="op">:</span>TargetRegime; context<span class="op">=</span>ctx_target)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>transport_D <span class="op">=</span> <span class="fu">causal_transport</span>(cd, cd_target; name<span class="op">=:</span>BasicTransport)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>Diagram :BasicTransport
+  Objects:
+    source_regime__Observations::observations
+    source_regime__CausalStructure::causal_structure
+    source_regime__InterventionalState::interventional_state
+    source_regime__ConditionalState::conditional_state
+    target_regime__Observations::observations
+    target_regime__CausalStructure::causal_structure
+    target_regime__InterventionalState::interventional_state
+    target_regime__ConditionalState::conditional_state
+  Operations:
+    source_regime__intervene = Σ(source_regime__Observations, along=source_regime__CausalStructure, target=source_regime__InterventionalState, reducer=:sum)
+    source_regime__condition = Δ(source_regime__Observations, along=source_regime__CausalStructure, target=source_regime__ConditionalState, reducer=:first_non_null)
+    target_regime__intervene = Σ(target_regime__Observations, along=target_regime__CausalStructure, target=target_regime__InterventionalState, reducer=:sum)
+    target_regime__condition = Δ(target_regime__Observations, along=target_regime__CausalStructure, target=target_regime__ConditionalState, reducer=:first_non_null)
+  Ports:
+    → source_obs (observations)
+    → target_obs (observations)</code></pre>
+</div>
+</div>
+<div id="18" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Transport objects:    "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(transport_D.objects)))</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Transport operations: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(transport_D.operations)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Transport objects:    [:source_regime__Observations, :source_regime__CausalStructure, :source_regime__InterventionalState, :source_regime__ConditionalState, :target_regime__Observations, :target_regime__CausalStructure, :target_regime__InterventionalState, :target_regime__ConditionalState]
+Transport operations: [:source_regime__intervene, :source_regime__condition, :target_regime__intervene, :target_regime__condition]</code></pre>
+</div>
+</div>
+</section>
+<section id="transport-with-density-ratio" class="level3">
+<h3 class="anchored" data-anchor-id="transport-with-density-ratio">Transport with density ratio</h3>
+<p>The density ratio <span class="math inline">\(\rho = p_{\text{do}}(y) / p_{\text{obs}}(y)\)</span> enables computing interventional expectations from observational data. When a <code>density_ratio</code> function is provided, a <code>:DensityRatio</code> object and <code>:rn_reweight</code> morphism are added to the transport diagram.</p>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>transport_rn <span class="op">=</span> <span class="fu">causal_transport</span>(cd, cd_target;</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    density_ratio<span class="op">=</span>x <span class="op">-&gt;</span> x,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=:</span>RNTransport</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Transport with RN objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(transport_rn.objects)))</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Transport with RN ops:     "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(transport_rn.operations)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Transport with RN objects: [:source_regime__Observations, :source_regime__CausalStructure, :source_regime__InterventionalState, :source_regime__ConditionalState, :target_regime__Observations, :target_regime__CausalStructure, :target_regime__InterventionalState, :target_regime__ConditionalState, :DensityRatio, :ReweightedEstimate]
+Transport with RN ops:     [:source_regime__intervene, :source_regime__condition, :target_regime__intervene, :target_regime__condition, :rn_reweight, :apply_weights]</code></pre>
+</div>
+</div>
+<p>The density ratio morphism acts as the RN (Radon-Nikodym) layer that bridges the observational and interventional regimes.</p>
+</section>
+</section>
+<section id="interventional-expectation" class="level2">
+<h2 class="anchored" data-anchor-id="interventional-expectation">Interventional Expectation</h2>
+<p><code>interventional_expectation</code> computes <span class="math inline">\(\mathbb{E}_{\text{do}}[Y]\)</span> from observational data by executing the causal diagram’s left Kan (intervention) and right Kan (conditioning) extensions. We provide a <code>Dict</code> containing <code>:Observations</code> and <code>:CausalStructure</code>.</p>
+<div id="22" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>obs_data <span class="op">=</span> <span class="fu">Dict</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>Observations <span class="op">=&gt;</span> <span class="fu">Dict</span>(<span class="op">:</span>a <span class="op">=&gt;</span> <span class="fl">1.0</span>, <span class="op">:</span>b <span class="op">=&gt;</span> <span class="fl">2.0</span>, <span class="op">:</span>c <span class="op">=&gt;</span> <span class="fl">3.0</span>),</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>CausalStructure <span class="op">=&gt;</span> <span class="fu">Dict</span>((<span class="op">:</span>a, <span class="op">:</span>b) <span class="op">=&gt;</span> <span class="cn">true</span>, (<span class="op">:</span>b, <span class="op">:</span>c) <span class="op">=&gt;</span> <span class="cn">true</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> <span class="fu">interventional_expectation</span>(cd, obs_data)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Intervention result: "</span>, result[<span class="op">:</span>intervention])</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Conditioning result: "</span>, result[<span class="op">:</span>conditioning])</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"All values:          "</span>, result[<span class="op">:</span>all_values])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Intervention result: Dict{Any, Any}()
+Conditioning result: Dict{Any, Any}()
+All values:          Dict{Symbol, Any}(:Observations =&gt; Dict(:a =&gt; 1.0, :b =&gt; 2.0, :c =&gt; 3.0), :intervene =&gt; Dict{Any, Any}(), :condition =&gt; Dict{Any, Any}(), :CausalStructure =&gt; Dict{Tuple{Symbol, Symbol}, Bool}((:a, :b) =&gt; 1, (:b, :c) =&gt; 1))</code></pre>
+</div>
+</div>
+<p>When a <code>density_ratio_fn</code> is supplied, each observation is reweighted by <span class="math inline">\(\rho(y) = p_{\text{do}}(y) / p_{\text{obs}}(y)\)</span> before aggregation — this is the importance-weighting step that turns observational averages into interventional expectations.</p>
+<div id="24" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simple density ratio: upweight each observation by 1.5×</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>result_rn <span class="op">=</span> <span class="fu">interventional_expectation</span>(cd, obs_data;</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    density_ratio_fn <span class="op">=</span> v <span class="op">-&gt;</span> <span class="fl">1.5</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Reweighted intervention: "</span>, result_rn[<span class="op">:</span>intervention])</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Reweighted conditioning: "</span>, result_rn[<span class="op">:</span>conditioning])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Reweighted intervention: Dict{Any, Any}(:a =&gt; 1.5, :b =&gt; 3.0, :c =&gt; 4.5)
+Reweighted conditioning: Dict{Any, Any}()</code></pre>
+</div>
+</div>
+</section>
+<section id="identifiability" class="level2">
+<h2 class="anchored" data-anchor-id="identifiability">Identifiability</h2>
+<p>Before estimating a causal effect we need to know whether it is <strong>identifiable</strong> — whether the interventional distribution can be expressed purely in terms of observational quantities. <code>is_identifiable</code> inspects the diagram structure and applies do-calculus rules.</p>
+<div id="26" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>ident <span class="op">=</span> <span class="fu">is_identifiable</span>(cd, <span class="op">:</span>Y)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Identifiable: "</span>, ident.identifiable)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Rule applied: "</span>, ident.rule)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Reasoning:    "</span>, ident.reasoning)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Identifiable: true
+Rule applied: adjustment
+Reasoning:    Both Kan extensions share source and causal structure; adjustment formula applies via back-door criterion</code></pre>
+</div>
+</div>
+<p>The function returns a <code>NamedTuple</code> with:</p>
+<ul>
+<li><code>identifiable</code> — whether the effect is identifiable from the diagram</li>
+<li><code>rule</code> — which do-calculus rule was applied (<code>:adjustment</code>, <code>:no_causal_path</code>, etc.)</li>
+<li><code>reasoning</code> — a human-readable explanation</li>
+</ul>
+<p>When the diagram has both left and right Kan extensions sharing a common source and causal structure, the <strong>adjustment formula</strong> (back-door criterion) applies:</p>
+<div id="28" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>ident2 <span class="op">=</span> <span class="fu">is_identifiable</span>(cd, <span class="op">:</span>InterventionalState)</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Identifiable: "</span>, ident2.identifiable)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Rule applied: "</span>, ident2.rule)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Identifiable: true
+Rule applied: adjustment</code></pre>
+</div>
+</div>
+<p>We can also supply an <code>observed</code> argument listing which variables are observed:</p>
+<div id="30" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>ident3 <span class="op">=</span> <span class="fu">is_identifiable</span>(cd, <span class="op">:</span>Y; observed<span class="op">=</span>[<span class="op">:</span>Observations])</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Identifiable: "</span>, ident3.identifiable)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Reasoning:    "</span>, ident3.reasoning)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Identifiable: true
+Reasoning:    Both Kan extensions share source and causal structure; adjustment formula applies via back-door criterion</code></pre>
+</div>
+</div>
+</section>
+<section id="radon-nikodym-density-ratio-transport" class="level2">
+<h2 class="anchored" data-anchor-id="radon-nikodym-density-ratio-transport">Radon-Nikodym Density Ratio Transport</h2>
+<p>The density ratio morphism in <code>causal_transport</code> is the categorical encoding of the <strong>Radon-Nikodym derivative</strong> <span class="math inline">\(\frac{dP_{\text{do}}}{dP_{\text{obs}}}\)</span>. It bridges two regimes: the observational regime (where we collect data) and the interventional regime (where we want to reason).</p>
+<p>The transport diagram with a density ratio adds three components:</p>
+<ol type="1">
+<li><strong><code>:DensityRatio</code></strong> — an object representing the ratio <span class="math inline">\(\rho(y)\)</span></li>
+<li><strong><code>:rn_reweight</code></strong> — a morphism from source observations to the density ratio, applying the supplied function</li>
+<li><strong><code>:ReweightedEstimate</code></strong> — an object holding the importance-weighted result</li>
+</ol>
+<div id="32" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A density ratio that doubles the weight of each observation</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>rn_fn <span class="op">=</span> x <span class="op">-&gt;</span> <span class="fl">2.0</span> <span class="op">*</span> x</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>transport_rn_detail <span class="op">=</span> <span class="fu">causal_transport</span>(cd, cd_target;</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    density_ratio<span class="op">=</span>rn_fn,</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=:</span>DetailedRNTransport</span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Objects:    "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(transport_rn_detail.objects)))</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Operations: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(transport_rn_detail.operations)))</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Ports:      "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(transport_rn_detail.ports)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Objects:    [:source_regime__Observations, :source_regime__CausalStructure, :source_regime__InterventionalState, :source_regime__ConditionalState, :target_regime__Observations, :target_regime__CausalStructure, :target_regime__InterventionalState, :target_regime__ConditionalState, :DensityRatio, :ReweightedEstimate]
+Operations: [:source_regime__intervene, :source_regime__condition, :target_regime__intervene, :target_regime__condition, :rn_reweight, :apply_weights]
+Ports:      [:density_ratio, :reweighted, :source_obs, :target_obs]</code></pre>
+</div>
+</div>
+<p>The <code>:rn_reweight</code> morphism stores the density ratio function as its implementation, making the RN layer a first-class part of the diagram rather than an external post-processing step. This is essential for <strong>composability</strong> — transports can be chained or nested, and the density ratio propagates correctly.</p>
+<div id="34" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect the RN morphism metadata</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>rn_op <span class="op">=</span> transport_rn_detail.operations[<span class="op">:</span>rn_reweight]</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"RN morphism source: "</span>, rn_op.source)</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"RN morphism target: "</span>, rn_op.target)</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Causal role:        "</span>, rn_op.metadata[<span class="op">:</span>causal_role])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>RN morphism source: source_regime__Observations
+RN morphism target: DensityRatio
+Causal role:        rn_layer</code></pre>
+</div>
+</div>
+</section>
+<section id="causal-verification" class="level2">
+<h2 class="anchored" data-anchor-id="causal-verification">Causal Verification</h2>
+<p>FunctorFlow’s <code>verify</code> function checks the structural properties of universal constructions. While <code>verify</code> is primarily designed for pullbacks, pushouts, products, and coproducts, we can verify the <strong>transport diagram</strong> by compiling it and checking that its structure is well-formed.</p>
+<div id="36" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Verify transport diagram structure</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>transport_v <span class="op">=</span> <span class="fu">causal_transport</span>(cd, cd_target;</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    density_ratio<span class="op">=</span>x <span class="op">-&gt;</span> x,</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    name<span class="op">=:</span>VerifiableTransport</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Check that essential causal components are present</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>has_rn <span class="op">=</span> <span class="fu">haskey</span>(transport_v.objects, <span class="op">:</span>DensityRatio)</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>has_reweight <span class="op">=</span> <span class="fu">haskey</span>(transport_v.operations, <span class="op">:</span>rn_reweight)</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>has_apply <span class="op">=</span> <span class="fu">haskey</span>(transport_v.operations, <span class="op">:</span>apply_weights)</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>has_src <span class="op">=</span> <span class="fu">any</span>(<span class="fu">startswith</span>(<span class="fu">String</span>(k), <span class="st">"source_regime"</span>) <span class="cf">for</span> k <span class="kw">in</span> <span class="fu">keys</span>(transport_v.objects))</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>has_tgt <span class="op">=</span> <span class="fu">any</span>(<span class="fu">startswith</span>(<span class="fu">String</span>(k), <span class="st">"target_regime"</span>) <span class="cf">for</span> k <span class="kw">in</span> <span class="fu">keys</span>(transport_v.objects))</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Has DensityRatio object:    "</span>, has_rn)</span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Has rn_reweight morphism:   "</span>, has_reweight)</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Has apply_weights morphism: "</span>, has_apply)</span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Has source regime objects:  "</span>, has_src)</span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Has target regime objects:  "</span>, has_tgt)</span>
+<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"All causal checks passed:   "</span>, <span class="fu">all</span>([has_rn, has_reweight, has_apply, has_src, has_tgt]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Has DensityRatio object:    true
+Has rn_reweight morphism:   true
+Has apply_weights morphism: true
+Has source regime objects:  true
+Has target regime objects:  true
+All causal checks passed:   true</code></pre>
+</div>
+</div>
+</section>
+<section id="counterfactual-reasoning" class="level2">
+<h2 class="anchored" data-anchor-id="counterfactual-reasoning">Counterfactual Reasoning</h2>
+<p>Counterfactuals combine both directions of Kan extension. The question “What would have happened to <span class="math inline">\(Y\)</span> if <span class="math inline">\(X\)</span> had been <span class="math inline">\(x\)</span>, given that we observed <span class="math inline">\(X = x'\)</span>?” involves:</p>
+<ol type="1">
+<li><strong>Right Kan</strong> (conditioning): update beliefs given the observation <span class="math inline">\(X = x'\)</span></li>
+<li><strong>Left Kan</strong> (intervention): intervene to set <span class="math inline">\(X = x\)</span> in the updated model</li>
+</ol>
+<p>We can build a causal diagram that includes both Kan directions:</p>
+<div id="38" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>ctx_cf <span class="op">=</span> <span class="fu">CausalContext</span>(<span class="op">:</span>CounterfactualContext;</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>    observational_regime<span class="op">=:</span>observed,</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    interventional_regime<span class="op">=:</span>counterfactual</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>cd_cf <span class="op">=</span> <span class="fu">build_causal_diagram</span>(<span class="op">:</span>CounterfactualModel; context<span class="op">=</span>ctx_cf)</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Counterfactual diagram objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(cd_cf.base_diagram.objects)))</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Counterfactual diagram ops:    "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(cd_cf.base_diagram.operations)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Counterfactual diagram objects: [:Observations, :CausalStructure, :InterventionalState, :ConditionalState]
+Counterfactual diagram ops:    [:intervene, :condition]</code></pre>
+</div>
+</div>
+<p>The counterfactual diagram contains both left and right Kan extensions, encoding the two-step “observe then intervene” process.</p>
+<p>We can also compose the counterfactual model with a transport:</p>
+<div id="40" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>transport_cf <span class="op">=</span> <span class="fu">causal_transport</span>(cd, cd_cf; name<span class="op">=:</span>CounterfactualTransport)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Counterfactual transport objects: "</span>, <span class="fu">collect</span>(<span class="fu">keys</span>(transport_cf.objects)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Counterfactual transport objects: [:source_regime__Observations, :source_regime__CausalStructure, :source_regime__InterventionalState, :source_regime__ConditionalState, :target_regime__Observations, :target_regime__CausalStructure, :target_regime__InterventionalState, :target_regime__ConditionalState]</code></pre>
+</div>
+</div>
+</section>
+<section id="interpretation" class="level2">
+<h2 class="anchored" data-anchor-id="interpretation">Interpretation</h2>
+<p>The RN-Kan-Do-Calculus provides a principled categorical foundation for causal reasoning:</p>
+<ul>
+<li><p><strong>Right Kan extension = Conditioning.</strong> Given observed data, the right Kan extension computes the “best completion” — the most general way to extend partial information. This is the categorical analog of Bayesian conditioning <span class="math inline">\(P(Y \mid X)\)</span>.</p></li>
+<li><p><strong>Left Kan extension = Intervention.</strong> The do-operator actively severs incoming causal arrows and pushes information forward. The left Kan extension is a colimit — it aggregates over all ways the intervention can propagate. This is the categorical analog of <span class="math inline">\(P(Y \mid \text{do}(X))\)</span>.</p></li>
+<li><p><strong>Counterfactuals = Composition.</strong> By composing right (condition) and left (intervene) Kan extensions, we get the counterfactual <span class="math inline">\(P(Y_x \mid X = x')\)</span>: first absorb the evidence, then perform the hypothetical intervention.</p></li>
+</ul>
+<p>This framework unifies Pearl’s ladder of causation (association, intervention, counterfactual) within a single diagrammatic language. The transport rules (backdoor, frontdoor, IV) are functorial transformations that map causal diagrams to statistical estimands while preserving the categorical structure.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

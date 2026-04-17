@@ -1,0 +1,139 @@
+---
+title: "Temporal Repair and Schrodinger Bridges"
+subtitle: "Persistent-world repair, compilation plans, and bridge execution traces"
+author: "Simon Frost"
+format:
+  html:
+    code-fold: false
+    toc: true
+  gfm:
+    toc: true
+  pdf:
+    code-fold: false
+    toc: true
+    mainfont: "STIX Two Text"
+    sansfont: "STIX Two Text"
+    monofont: "JuliaMono"
+    mathfont: "STIX Two Math"
+engine: julia
+---
+
+## Introduction
+
+`FunctorFlow.jl` now includes the full v1 temporal surface: persistent states,
+trajectories, temporal repair objects, and Schrodinger-bridge summaries. This
+vignette shows the highest-level Julia-native path through that stack:
+
+1. build the bundled temporal repair example;
+2. inspect the repaired trajectory and bridge summary;
+3. compile the example into parity-oriented semantic artifacts; and
+4. execute the lowered placeholder IR to expose the temporal trace.
+
+## Setup
+
+```{julia}
+#| output: false
+using Pkg
+Pkg.activate(joinpath(@__DIR__, ".."))
+
+using FunctorFlow
+```
+
+## Build the bundled temporal repair example
+
+`build_temporal_repair_example()` returns a self-contained example with raw
+states, repaired states, trajectories, a temporal block, a repair object, and a
+bridge object.
+
+```{julia}
+example = build_temporal_repair_example()
+summary = summarize_temporal_repair_example(example)
+
+println("Counts: ", summary["counts"])
+println("Bridge summary: ", summary["bridge"])
+println("Company summary: ", summary["company_summaries"][1])
+```
+
+The repaired 2024 state inserts a stabilizing action, so the temporal repair is
+not just a relabeling; it changes the intermediate state while preserving the
+endpoint-compatible trajectory.
+
+```{julia}
+raw = example[:raw_trajectory]
+repaired = example[:repaired_trajectory]
+repair = example[:temporal_repair]
+bridge = example[:bridge]
+
+println("Raw trajectory years: ", raw.years)
+println("Raw state names: ", [state.name for state in raw.states])
+println("Repaired state names: ", [state.name for state in repaired.states])
+println("Repair objective: ", repair.repair_objective)
+println("Repair map components: ", sort([component.name for component in values(repair.repair_map.components)]))
+println("Bridge metrics: ", bridge.summary_metrics)
+```
+
+## Compile the temporal stack
+
+The semantic compiler treats the temporal repair and the Schrodinger bridge as
+first-class compiled artifacts.
+
+```{julia}
+plan = build_temporal_repair_compilation_plan(example)
+
+compiled_subjects = [
+    (artifact.subject_name, artifact.subject_kind)
+    for artifact in plan.artifacts
+    if artifact.subject_kind in (
+        :trajectory_functor,
+        :temporal_block,
+        :temporal_repair,
+        :temporal_schrodinger_bridge,
+    )
+]
+
+println("Compiled temporal subjects:")
+for subject in compiled_subjects
+    println("  ", subject)
+end
+```
+
+Lowering the plan to placeholder IR makes the temporal semantics explicit as
+operations such as `repair_temporal_block` and `instantiate_temporal_bridge`.
+
+```{julia}
+ir = build_temporal_repair_executable_ir(example)
+
+println("IR instructions:")
+for instruction in ir.instructions
+    if instruction.opcode in (:repair_temporal_block, :instantiate_temporal_bridge)
+        println("  ", instruction.name, " => ", instruction.opcode)
+    end
+end
+```
+
+## Execute the placeholder trace
+
+The execution trace is symbolic rather than numeric, but it exposes the exact
+categorical steps the temporal example lowers to.
+
+```{julia}
+executed = execute_temporal_repair_example(example)
+
+println("Execution trace:")
+for line in executed.trace
+    println("  ", line)
+end
+```
+
+## Why this matters
+
+The v1 temporal layer is now documented as an actual Julia workflow, not just a
+test surface:
+
+- **persistent states** give year-indexed categorical state objects;
+- **temporal repair** records how a corrupted trajectory is repaired; and
+- **Schrodinger bridges** summarize the endpoint-conditioning geometry that ties
+  raw and repaired trajectories together.
+
+That makes the Julia port usable for both symbolic parity checks and future
+Lux-backed temporal modeling work.

@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.28">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Simon Frost">
+
+<title>CLIFF Route Runtime</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="cliff-route-runtime_files/libs/clipboard/clipboard.min.js"></script>
+<script src="cliff-route-runtime_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="cliff-route-runtime_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="cliff-route-runtime_files/libs/quarto-html/popper.min.js"></script>
+<script src="cliff-route-runtime_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="cliff-route-runtime_files/libs/quarto-html/anchor.min.js"></script>
+<link href="cliff-route-runtime_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="cliff-route-runtime_files/libs/quarto-html/quarto-syntax-highlighting-49e51e44f424ea8c7044b429bdbbbfe2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="cliff-route-runtime_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="cliff-route-runtime_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="cliff-route-runtime_files/libs/bootstrap/bootstrap-138a6193a3bd40baf1e627da441a4734.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#build-a-runtime-and-register-a-route-executor" id="toc-build-a-runtime-and-register-a-route-executor" class="nav-link" data-scroll-target="#build-a-runtime-and-register-a-route-executor">Build a runtime and register a route executor</a></li>
+  <li><a href="#configure-agents-attention-and-convergence" id="toc-configure-agents-attention-and-convergence" class="nav-link" data-scroll-target="#configure-agents-attention-and-convergence">Configure agents, attention, and convergence</a></li>
+  <li><a href="#execute-the-routed-query" id="toc-execute-the-routed-query" class="nav-link" data-scroll-target="#execute-the-routed-query">Execute the routed query</a></li>
+  <li><a href="#broadcast-the-selected-conscious-workspace" id="toc-broadcast-the-selected-conscious-workspace" class="nav-link" data-scroll-target="#broadcast-the-selected-conscious-workspace">Broadcast the selected conscious workspace</a></li>
+  <li><a href="#why-this-matters" id="toc-why-this-matters" class="nav-link" data-scroll-target="#why-this-matters">Why this matters</a></li>
+  </ul>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="cliff-route-runtime.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="cliff-route-runtime.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">CLIFF Route Runtime</h1>
+<p class="subtitle lead">Executable routed orchestration with convergence-aware stopping</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Simon Frost </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>The first CLIFF tranche in <code>FunctorFlow.jl</code> added route semantics, conscious workspace types, evidence convergence, and artifact records. This vignette shows the next step: turning those semantic pieces into a runnable routed workflow.</p>
+<p>The pattern is:</p>
+<ol type="1">
+<li>create a <code>CLIFFRuntime</code>;</li>
+<li>register a route executor with ordinary Julia code;</li>
+<li>configure agent capabilities, attention limits, and convergence policy; and</li>
+<li>run a natural-language query all the way to a <code>RouteRunResult</code>.</li>
+</ol>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="2" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Pkg</span>.<span class="fu">activate</span>(<span class="fu">joinpath</span>(<span class="pp">@__DIR__</span>, <span class="st">".."</span>))</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">FunctorFlow</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="build-a-runtime-and-register-a-route-executor" class="level2">
+<h2 class="anchored" data-anchor-id="build-a-runtime-and-register-a-route-executor">Build a runtime and register a route executor</h2>
+<p><code>register_route_executor!</code> accepts a route name and a normal Julia callback. The callback receives the query string and a mutable <code>CLIFFExecutionContext</code>. It can publish shared broadcasts, store route-local state, and return one or more <code>CLIFFRouteUpdate</code> values.</p>
+<div id="4" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>runtime <span class="op">=</span> <span class="fu">CLIFFRuntime</span>()</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">register_route_executor!</span>(runtime, <span class="op">:</span>company_similarity; description<span class="op">=</span><span class="st">"Inline vignette executor"</span>) <span class="cf">do</span> query, ctx</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_route_state!</span>(ctx, <span class="op">:</span>normalized_pair, (<span class="st">"Adobe"</span>, <span class="st">"Nike"</span>))</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">publish!</span>(ctx.board;</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        source_agent<span class="op">=</span><span class="st">"retrieval_scout"</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Pair recognized"</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        summary<span class="op">=</span><span class="st">"The query compares Adobe and Nike across a recent filing window."</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        tags<span class="op">=</span>[<span class="st">"company_similarity"</span>, <span class="st">"routing"</span>])</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    update_1 <span class="op">=</span> <span class="fu">CLIFFRouteUpdate</span>(</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        snapshot<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            <span class="op">:</span>top_claims <span class="op">=&gt;</span> [<span class="st">"direct-to-consumer"</span>, <span class="st">"membership flywheel"</span>],</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            <span class="op">:</span>summary <span class="op">=&gt;</span> <span class="st">"The first evidence batch isolates a shared channel-expansion theme."</span>,</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        ),</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        evidence_delta<span class="op">=</span><span class="fl">2</span>,</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        processes<span class="op">=</span>[</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>            <span class="fu">UnconsciousProcess</span>(<span class="op">:</span>filing_overlap, <span class="st">"retrieval_scout"</span>;</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>                summary<span class="op">=</span><span class="st">"Two filings already agree on direct-channel emphasis."</span>,</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>                artifact_refs<span class="op">=</span>[<span class="st">"filing-batch-01"</span>, <span class="st">"filing-batch-02"</span>],</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>                salience<span class="op">=</span><span class="fl">0.88</span>, relevance<span class="op">=</span><span class="fl">0.94</span>, novelty<span class="op">=</span><span class="fl">0.41</span>, urgency<span class="op">=</span><span class="fl">0.38</span>, attention_cost<span class="op">=</span><span class="fl">2</span>),</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>            <span class="fu">UnconsciousProcess</span>(<span class="op">:</span>draft_memo, <span class="st">"synthesis_editor"</span>;</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>                summary<span class="op">=</span><span class="st">"A draft memo frame is ready once one more stable batch arrives."</span>,</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>                artifact_refs<span class="op">=</span>[<span class="st">"draft-note-01"</span>],</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>                salience<span class="op">=</span><span class="fl">0.54</span>, relevance<span class="op">=</span><span class="fl">0.68</span>, novelty<span class="op">=</span><span class="fl">0.26</span>, urgency<span class="op">=</span><span class="fl">0.29</span>, attention_cost<span class="op">=</span><span class="fl">2</span>),</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">publish!</span>(ctx.board;</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>        source_agent<span class="op">=</span><span class="st">"evidence_judge"</span>,</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Similarity signal strengthening"</span>,</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>        summary<span class="op">=</span><span class="st">"The first evidence floor has been met; the next stable batch can stop the route."</span>,</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>        tags<span class="op">=</span>[<span class="st">"company_similarity"</span>, <span class="st">"convergence"</span>],</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>        audience<span class="op">=</span><span class="st">"synthesis_editor"</span>)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    update_2 <span class="op">=</span> <span class="fu">CLIFFRouteUpdate</span>(</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>        snapshot<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>            <span class="op">:</span>top_claims <span class="op">=&gt;</span> [<span class="st">"direct-to-consumer"</span>, <span class="st">"membership flywheel"</span>],</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>            <span class="op">:</span>summary <span class="op">=&gt;</span> <span class="st">"A second evidence batch keeps the dominant claims unchanged."</span>,</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>        ),</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>        evidence_delta<span class="op">=</span><span class="fl">1</span>,</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>        processes<span class="op">=</span>[</span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>            <span class="fu">UnconsciousProcess</span>(<span class="op">:</span>stable_claims, <span class="st">"evidence_judge"</span>;</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>                summary<span class="op">=</span><span class="st">"The dominant claims are now stable enough to stop gathering."</span>,</span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>                artifact_refs<span class="op">=</span>[<span class="st">"stability-report"</span>],</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>                salience<span class="op">=</span><span class="fl">0.83</span>, relevance<span class="op">=</span><span class="fl">0.92</span>, novelty<span class="op">=</span><span class="fl">0.22</span>, urgency<span class="op">=</span><span class="fl">0.57</span>, attention_cost<span class="op">=</span><span class="fl">2</span>),</span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>            <span class="fu">UnconsciousProcess</span>(<span class="op">:</span>final_dashboard, <span class="st">"synthesis_editor"</span>;</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>                summary<span class="op">=</span><span class="st">"The dashboard is ready to be emitted."</span>,</span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>                artifact_refs<span class="op">=</span>[<span class="st">"company-similarity-dashboard"</span>],</span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>                salience<span class="op">=</span><span class="fl">0.77</span>, relevance<span class="op">=</span><span class="fl">0.87</span>, novelty<span class="op">=</span><span class="fl">0.35</span>, urgency<span class="op">=</span><span class="fl">0.66</span>, attention_cost<span class="op">=</span><span class="fl">2</span>),</span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>        artifacts<span class="op">=</span>[</span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>            <span class="fu">SynthesisArtifact</span>(<span class="op">:</span>company_similarity_dashboard;</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>                artifact_kind<span class="op">=:</span>dashboard,</span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>                title<span class="op">=</span><span class="st">"Company Similarity Dashboard"</span>,</span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>                summary<span class="op">=</span><span class="st">"A routed comparison between Adobe and Nike over recent filings."</span>,</span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>                content_ref<span class="op">=</span><span class="st">"outputs/company_similarity/company_similarity_dashboard.html"</span>,</span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>                tags<span class="op">=</span>[<span class="st">"dashboard"</span>, <span class="st">"company_similarity"</span>]),</span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>    [update_1, update_2]</span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Registered executors: "</span>, <span class="fu">list_route_executors</span>(runtime))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Registered executors: [:company_similarity]</code></pre>
+</div>
+</div>
+</section>
+<section id="configure-agents-attention-and-convergence" class="level2">
+<h2 class="anchored" data-anchor-id="configure-agents-attention-and-convergence">Configure agents, attention, and convergence</h2>
+<p>The runtime configuration is where the route is tied to:</p>
+<ul>
+<li>an agent pool,</li>
+<li>available execution capabilities,</li>
+<li>a conscious field-of-view, and</li>
+<li>an evidence convergence policy.</li>
+</ul>
+<div id="6" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>agents <span class="op">=</span> [</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">CLIFFAgentSpec</span>(<span class="op">:</span>retrieval_scout;</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        description<span class="op">=</span><span class="st">"Collect routed evidence and surface intermediate findings."</span>,</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        instructions<span class="op">=</span><span class="st">"Retrieve and summarize evidence for the active route."</span>,</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        required_capabilities<span class="op">=</span>[<span class="op">:</span>llm_inference, <span class="op">:</span>retrieval],</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        preferred_capabilities<span class="op">=</span>[<span class="op">:</span>tool_calling, <span class="op">:</span>web_search],</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        route_bindings<span class="op">=</span>[<span class="op">:</span>company_similarity]),</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">CLIFFAgentSpec</span>(<span class="op">:</span>synthesis_editor;</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        description<span class="op">=</span><span class="st">"Write the final routed synthesis artifact."</span>,</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        instructions<span class="op">=</span><span class="st">"Synthesize the active route into one coherent answer."</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        required_capabilities<span class="op">=</span>[<span class="op">:</span>llm_inference],</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        preferred_capabilities<span class="op">=</span>[<span class="op">:</span>structured_output],</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        route_bindings<span class="op">=</span>[<span class="op">:</span>company_similarity]),</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">CLIFFAgentSpec</span>(<span class="op">:</span>evidence_judge;</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        description<span class="op">=</span><span class="st">"Judge whether routed evidence has converged."</span>,</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        instructions<span class="op">=</span><span class="st">"Decide when the route can stop gathering new evidence."</span>,</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        required_capabilities<span class="op">=</span>[<span class="op">:</span>llm_inference],</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        preferred_capabilities<span class="op">=</span>[<span class="op">:</span>structured_output],</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        route_bindings<span class="op">=</span>[<span class="op">:</span>company_similarity]),</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>config <span class="op">=</span> <span class="fu">CLIFFRuntimeConfig</span>(</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    agents<span class="op">=</span>agents,</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    available_capabilities<span class="op">=</span>[<span class="op">:</span>llm_inference, <span class="op">:</span>retrieval, <span class="op">:</span>tool_calling, <span class="op">:</span>structured_output, <span class="op">:</span>web_search],</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    consciousness<span class="op">=</span><span class="fu">ConsciousnessFunctor</span>(</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>        field_of_view<span class="op">=</span><span class="fu">ConsciousFieldOfView</span>(<span class="fl">4</span>),</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        weights<span class="op">=</span><span class="fu">AttentionScoreWeights</span>(),</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    convergence_policy<span class="op">=</span><span class="fu">EvidenceConvergencePolicy</span>(</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        <span class="fl">3</span>;</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>        stability_threshold<span class="op">=</span><span class="fl">0.8</span>,</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>        required_stable_passes<span class="op">=</span><span class="fl">1</span>,</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>        max_evidence<span class="op">=</span><span class="fl">6</span>,</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Route capability gap: "</span>, <span class="fu">route_capability_gap</span>(<span class="fu">route_cliff_query</span>(<span class="st">"How similar is Adobe to Nike?"</span>), config.available_capabilities))</span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Selected agents will be filtered at runtime from: "</span>, [agent.name for agent <span class="kw">in</span> agents])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Route capability gap: Symbol[]
+Selected agents will be filtered at runtime from: [:retrieval_scout, :synthesis_editor, :evidence_judge]</code></pre>
+</div>
+</div>
+</section>
+<section id="execute-the-routed-query" class="level2">
+<h2 class="anchored" data-anchor-id="execute-the-routed-query">Execute the routed query</h2>
+<p><code>execute_cliff_query</code> routes the natural-language prompt, runs the registered executor, updates the conscious workspace, tracks evidence convergence, and returns a <code>CLIFFRouteTrace</code>.</p>
+<div id="8" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>trace <span class="op">=</span> <span class="fu">execute_cliff_query</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    runtime,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"How similar is Adobe to Nike across recent filings?"</span>;</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    execution_mode<span class="op">=:</span>deep,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    config<span class="op">=</span>config,</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>summary <span class="op">=</span> <span class="fu">summarize_cliff_route_trace</span>(trace)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Route: "</span>, summary[<span class="st">"route_decision"</span>][<span class="st">"route_name"</span>])</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Status: "</span>, summary[<span class="st">"status"</span>])</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Selected agents: "</span>, summary[<span class="st">"selected_agents"</span>])</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Counts: "</span>, summary[<span class="st">"counts"</span>])</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Broadcast titles: "</span>, summary[<span class="st">"broadcast_titles"</span>])</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Latest assessment: "</span>, summary[<span class="st">"latest_assessment"</span>])</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Primary artifact: "</span>, summary[<span class="st">"primary_artifact"</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Route: company_similarity
+Status: completed
+Selected agents: ["retrieval_scout", "synthesis_editor", "evidence_judge"]
+Counts: Dict("broadcasts" =&gt; 2, "updates" =&gt; 2, "assessments" =&gt; 2, "artifacts" =&gt; 1, "workspaces" =&gt; 2)
+Broadcast titles: ["Pair recognized", "Similarity signal strengthening"]
+Latest assessment: Dict{String, Any}("stability_threshold" =&gt; 0.8, "similarity" =&gt; 1.0, "evidence_count" =&gt; 3, "remaining_stable_passes" =&gt; 0, "stable" =&gt; true, "iteration" =&gt; 2, "reason" =&gt; "Evidence stabilized after 3 items (similarity=1.0); A second evidence batch keeps the dominant claims unchanged.", "snapshot" =&gt; Dict{String, Any}("summary" =&gt; "A second evidence batch keeps the dominant claims unchanged.", "top_claims" =&gt; ["direct-to-consumer", "membership flywheel"]), "stop" =&gt; true, "required_stable_passes" =&gt; 1…)
+Primary artifact: Dict{String, Any}("summary" =&gt; "A routed comparison between Adobe and Nike over recent filings.", "name" =&gt; "company_similarity_dashboard", "title" =&gt; "Company Similarity Dashboard", "tags" =&gt; ["dashboard", "company_similarity"], "metadata" =&gt; Dict{Any, Any}(), "artifact_kind" =&gt; "dashboard", "content_ref" =&gt; "outputs/company_similarity/company_similarity_dashboard.html")</code></pre>
+</div>
+</div>
+<p>The result is already normalized into a first-class semantic object, so it can be compiled with the rest of the FunctorFlow v1 stack.</p>
+<div id="10" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>plan <span class="op">=</span> <span class="fu">compile_plan</span>(<span class="op">:</span>CLIFFRuntimeVignettePlan, trace.result; metadata<span class="op">=</span><span class="fu">Dict</span>(<span class="op">:</span>example <span class="op">=&gt;</span> <span class="st">"cliff_route_runtime"</span>))</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>compiled_subjects <span class="op">=</span> [(artifact.subject_name, artifact.subject_kind) for artifact <span class="kw">in</span> plan.artifacts]</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Compiled subjects: "</span>, compiled_subjects)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Compiled subjects: [(:company_similarity__route_run, :cliff_route_run)]</code></pre>
+</div>
+</div>
+</section>
+<section id="broadcast-the-selected-conscious-workspace" class="level2">
+<h2 class="anchored" data-anchor-id="broadcast-the-selected-conscious-workspace">Broadcast the selected conscious workspace</h2>
+<p>The conscious workspace can itself be turned into shared broadcasts.</p>
+<div id="12" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>workspace_board <span class="op">=</span> <span class="fu">ConsciousBroadcastBoard</span>()</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>workspace_messages <span class="op">=</span> <span class="fu">publish_workspace!</span>(workspace_board, trace.result.workspace; source_agent<span class="op">=</span><span class="st">"consciousness"</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Workspace broadcasts: "</span>, [message.title for message <span class="kw">in</span> workspace_messages])</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Workspace payload: "</span>, <span class="fu">as_dict</span>(workspace_messages[<span class="fl">1</span>])[<span class="st">"payload"</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Workspace broadcasts: ["Selected process: final_dashboard", "Selected process: stable_claims"]
+Workspace payload: Dict{String, Any}("score" =&gt; 0.6994999999999999, "process_name" =&gt; "final_dashboard", "attention_cost" =&gt; 2, "artifact_refs" =&gt; ["company-similarity-dashboard"])</code></pre>
+</div>
+</div>
+</section>
+<section id="why-this-matters" class="level2">
+<h2 class="anchored" data-anchor-id="why-this-matters">Why this matters</h2>
+<p>The CLIFF layer is now more than a semantic shell:</p>
+<ul>
+<li><strong>routing</strong> is tied to executable Julia callbacks;</li>
+<li><strong>consciousness</strong> becomes a concrete bounded-selection mechanism;</li>
+<li><strong>convergence</strong> can stop a route automatically; and</li>
+<li><strong>route results</strong> slot directly into the semantic compiler.</li>
+</ul>
+<p>That makes it possible to prototype whole routed orchestration loops in Julia before attaching real retrieval systems or LLM clients.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
