@@ -64,8 +64,9 @@ include("composition.jl")
 include("adapters.jl")
 include("show.jl")
 
-# ACSet schema and Catlab integration
+# ACSet schema stubs and Catlab integration
 include("schema.jl")
+include("symbolic_catlab.jl")
 
 # Unicode operators (after diagram.jl provides add_left_kan! etc.)
 # Note: unicode.jl uses compose/product/coproduct which are defined later,
@@ -192,7 +193,6 @@ export compile_v1, compile_plan, lower_artifact_to_ir, lower_plan_to_executable_
 export compile_to_executable_ir, execute_placeholder_ir
 
 # ACSet schema and Catlab integration
-export SchFunctorFlow, FunctorFlowGraph, AbstractFunctorFlowGraph
 export to_acset, from_acset, to_presentation, to_symbolic
 export diagram_to_acset, acset_to_diagram, define_theory
 export verify_naturality

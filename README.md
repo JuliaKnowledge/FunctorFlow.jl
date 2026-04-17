@@ -42,6 +42,29 @@ using Pkg
 Pkg.add("FunctorFlow")
 ```
 
+### Installing CategoricalDiagramSchema (for ACSet interop)
+
+As of v0.2, FunctorFlow's ACSet schema lives in the companion package
+[`CategoricalDiagramSchema.jl`](https://github.com/JuliaKnowledge/CategoricalDiagramSchema.jl)
+(shared with [`CatNet.jl`](https://github.com/JuliaKnowledge/CatNet.jl)). It is
+declared as a **weak dependency**: FunctorFlow itself doesn't pull it in, but
+the `to_acset` / `from_acset` / `diagram_to_acset` / `acset_to_diagram`
+functions only have methods once it is loaded.
+
+To enable ACSet conversion:
+
+```julia
+using Pkg
+Pkg.add(url = "https://github.com/JuliaKnowledge/CategoricalDiagramSchema.jl")
+
+using FunctorFlow, CategoricalDiagramSchema
+acs = to_acset(D)            # CategoricalDiagramACSet
+D2  = from_acset(acs)        # FunctorFlow.Diagram
+```
+
+If you only `using FunctorFlow`, calling `to_acset` raises a `MethodError`
+that points you here.
+
 ## Quick start
 
 ### Programmatic API

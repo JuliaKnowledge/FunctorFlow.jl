@@ -2,6 +2,11 @@ using Test
 using FunctorFlow
 import Catlab
 
+const HAS_CDS = Base.find_package("CategoricalDiagramSchema") !== nothing
+if HAS_CDS
+    @eval using CategoricalDiagramSchema
+end
+
 @testset "FunctorFlow.jl" begin
 
     @testset "Core Types" begin
@@ -542,6 +547,9 @@ import Catlab
     end
 
     @testset "ACSet Schema" begin
+        if !HAS_CDS
+            @info "Skipping ACSet Schema tests: CategoricalDiagramSchema not available"
+        else
         # to_acset
         D = ket_block()
         acs = to_acset(D)
@@ -578,8 +586,17 @@ import Catlab
         # acset_to_diagram (alias)
         D4 = acset_to_diagram(acs3; name=:Alias)
         @test D4.name == :Alias
+        end
     end
 
     # JEPA, Coalgebra, and Energy tests
     include("test_jepa.jl")
+
+    @testset "Schema roundtrip" begin
+        if HAS_CDS
+            include("test_schema_roundtrip.jl")
+        else
+            @info "Skipping Schema roundtrip tests: CategoricalDiagramSchema not available"
+        end
+    end
 end
