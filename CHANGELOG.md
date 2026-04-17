@@ -5,6 +5,47 @@ All notable changes to FunctorFlow.jl are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-04-17
+
+### Breaking
+- `Lux` and `LuxCore` are now **weak dependencies** (moved from `[deps]` to
+  `[weakdeps]`). FunctorFlow no longer pulls a full Lux install at
+  precompile time. Users who want the neural backend must add `Lux` and
+  `LuxCore` to their own project and `using Lux` (which automatically
+  triggers loading of `FunctorFlowLuxExt`).
+- All Lux-touching functions (`compile_to_lux`,
+  `build_ket_lux_model`, `build_db_lux_model`, `build_gt_lux_model`,
+  `build_basket_rocket_lux_model`, `build_topocoend_lux_model`,
+  `build_horn_lux_model`, `build_higher_horn_lux_model`,
+  `build_bisimulation_quotient_lux_model`,
+  `RelationInferenceLayer`, `predict_detach_source`) are now resolved
+  through `Base.get_extension` shims in `FunctorFlow`. Calling any of
+  them without first `using Lux` raises a clear error.
+- The Lux **layer types** (`KETAttentionLayer`, `DiagramDenseLayer`,
+  `DiagramChainLayer`, `LuxDiagramModel`) live exclusively inside
+  `FunctorFlowLuxExt` and are no longer re-exported from `FunctorFlow`.
+  Access them via either of:
+  ```julia
+  using Lux
+  ext = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
+  layer = ext.KETAttentionLayer(64)
+  ```
+  or, equivalently, with an `import` from the loaded extension module.
+- `FunctorFlowMetalExt` now requires both `Metal` and `Lux` (and
+  `LuxCore`) to be loaded simultaneously to activate, since the Metal
+  shim itself depends on Lux compatibility.
+
+### Internal
+- Deleted `src/lux_layers.jl` (916 LoC). Its contents were a duplicate
+  of `ext/FunctorFlowLuxExt/FunctorFlowLuxExt.jl` (687 LoC), with a few
+  layers / builders (`RelationInferenceLayer`, the GPU+AD-compatible
+  `_ket_attention_forward`, `predict_detach_source`,
+  `build_basket_rocket_lux_model`, `build_topocoend_lux_model`,
+  `build_horn_lux_model`, `build_higher_horn_lux_model`,
+  `build_bisimulation_quotient_lux_model`) only present in `src/`.
+  The extension is now the single source of truth and includes all of
+  those previously-`src/`-only definitions.
+
 ## [0.2.0] — 2024 (unreleased)
 
 ### Breaking

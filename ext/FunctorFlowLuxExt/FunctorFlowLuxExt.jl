@@ -1,27 +1,39 @@
 # ============================================================================
 # FunctorFlowLuxExt — Lux.jl neural backend for FunctorFlow diagrams
 #
-# This extension provides:
-#   - compile_to_lux(): compile a FunctorFlow Diagram to a Lux model
-#   - LuxDiagramModel: top-level Lux layer wrapping a compiled diagram
-#   - KETAttentionLayer: learnable Kan reducer (scaled dot-product attention)
-#   - DiagramDenseLayer: dense morphism as a Lux layer
-#   - DiagramChainLayer: composition of morphisms as a Lux chain
-#   - Neural reducers & comparators for differentiable training
+# This extension is the SOLE source of truth for the Lux integration.
+# It is loaded automatically when both `FunctorFlow` and `Lux` (plus
+# `LuxCore`) are imported.
+#
+# The parent module exposes shim functions (compile_to_lux,
+# build_*_lux_model, predict_detach_source, RelationInferenceLayer, …)
+# that resolve to definitions here via `Base.get_extension`. Types
+# defined here (DiagramDenseLayer, DiagramChainLayer, KETAttentionLayer,
+# RelationInferenceLayer, LuxDiagramModel) are reached through
+# `FunctorFlowLuxExt.<TypeName>` after `using Lux`.
 # ============================================================================
 
 module FunctorFlowLuxExt
 
 using FunctorFlow
+using FunctorFlow: Diagram, Morphism, Composition, KanExtension, ObstructionLoss,
+                   CompiledDiagram, compile_to_callable,
+                   ket_block, db_square, gt_neighborhood_block,
+                   topocoend_block, horn_fill_block, higher_horn_block,
+                   bisimulation_quotient_block, basket_rocket_pipeline,
+                   DBSquareConfig, GTNeighborhoodConfig, TopoCoendConfig,
+                   HornObstructionConfig, HigherHornConfig,
+                   BisimulationQuotientConfig, BASKETWorkflowConfig,
+                   ROCKETRepairConfig, BasketRocketPipelineConfig
+using FunctorFlow: _apply_overrides
 using Lux
 using LuxCore
 using Random
+using Random: AbstractRNG
+using ChainRulesCore: ignore_derivatives
 
-# ============================================================================
-# Exports (these extend FunctorFlow's public API when Lux is loaded)
-# ============================================================================
+import FunctorFlow: compile_to_callable
 
-import FunctorFlow: compile_to_callable, compile_to_lux
 
 # ============================================================================
 # Layer types
@@ -55,7 +67,11 @@ end
 LuxCore.initialstates(::AbstractRNG, ::DiagramDenseLayer) = NamedTuple()
 
 function (l::DiagramDenseLayer)(x::AbstractArray, ps, st)
-    y = ps.weight * x .+ ps.bias
+    # Handle batched (3D+) inputs: reshape to 2D, multiply, reshape back
+    sz = size(x)
+    x2d = reshape(x, sz[1], :)
+    y2d = ps.weight * x2d .+ ps.bias
+    y = reshape(y2d, size(y2d, 1), sz[2:end]...)
     return l.activation.(y), st
 end
 
@@ -109,6 +125,72 @@ function (l::DiagramChainLayer)(x::AbstractArray, ps, st)
         new_st = merge(new_st, NamedTuple{(lname,)}((lst_new,)))
     end
     current, new_st
+end
+
+"""
+    RelationInferenceLayer(d_model; symmetric=true, name=:infer_relation)
+
+Learn a soft relation matrix from token embeddings. The layer projects the
+tokens into query/key spaces, forms pairwise affinities, optionally symmetrizes
+them, and returns a `(seq_len, seq_len[, batch])` relation suitable for
+attention-style Kan aggregation.
+"""
+struct RelationInferenceLayer <: LuxCore.AbstractLuxLayer
+    name::Symbol
+    d_model::Int
+    symmetric::Bool
+end
+
+function RelationInferenceLayer(d_model::Int;
+                                symmetric::Bool=true,
+                                name::Symbol=:infer_relation)
+    RelationInferenceLayer(name, d_model, symmetric)
+end
+
+function LuxCore.initialparameters(rng::AbstractRNG, l::RelationInferenceLayer)
+    scale = sqrt(2.0f0 / l.d_model)
+    W_q = randn(rng, Float32, l.d_model, l.d_model) .* scale
+    W_k = randn(rng, Float32, l.d_model, l.d_model) .* scale
+    b_q = zeros(Float32, l.d_model)
+    b_k = zeros(Float32, l.d_model)
+    (; W_q, W_k, b_q, b_k)
+end
+
+LuxCore.initialstates(::AbstractRNG, ::RelationInferenceLayer) = NamedTuple()
+
+function (l::RelationInferenceLayer)(source::AbstractArray, ps, st)
+    function _proj(W, b, x)
+        sz = size(x)
+        x2d = reshape(x, sz[1], :)
+        y2d = W * x2d .+ b
+        reshape(y2d, size(y2d, 1), sz[2:end]...)
+    end
+
+    function _btmm(A, B)
+        if ndims(A) == 2
+            return A' * B
+        end
+        batch = size(A, 3)
+        s = size(A, 2)
+        c = size(B, 2)
+        slices = [reshape(A[:, :, i]' * B[:, :, i], :, 1) for i in 1:batch]
+        reshape(hcat(slices...), s, c, batch)
+    end
+
+    Q = _proj(ps.W_q, ps.b_q, source)
+    K = _proj(ps.W_k, ps.b_k, source)
+    scale = Float32(sqrt(l.d_model))
+    relation = sigmoid.(_btmm(K, Q) ./ scale)
+    if l.symmetric
+        relation = ndims(relation) == 2 ?
+            0.5f0 .* (relation .+ permutedims(relation, (2, 1))) :
+            0.5f0 .* (relation .+ permutedims(relation, (2, 1, 3)))
+    end
+    seq_len = size(relation, 1)
+    eye2d = Float32.([i == j ? 1 : 0 for i in 1:seq_len, j in 1:seq_len])
+    eye = ndims(relation) == 2 ? eye2d :
+        reshape(eye2d, seq_len, seq_len, ntuple(_ -> 1, ndims(relation) - 2)...)
+    clamp.(relation .+ eye, 0.0f0, 1.0f0), st
 end
 
 """
@@ -175,64 +257,93 @@ function (l::KETAttentionLayer)((source, mask)::Tuple{AbstractArray, AbstractArr
     _ket_attention_forward(l, source, mask, ps, st)
 end
 
+function _apply_attention_mask(scores::AbstractArray, mask::AbstractArray)
+    mask_nd = ndims(scores) > ndims(mask) ?
+        reshape(mask, size(mask)..., ntuple(_ -> 1, ndims(scores) - ndims(mask))...) :
+        mask
+    mask_f = Float32.(mask_nd)
+    log_bias = log.(clamp.(mask_f, 1.0f-6, 1.0f0))
+    scores .+ ifelse.(mask_f .> 0.0f0, log_bias, typemin(Float32))
+end
+
 function _ket_attention_forward(l::KETAttentionLayer, source::AbstractArray,
                                 mask::Union{Nothing, AbstractArray}, ps, st)
     d_model = l.d_model
     n_heads = l.n_heads
     d_k = l.d_k
 
+    # GPU-compatible linear projection: W * x for x with batch dims
+    function _proj(W, b, x)
+        sz = size(x)
+        x2d = reshape(x, sz[1], :)
+        y2d = W * x2d .+ b
+        reshape(y2d, size(y2d, 1), sz[2:end]...)
+    end
+
+    # GPU + AD compatible batched matmul (no mutation, Zygote-safe)
+    function _bmm(A, B)
+        if ndims(A) == 2
+            return A * B
+        end
+        batch = size(A, 3)
+        # Stack slices without mutation
+        slices = [reshape(A[:, :, i] * B[:, :, i], :, 1) for i in 1:batch]
+        r = size(A, 1)
+        c = size(B, 2)
+        reshape(hcat(slices...), r, c, batch)
+    end
+
+    # Batched transpose-matmul: A^T * B per batch slice
+    function _btmm(A, B)
+        if ndims(A) == 2
+            return A' * B
+        end
+        batch = size(A, 3)
+        s = size(A, 2)
+        c = size(B, 2)
+        slices = [reshape(A[:, :, i]' * B[:, :, i], :, 1) for i in 1:batch]
+        reshape(hcat(slices...), s, c, batch)
+    end
+
     # Linear projections: Q, K, V
-    Q = ps.W_q * source .+ ps.b_q  # (d_model, seq_len, ...)
-    K = ps.W_k * source .+ ps.b_k
-    V = ps.W_v * source .+ ps.b_v
+    Q = _proj(ps.W_q, ps.b_q, source)
+    K = _proj(ps.W_k, ps.b_k, source)
+    V = _proj(ps.W_v, ps.b_v, source)
 
-    # Reshape for multi-head: (d_k, n_heads, seq_len, ...) — but we keep it
-    # simple with batched matmul for the common single-head case
     if n_heads == 1
-        # Scaled dot-product attention
         scale = Float32(sqrt(d_k))
-        scores = (Q' * K) ./ scale  # (seq_len, seq_len, ...)
+        scores = _btmm(K, Q) ./ scale
 
-        # Apply mask: set disallowed positions to -Inf
         if mask !== nothing
-            neg_inf = typemin(Float32)
-            scores = scores .+ (1.0f0 .- Float32.(mask)) .* neg_inf
+            scores = _apply_attention_mask(scores, mask)
         end
 
-        # Softmax over key dimension (dim 2 for column-major)
         weights = _softmax_cols(scores)
-
-        # Aggregate: weighted sum of values
-        output = V * weights  # (d_model, seq_len, ...)
+        output = _bmm(V, weights)
     else
-        # Multi-head: reshape, compute per-head, concatenate
         seq_len = size(source, 2)
         batch_dims = size(source)[3:end]
 
-        # Reshape to (d_k, n_heads, seq_len, ...)
         Q_mh = reshape(Q, d_k, n_heads, seq_len, batch_dims...)
         K_mh = reshape(K, d_k, n_heads, seq_len, batch_dims...)
         V_mh = reshape(V, d_k, n_heads, seq_len, batch_dims...)
 
         scale = Float32(sqrt(d_k))
-        # Per-head attention
         heads = map(1:n_heads) do h
-            Qh = selectdim(Q_mh, 2, h)  # (d_k, seq_len, ...)
-            Kh = selectdim(K_mh, 2, h)
-            Vh = selectdim(V_mh, 2, h)
-            scores_h = (Qh' * Kh) ./ scale
+            Qh = copy(selectdim(Q_mh, 2, h))
+            Kh = copy(selectdim(K_mh, 2, h))
+            Vh = copy(selectdim(V_mh, 2, h))
+            scores_h = _btmm(Kh, Qh) ./ scale
             if mask !== nothing
-                neg_inf = typemin(Float32)
-                scores_h = scores_h .+ (1.0f0 .- Float32.(mask)) .* neg_inf
+                scores_h = _apply_attention_mask(scores_h, mask)
             end
             w_h = _softmax_cols(scores_h)
-            Vh * w_h  # (d_k, seq_len, ...)
+            _bmm(Vh, w_h)
         end
-        output = cat(heads...; dims=1)  # (d_model, seq_len, ...)
+        output = cat(heads...; dims=1)
     end
 
-    # Output projection
-    result = ps.W_o * output .+ ps.b_o
+    result = _proj(ps.W_o, ps.b_o, output)
     result, st
 end
 
@@ -241,6 +352,30 @@ function _softmax_cols(x::AbstractArray)
     mx = maximum(x; dims=1)
     ex = exp.(x .- mx)
     ex ./ sum(ex; dims=1)
+end
+
+"""
+    predict_detach_source(logits, embedding_weights; position_bias=nothing)
+
+Project logits back into embedding space while stopping gradients through the
+prediction path. This is the reusable helper behind the "predict-detach"
+pattern used in the vignettes.
+
+- `logits` has shape `(vocab, seq_len[, batch])`
+- `embedding_weights` has shape `(d_model, vocab)`
+- `position_bias`, when provided, is added *after* the detach boundary so it
+  remains differentiable
+"""
+function predict_detach_source(logits::AbstractArray,
+                               embedding_weights::AbstractMatrix;
+                               position_bias::Union{Nothing, AbstractArray}=nothing)
+    detached_prediction = ignore_derivatives() do
+        probs = _softmax_cols(logits)
+        probs_2d = reshape(probs, size(probs, 1), :)
+        pred_2d = embedding_weights * probs_2d
+        reshape(pred_2d, size(embedding_weights, 1), size(logits)[2:end]...)
+    end
+    position_bias === nothing ? detached_prediction : detached_prediction .+ position_bias
 end
 
 # ============================================================================
@@ -681,6 +816,138 @@ function build_gt_lux_model(d_model::Int;
     model = compile_to_lux(D;
                            morphism_layers=Dict(cfg.lift_name => lift_layer),
                            reducer_layers=Dict(reducer => attn))
+    (model, D)
+end
+
+"""
+    build_basket_rocket_lux_model(d_model; n_heads=4, kwargs...)
+
+Build a Lux-backed `BASKET → ROCKET` planner. Both the drafting and repair
+stages are instantiated as learnable attention reducers, and the
+draft/repair consistency loss is switched to a differentiable comparator.
+
+Returns `(model, diagram)`.
+"""
+function build_basket_rocket_lux_model(d_model::Int;
+                                       n_heads::Int=4,
+                                       dropout::Real=0.0f0,
+                                       draft_reducer::Symbol=:draft_attention,
+                                       repair_reducer::Symbol=:repair_attention,
+                                       comparator::Symbol=:l2,
+                                       kwargs...)
+    basket_cfg = BASKETWorkflowConfig(; reducer=draft_reducer)
+    rocket_cfg = ROCKETRepairConfig(; reducer=repair_reducer)
+    pipeline_cfg = BasketRocketPipelineConfig(;
+        basket_config=basket_cfg,
+        rocket_config=rocket_cfg,
+        consistency_comparator=comparator
+    )
+    D = basket_rocket_pipeline(; config=pipeline_cfg, kwargs...)
+    draft_layer = KETAttentionLayer(d_model; n_heads=n_heads, dropout=dropout, name=draft_reducer)
+    repair_layer = KETAttentionLayer(d_model; n_heads=n_heads, dropout=dropout, name=repair_reducer)
+    model = compile_to_lux(D;
+                           reducer_layers=Dict(
+                               draft_reducer => draft_layer,
+                               repair_reducer => repair_layer
+                           ))
+    (model, D)
+end
+
+"""
+    build_topocoend_lux_model(d_model; config=TopoCoendConfig(reducer=:ket_attention), n_heads=4, kwargs...)
+
+Build a Lux-backed TopoCoend block. A learned `RelationInferenceLayer`
+constructs the neighborhood relation, a dense lift morphism embeds local
+contexts, and `KETAttentionLayer` performs the Kan aggregation.
+"""
+function build_topocoend_lux_model(d_model::Int;
+                                   config::TopoCoendConfig=TopoCoendConfig(reducer=:ket_attention),
+                                   n_heads::Int=4,
+                                   dropout::Real=0.0f0,
+                                   relation_layer::Union{Nothing, LuxCore.AbstractLuxLayer}=nothing,
+                                   kwargs...)
+    cfg = _apply_overrides(config, kwargs)
+    D = topocoend_block(; config=cfg)
+    infer_layer = something(relation_layer,
+                            RelationInferenceLayer(d_model;
+                                name=cfg.infer_neighborhood_name))
+    lift_layer = DiagramDenseLayer(d_model, d_model; name=cfg.lift_name)
+    attn = KETAttentionLayer(d_model; n_heads=n_heads, dropout=dropout, name=cfg.reducer)
+    model = compile_to_lux(D;
+                           morphism_layers=Dict(
+                               cfg.infer_neighborhood_name => infer_layer,
+                               cfg.lift_name => lift_layer
+                           ),
+                           reducer_layers=Dict(cfg.reducer => attn))
+    (model, D)
+end
+
+"""
+    build_horn_lux_model(d_model; config=HornObstructionConfig(), kwargs...)
+
+Build a Lux-backed 2-simplex horn-filling block with learned boundary and filler
+maps.
+"""
+function build_horn_lux_model(d_model::Int;
+                              config::HornObstructionConfig=HornObstructionConfig(),
+                              kwargs...)
+    cfg = _apply_overrides(config, kwargs)
+    D = horn_fill_block(; config=cfg)
+    model = compile_to_lux(D;
+                           morphism_layers=Dict(
+                               cfg.first_face => DiagramDenseLayer(d_model, d_model; name=cfg.first_face),
+                               cfg.second_face => DiagramDenseLayer(d_model, d_model; name=cfg.second_face),
+                               cfg.filler_face => DiagramDenseLayer(d_model, d_model; name=cfg.filler_face),
+                           ))
+    (model, D)
+end
+
+"""
+    build_higher_horn_lux_model(d_model; config=HigherHornConfig(), kwargs...)
+
+Build a Lux-backed higher-order horn regularizer with learned boundary and
+filler maps.
+"""
+function build_higher_horn_lux_model(d_model::Int;
+                                     config::HigherHornConfig=HigherHornConfig(),
+                                     kwargs...)
+    cfg = _apply_overrides(config, kwargs)
+    D = higher_horn_block(; config=cfg)
+    morphism_layers = Dict{Symbol, LuxCore.AbstractLuxLayer}()
+    for face_name in vcat(cfg.boundary_faces, cfg.filler_faces)
+        morphism_layers[face_name] = DiagramDenseLayer(d_model, d_model; name=face_name)
+    end
+    model = compile_to_lux(D; morphism_layers=morphism_layers)
+    (model, D)
+end
+
+"""
+    build_bisimulation_quotient_lux_model(d_model; config=BisimulationQuotientConfig(), kwargs...)
+
+Build a Lux-backed behavioral quotient block. The projection and observation
+maps remain identity scaffolds, while the two behavior paths and the quotient
+map are learned neural morphisms constrained by the coequalizer loss.
+"""
+function build_bisimulation_quotient_lux_model(d_model::Int;
+                                               config::BisimulationQuotientConfig=BisimulationQuotientConfig(),
+                                               kwargs...)
+    cfg = _apply_overrides(config, kwargs)
+    D = bisimulation_quotient_block(;
+        config=cfg,
+        left_projection_impl=identity,
+        right_projection_impl=identity,
+        observe_a_impl=identity,
+        observe_b_impl=identity,
+    )
+    left_path = D.ports[:left_behavior].ref
+    right_path = D.ports[:right_behavior].ref
+    quotient_map = D.ports[:output].ref
+    model = compile_to_lux(D;
+                           morphism_layers=Dict(
+                               left_path => DiagramDenseLayer(d_model, d_model; name=left_path),
+                               right_path => DiagramDenseLayer(d_model, d_model; name=right_path),
+                               quotient_map => DiagramDenseLayer(d_model, d_model; name=quotient_map),
+                           ))
     (model, D)
 end
 

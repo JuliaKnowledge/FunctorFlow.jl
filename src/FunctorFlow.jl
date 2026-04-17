@@ -49,8 +49,7 @@ using Catlab.Theories: FreeSchema, FreeCategory, Ob, Hom, dom, codom
 using Catlab.CategoricalAlgebra
 import Catlab.CategoricalAlgebra: nparts, subpart, add_part!, incident
 using ChainRulesCore: ignore_derivatives
-using Lux
-using LuxCore
+import ChainRulesCore
 using Random: AbstractRNG
 
 # Core types
@@ -333,15 +332,78 @@ export variance_regularization, covariance_regularization
 export BUILTIN_ENERGY_FUNCTIONS, BUILTIN_REGULARIZERS
 export EnergyBlockConfig, energy_block
 
-# Lux neural backend (layers, compile_to_lux, KETAttentionLayer)
-include("lux_layers.jl")
+# ---------------------------------------------------------------------------
+# Lux neural backend — shims that resolve to FunctorFlowLuxExt
+#
+# Lux and LuxCore are weak dependencies (see Project.toml `[weakdeps]`).
+# All neural-layer code lives in `ext/FunctorFlowLuxExt/`. The shims below
+# resolve to the extension via `Base.get_extension` and emit a clear error
+# when Lux is not loaded.
+#
+# To use the layer **types** themselves (e.g. `KETAttentionLayer`,
+# `DiagramDenseLayer`, `LuxDiagramModel`, `RelationInferenceLayer`,
+# `DiagramChainLayer`), do `using Lux` (which triggers ext loading) and
+# then access them via `Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)`
+# or `using .FunctorFlowLuxExt: KETAttentionLayer`.
+# ---------------------------------------------------------------------------
 
-# Lux layer exports
-export KETAttentionLayer, DiagramDenseLayer, DiagramChainLayer, RelationInferenceLayer, LuxDiagramModel
-export compile_to_lux
+@inline function _lux_ext()
+    ext = Base.get_extension(@__MODULE__, :FunctorFlowLuxExt)
+    ext === nothing && error(
+        "FunctorFlow's Lux backend requires `using Lux` (and `using LuxCore`) " *
+        "before any of compile_to_lux, build_*_lux_model, predict_detach_source, " *
+        "or RelationInferenceLayer. Lux/LuxCore are weak dependencies as of " *
+        "FunctorFlow v0.3.0; add them to your project and `import Lux` first."
+    )
+    return ext
+end
+
+# The extension lookup is metadata-only and must not participate in any AD
+# pullback (Zygote cannot differentiate through `Base.get_extension`).
+ChainRulesCore.@non_differentiable _lux_ext()
+
+"""
+    compile_to_lux(D::Diagram; morphism_layers, reducer_layers, comparator_layers,
+                   morphisms, reducers, comparators)
+
+Compile a FunctorFlow `Diagram` to a Lux model. Requires `using Lux` first.
+The returned model is a `FunctorFlowLuxExt.LuxDiagramModel` (a
+`LuxCore.AbstractLuxLayer`).
+"""
+compile_to_lux(args...; kwargs...) = _lux_ext().compile_to_lux(args...; kwargs...)
+
+"""
+    RelationInferenceLayer(d_model::Int; symmetric=true, name=:infer_relation)
+
+Construct a learnable relation-inference layer. Requires `using Lux` first;
+the returned object is a `FunctorFlowLuxExt.RelationInferenceLayer`.
+"""
+RelationInferenceLayer(args...; kwargs...) = _lux_ext().RelationInferenceLayer(args...; kwargs...)
+
+"""
+    predict_detach_source(logits, embedding_weights; position_bias=nothing)
+
+Project logits back into embedding space with stop-gradient semantics. Requires
+`using Lux` first.
+"""
+predict_detach_source(args...; kwargs...) = _lux_ext().predict_detach_source(args...; kwargs...)
+
+# Convenience model builders — each requires `using Lux` first.
+build_ket_lux_model(args...; kwargs...) = _lux_ext().build_ket_lux_model(args...; kwargs...)
+build_db_lux_model(args...; kwargs...) = _lux_ext().build_db_lux_model(args...; kwargs...)
+build_gt_lux_model(args...; kwargs...) = _lux_ext().build_gt_lux_model(args...; kwargs...)
+build_basket_rocket_lux_model(args...; kwargs...) = _lux_ext().build_basket_rocket_lux_model(args...; kwargs...)
+build_topocoend_lux_model(args...; kwargs...) = _lux_ext().build_topocoend_lux_model(args...; kwargs...)
+build_horn_lux_model(args...; kwargs...) = _lux_ext().build_horn_lux_model(args...; kwargs...)
+build_higher_horn_lux_model(args...; kwargs...) = _lux_ext().build_higher_horn_lux_model(args...; kwargs...)
+build_bisimulation_quotient_lux_model(args...; kwargs...) = _lux_ext().build_bisimulation_quotient_lux_model(args...; kwargs...)
+
+# Public shim names. Layer *types* (KETAttentionLayer, DiagramDenseLayer,
+# DiagramChainLayer, LuxDiagramModel) are NOT re-exported here; access them as
+# `FunctorFlowLuxExt.<TypeName>` after `using Lux`.
+export compile_to_lux, RelationInferenceLayer, predict_detach_source
 export build_ket_lux_model, build_db_lux_model, build_gt_lux_model, build_basket_rocket_lux_model
 export build_topocoend_lux_model, build_horn_lux_model, build_higher_horn_lux_model
 export build_bisimulation_quotient_lux_model
-export predict_detach_source
 
 end # module FunctorFlow
