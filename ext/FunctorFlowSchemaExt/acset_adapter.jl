@@ -35,6 +35,7 @@ end
 "Format a shape Tuple back into an FFObject.shape::String representation."
 function _format_shape(shape::Tuple)
     isempty(shape) && return nothing
+    length(shape) == 1 && return "($(shape[1]),)"
     return "(" * join(shape, ", ") * ")"
 end
 
