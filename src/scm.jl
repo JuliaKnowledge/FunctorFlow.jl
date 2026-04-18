@@ -520,34 +520,163 @@ function truth_value_named(ω::OmegaSCM, name::Union{Symbol, AbstractString})
 end
 
 """
-    build_scm_monomorphism(; name, constrained_scm, ambient_scm, metadata=Dict())
+    build_scm_monomorphism(; name, constrained_scm, ambient_scm,
+                           variable_map=Dict{Symbol,Symbol}(),
+                           strict=true,
+                           metadata=Dict())
 
-Build a placeholder monomorphism for a constrained SCM inclusion.
+Build the canonical monomorphism `constrained_scm ↪ ambient_scm` witnessing
+that `constrained_scm` is a sub-SCM of `ambient_scm` in the Pearl/Bareinboim
+sense.
+
+A sub-SCM `M' ⊆ M` is given by:
+  * a subset `V' ⊆ V` of endogenous variables,
+  * a subset `U' ⊆ U` of exogenous variables (typically those that are
+    parents of some `v ∈ V'`),
+  * structural functions `f'_v` for each `v ∈ V'` whose declared parents are
+    a subset (after the inclusion `ι`) of the parents of `f_{ι(v)}` in the
+    ambient SCM.
+
+The optional `variable_map` is a renaming from constrained-SCM variable
+symbols to ambient-SCM symbols. Variables not listed in `variable_map`
+default to identity (i.e. share names).
+
+When `strict=true` (default), structural functions are required to agree
+with the ambient mechanism on the inherited parent set; concretely the
+parent declarations of each `f'_v` (after rename) must be a subset of the
+parents of the ambient mechanism, and any declared `expression` must match
+the ambient one verbatim. When `strict=false`, mismatched expressions are
+permitted (e.g. for soft-intervention sub-SCMs); the resulting monomorphism
+carries `metadata[:soft_intervention] = Set{Symbol}` listing the
+constrained-SCM endogenous variables whose mechanism diverges.
+
+Returns an `SCMMonomorphism` carrying the inclusion map on variables and
+mechanisms.
 """
 function build_scm_monomorphism(; name,
                                  constrained_scm::SCMModelObject,
                                  ambient_scm::SCMModelObject,
+                                 variable_map::AbstractDict=Dict{Symbol, Symbol}(),
+                                 strict::Bool=true,
                                  metadata::Dict=Dict{Symbol, Any}())
     constrained_scm.category == ambient_scm.category ||
         throw(ArgumentError("SCM monomorphism objects must share a category"))
-    constrained_scm.exogenous_variables == ambient_scm.exogenous_variables ||
-        throw(ArgumentError("Current SCM monomorphism scaffold expects matching exogenous signatures"))
-    constrained_scm.endogenous_variables == ambient_scm.endogenous_variables ||
-        throw(ArgumentError("Current SCM monomorphism scaffold expects matching endogenous signatures"))
-    [fn.target_variable for fn in constrained_scm.local_functions] ==
-        [fn.target_variable for fn in ambient_scm.local_functions] ||
-        throw(ArgumentError("Current SCM monomorphism scaffold expects matching local-function targets"))
 
-    morphism = build_scm_morphism(
-        name=Symbol(name),
-        source_scm=constrained_scm,
-        target_scm=ambient_scm,
-        exogenous_variable_map=[(name, name) for name in constrained_scm.exogenous_variables],
-        endogenous_variable_map=[(name, name) for name in constrained_scm.endogenous_variables],
-        local_function_map=[(fn.name, fn.name) for fn in constrained_scm.local_functions],
-        metadata=merge(Dict{Symbol, Any}(:semantic_role => :scm_monomorphism), metadata),
+    rename_map = Dict{Symbol, Symbol}(Symbol(k) => Symbol(v) for (k, v) in variable_map)
+    rename(v::Symbol) = get(rename_map, v, v)
+
+    ambient_exo_set = Set(ambient_scm.exogenous_variables)
+    ambient_endo_set = Set(ambient_scm.endogenous_variables)
+
+    # 1. Variable inclusion checks
+    for u in constrained_scm.exogenous_variables
+        ru = rename(u)
+        ru in ambient_exo_set ||
+            throw(ArgumentError("Constrained exogenous variable :$u (renamed :$ru) " *
+                                "is not an exogenous variable of the ambient SCM"))
+    end
+    for v in constrained_scm.endogenous_variables
+        rv = rename(v)
+        rv in ambient_endo_set ||
+            throw(ArgumentError("Constrained endogenous variable :$v (renamed :$rv) " *
+                                "is not an endogenous variable of the ambient SCM"))
+    end
+
+    # Injectivity of variable inclusion (required for a monomorphism)
+    seen_exo = Set{Symbol}()
+    for u in constrained_scm.exogenous_variables
+        ru = rename(u)
+        ru in seen_exo &&
+            throw(ArgumentError("SCM monomorphism variable map is not injective on exogenous " *
+                                "variables: :$ru appears as the image of multiple sources"))
+        push!(seen_exo, ru)
+    end
+    seen_endo = Set{Symbol}()
+    for v in constrained_scm.endogenous_variables
+        rv = rename(v)
+        rv in seen_endo &&
+            throw(ArgumentError("SCM monomorphism variable map is not injective on endogenous " *
+                                "variables: :$rv appears as the image of multiple sources"))
+        push!(seen_endo, rv)
+    end
+
+    # 2. Per-mechanism inclusion check
+    soft_intervention = Set{Symbol}()
+    local_function_pairs = Tuple{Symbol, Symbol}[]
+    for child_fn in constrained_scm.local_functions
+        rv = rename(child_fn.target_variable)
+        ambient_fn = local_function_for_target(ambient_scm, rv)
+        push!(local_function_pairs, (child_fn.name, ambient_fn.name))
+
+        mapped_exo_parents = Set(rename(p) for p in child_fn.exogenous_parents)
+        ambient_exo_parents = Set(ambient_fn.exogenous_parents)
+        mapped_exo_parents ⊆ ambient_exo_parents ||
+            throw(ArgumentError("Constrained mechanism :$(child_fn.name) for :$(child_fn.target_variable) " *
+                                "declares exogenous parents $(collect(mapped_exo_parents)) (after rename) " *
+                                "that are not a subset of the ambient mechanism's parents " *
+                                "$(collect(ambient_exo_parents))"))
+
+        mapped_endo_parents = Set(rename(p) for p in child_fn.endogenous_parents)
+        ambient_endo_parents = Set(ambient_fn.endogenous_parents)
+        mapped_endo_parents ⊆ ambient_endo_parents ||
+            throw(ArgumentError("Constrained mechanism :$(child_fn.name) for :$(child_fn.target_variable) " *
+                                "declares endogenous parents $(collect(mapped_endo_parents)) (after rename) " *
+                                "that are not a subset of the ambient mechanism's parents " *
+                                "$(collect(ambient_endo_parents))"))
+
+        # Structural-function compatibility: opaque callables can't be checked,
+        # but if both sides declare an `expression`, require equality (or flag soft).
+        compatible = true
+        if child_fn.expression !== nothing && ambient_fn.expression !== nothing
+            compatible = child_fn.expression == ambient_fn.expression
+        end
+        # A child whose declared parent set is a *strict* subset of the ambient's
+        # is necessarily a different (restricted) mechanism, so flag it as a
+        # soft intervention even if the recorded expression strings happen to match.
+        if mapped_exo_parents != ambient_exo_parents || mapped_endo_parents != ambient_endo_parents
+            compatible = false
+        end
+        if !compatible
+            if strict
+                throw(ArgumentError("Structural function for :$(child_fn.target_variable) differs from " *
+                                    "the ambient mechanism for :$rv; pass strict=false to admit this as a " *
+                                    "soft-intervention sub-SCM"))
+            else
+                push!(soft_intervention, child_fn.target_variable)
+            end
+        end
+    end
+
+    # 3. Assemble the underlying ModelMorphism + SCMMorphism manually (we cannot
+    #    reuse `build_scm_morphism` because its validator enforces the
+    #    "source covers target" direction appropriate for refinement morphisms,
+    #    which is the opposite of what a sub-SCM inclusion satisfies).
+    exogenous_variable_map = [(u, rename(u)) for u in constrained_scm.exogenous_variables]
+    endogenous_variable_map = [(v, rename(v)) for v in constrained_scm.endogenous_variables]
+
+    base_metadata = Dict{Symbol, Any}(
+        :semantic_role => :scm_monomorphism,
+        :exogenous_variable_map => copy(exogenous_variable_map),
+        :endogenous_variable_map => copy(endogenous_variable_map),
+        :local_function_map => copy(local_function_pairs),
+        :variable_rename => copy(rename_map),
+        :sub_scm_inclusion => true,
     )
-    SCMMonomorphism(morphism, ambient_scm, Dict{Symbol, Any}(Symbol(k) => v for (k, v) in metadata))
+    if !isempty(soft_intervention)
+        base_metadata[:soft_intervention] = copy(soft_intervention)
+    end
+    user_metadata = Dict{Symbol, Any}(Symbol(k) => v for (k, v) in metadata)
+    base_morphism = ModelMorphism(Symbol(name), constrained_scm.name, ambient_scm.name;
+        metadata=merge(base_metadata, user_metadata))
+
+    scm_morphism = SCMMorphism(base_morphism, constrained_scm, ambient_scm,
+        copy(exogenous_variable_map), copy(endogenous_variable_map), copy(local_function_pairs))
+
+    mono_metadata = copy(user_metadata)
+    if !isempty(soft_intervention)
+        mono_metadata[:soft_intervention] = copy(soft_intervention)
+    end
+    SCMMonomorphism(scm_morphism, ambient_scm, mono_metadata)
 end
 
 """

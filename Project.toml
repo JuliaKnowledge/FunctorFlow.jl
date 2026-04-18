@@ -1,6 +1,6 @@
 name = "FunctorFlow"
 uuid = "e8daeac3-1699-4d22-bf61-9995042cc00d"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Simon Frost"]
 
 [deps]

@@ -414,8 +414,32 @@ execute_predictive_state_example(example::Union{Nothing, Dict{Symbol, Any}}=noth
 
 function summarize_predictive_state_example(example::Union{Nothing, Dict{Symbol, Any}}=nothing)
     example = example === nothing ? build_predictive_state_example() : example
+    companies = copy(example[:metadata][:companies])
+    company_summaries = Vector{Dict{String, Any}}()
+    for company in companies
+        # Local-state keys are tuples (company, year, context_id); filter on company.
+        company_state_keys = [k for k in keys(example[:local_predictive_states])
+                              if k isa Tuple && length(k) >= 1 && string(k[1]) == string(company)]
+        years = sort(unique(Int(k[2]) for k in company_state_keys))
+        n_local_states = length(company_state_keys)
+        n_trajectories = count(k -> k isa Tuple && length(k) >= 1 && string(k[1]) == string(company),
+                               keys(example[:predictive_state_trajectories]))
+        company_global_sections = [section for (k, section) in example[:global_sections]
+                                    if k isa Tuple && length(k) >= 1 && string(k[1]) == string(company)]
+        n_global_sections = length(company_global_sections)
+        all_glueable = all(get(section.metadata, :pairwise_glueable, false)
+                           for section in company_global_sections)
+        push!(company_summaries, Dict{String, Any}(
+            "company" => string(company),
+            "years" => years,
+            "n_local_states" => n_local_states,
+            "n_trajectories" => n_trajectories,
+            "n_global_sections" => n_global_sections,
+            "all_global_sections_glueable" => all_glueable,
+        ))
+    end
     Dict(
-        "companies" => copy(example[:metadata][:companies]),
+        "companies" => companies,
         "context_ids" => copy(example[:metadata][:context_ids]),
         "counts" => Dict(
             "contexts" => length(example[:contexts]),
@@ -435,15 +459,6 @@ function summarize_predictive_state_example(example::Union{Nothing, Dict{Symbol,
             )
             for ctx in values(example[:contexts])
         ],
-        "company_summaries" => [
-            Dict(
-                "company" => "acme",
-                "years" => [2023, 2024],
-                "n_local_states" => 4,
-                "n_trajectories" => 2,
-                "n_global_sections" => 2,
-                "all_global_sections_glueable" => all(get(section.metadata, :pairwise_glueable, false) for section in values(example[:global_sections])),
-            )
-        ],
+        "company_summaries" => company_summaries,
     )
 end

@@ -300,6 +300,65 @@ The `:normalize` morphism uses the bound Julia function (no parameters), while
 `:encode` and `:decode` use learnable `DiagramDenseLayer` instances. Gradients
 flow through the symbolic normalization via standard automatic differentiation.
 
+## Training: Adam steps on a Lux-compiled diagram
+
+The forward passes above are interesting but a neural backend's headline
+property is **trainability**. Let's run a real training loop on a DB square,
+where the diagram's obstruction loss is the natural objective: the comparator
+penalizes the gap between the two parallel paths `:f` and `:g`.
+
+```{julia}
+using Optimisers
+using Zygote: gradient
+
+const _LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
+
+D_train = db_square(; name=:TrainableDB)
+
+train_model = compile_to_lux(D_train;
+    morphism_layers=Dict(
+        :f => _LuxExt.DiagramDenseLayer(4, 4),
+        :g => _LuxExt.DiagramDenseLayer(4, 4),
+    )
+)
+
+ps_train, st_train = Lux.setup(rng, train_model)
+
+# A fixed mini-batch — training drives the obstruction loss between the
+# two paths to zero on this batch.
+batch = randn(rng, Float32, 4, 8)
+
+function db_obstruction_loss(p)
+    result, _ = train_model(Dict(:State => batch), p, st_train)
+    sum(result[:losses])
+end
+
+initial_loss = db_obstruction_loss(ps_train)
+opt_state = Optimisers.setup(Optimisers.Adam(1f-2), ps_train)
+
+losses = Float32[initial_loss]
+for step in 1:100
+    gs = gradient(db_obstruction_loss, ps_train)[1]
+    opt_state, ps_train = Optimisers.update(opt_state, ps_train, gs)
+    if step % 10 == 0
+        push!(losses, db_obstruction_loss(ps_train))
+        println("  step $(lpad(step, 3)) — loss = $(round(losses[end]; sigdigits=4))")
+    end
+end
+
+final_loss = db_obstruction_loss(ps_train)
+println("\nDB square obstruction loss: $(round(initial_loss; sigdigits=4)) → $(round(final_loss; sigdigits=4))")
+println("Reduction factor: $(round(final_loss / initial_loss; sigdigits=3))")
+
+@assert isfinite(final_loss)
+@assert final_loss < initial_loss "Training did not reduce loss"
+```
+
+Adam steps drive the parallel paths into agreement: the obstruction loss
+shrinks monotonically, demonstrating that gradients flow correctly through
+both the morphism layers and the comparator. This closes audit P1-FF-7 by
+showing the Lux backend is end-to-end trainable, not just forward-evaluable.
+
 ## Related Docs
 
 - [04 Block Library](../04-block-library/block-library.html) for the reusable

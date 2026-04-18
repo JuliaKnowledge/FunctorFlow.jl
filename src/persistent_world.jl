@@ -495,14 +495,16 @@ execute_temporal_repair_example(example::Union{Nothing, Dict{Symbol, Any}}=nothi
 function summarize_temporal_repair_example(example::Union{Nothing, Dict{Symbol, Any}}=nothing)
     example = example === nothing ? build_temporal_repair_example() : example
     bridge = example[:bridge]
+    raw_traj = example[:raw_trajectory]
+    repaired_traj = example[:repaired_trajectory]
     Dict(
         "counts" => Dict(
             "raw_states" => length(example[:raw_states]),
             "repaired_states" => length(example[:repaired_states]),
-            "raw_trajectories" => 1,
-            "repaired_trajectories" => 1,
-            "temporal_blocks" => 1,
-            "temporal_repairs" => 1,
+            "raw_trajectories" => example[:raw_trajectory] === nothing ? 0 : 1,
+            "repaired_trajectories" => example[:repaired_trajectory] === nothing ? 0 : 1,
+            "temporal_blocks" => example[:temporal_block] === nothing ? 0 : 1,
+            "temporal_repairs" => example[:temporal_repair] === nothing ? 0 : 1,
         ),
         "bridge" => Dict(
             "name" => String(bridge.name),
@@ -518,10 +520,10 @@ function summarize_temporal_repair_example(example::Union{Nothing, Dict{Symbol, 
         ),
         "company_summaries" => [
             Dict(
-                "company" => "acme",
-                "years" => copy(example[:raw_trajectory].years),
-                "raw_trajectory" => String(example[:raw_trajectory].name),
-                "repaired_trajectory" => String(example[:repaired_trajectory].name),
+                "company" => raw_traj.company,
+                "years" => copy(raw_traj.years),
+                "raw_trajectory" => String(raw_traj.name),
+                "repaired_trajectory" => String(repaired_traj.name),
                 "temporal_block" => String(example[:temporal_block].name),
                 "temporal_repair" => Dict(
                     "name" => String(example[:temporal_repair].name),

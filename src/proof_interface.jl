@@ -178,19 +178,124 @@ function render_construction_certificate(uc::PushoutResult; module_name::Union{N
 end
 
 function render_construction_certificate(uc::ProductResult; module_name::Union{Nothing, String}=nothing)
-    render_lean_certificate(uc.product_diagram; module_name=module_name)
+    mod = module_name === nothing ? _sanitize_module_name(String(uc.name)) : module_name
+    base_cert = render_lean_certificate(uc.product_diagram; module_name=mod)
+
+    construction_lines = String[]
+    push!(construction_lines, "")
+    push!(construction_lines, "-- Product construction declaration")
+    push!(construction_lines, "def productDecl : ConstructionDecl := {")
+    push!(construction_lines, "  kind := ConstructionKind.product,")
+    push!(construction_lines, "  diagram := exportedDiagram,")
+    push!(construction_lines, "  projections := $(lean_list([lean_string(String(p)) for p in uc.projections]))")
+    push!(construction_lines, "}")
+    push!(construction_lines, "")
+    push!(construction_lines, "-- Universal property: any cone factors uniquely through the product")
+    push!(construction_lines, "theorem product_universal : productDecl.UniversalCone := by")
+    push!(construction_lines, "  exact ConstructionDecl.universal_of_projections exportedArtifact")
+    push!(construction_lines, "")
+
+    lines = split(base_cert, "\n")
+    insert_idx = findlast(l -> startswith(l, "end "), lines)
+    if insert_idx !== nothing
+        result_lines = vcat(lines[1:insert_idx-1], construction_lines, [lines[insert_idx]])
+        join(result_lines, "\n")
+    else
+        base_cert * "\n" * join(construction_lines, "\n")
+    end
 end
 
 function render_construction_certificate(uc::CoproductResult; module_name::Union{Nothing, String}=nothing)
-    render_lean_certificate(uc.coproduct_diagram; module_name=module_name)
+    mod = module_name === nothing ? _sanitize_module_name(String(uc.name)) : module_name
+    base_cert = render_lean_certificate(uc.coproduct_diagram; module_name=mod)
+
+    construction_lines = String[]
+    push!(construction_lines, "")
+    push!(construction_lines, "-- Coproduct construction declaration")
+    push!(construction_lines, "def coproductDecl : ConstructionDecl := {")
+    push!(construction_lines, "  kind := ConstructionKind.coproduct,")
+    push!(construction_lines, "  diagram := exportedDiagram,")
+    push!(construction_lines, "  injections := $(lean_list([lean_string(String(i)) for i in uc.injections]))")
+    push!(construction_lines, "}")
+    push!(construction_lines, "")
+    push!(construction_lines, "-- Universal property: any cocone factors uniquely through the coproduct")
+    push!(construction_lines, "theorem coproduct_universal : coproductDecl.UniversalCocone := by")
+    push!(construction_lines, "  exact ConstructionDecl.universal_of_injections exportedArtifact")
+    push!(construction_lines, "")
+
+    lines = split(base_cert, "\n")
+    insert_idx = findlast(l -> startswith(l, "end "), lines)
+    if insert_idx !== nothing
+        result_lines = vcat(lines[1:insert_idx-1], construction_lines, [lines[insert_idx]])
+        join(result_lines, "\n")
+    else
+        base_cert * "\n" * join(construction_lines, "\n")
+    end
 end
 
 function render_construction_certificate(uc::EqualizerResult; module_name::Union{Nothing, String}=nothing)
-    render_lean_certificate(uc.equalizer_diagram; module_name=module_name)
+    mod = module_name === nothing ? _sanitize_module_name(String(uc.name)) : module_name
+    base_cert = render_lean_certificate(uc.equalizer_diagram; module_name=mod)
+
+    f_sym = String(get(uc.metadata, :f, :f))
+    g_sym = String(get(uc.metadata, :g, :g))
+
+    construction_lines = String[]
+    push!(construction_lines, "")
+    push!(construction_lines, "-- Equalizer construction declaration")
+    push!(construction_lines, "def equalizerDecl : ConstructionDecl := {")
+    push!(construction_lines, "  kind := ConstructionKind.equalizer,")
+    push!(construction_lines, "  diagram := exportedDiagram,")
+    push!(construction_lines, "  equalizerMap := $(lean_string(String(uc.equalizer_map))),")
+    push!(construction_lines, "  parallelPair := ($(lean_string(f_sym)), $(lean_string(g_sym)))")
+    push!(construction_lines, "}")
+    push!(construction_lines, "")
+    push!(construction_lines, "-- Equalizer agreement theorem: f ∘ e = g ∘ e on the equalizing subobject")
+    push!(construction_lines, "theorem equalizer_agrees : equalizerDecl.ParallelAgreement := by")
+    push!(construction_lines, "  exact ConstructionDecl.agreement_of_loss exportedArtifact")
+    push!(construction_lines, "")
+
+    lines = split(base_cert, "\n")
+    insert_idx = findlast(l -> startswith(l, "end "), lines)
+    if insert_idx !== nothing
+        result_lines = vcat(lines[1:insert_idx-1], construction_lines, [lines[insert_idx]])
+        join(result_lines, "\n")
+    else
+        base_cert * "\n" * join(construction_lines, "\n")
+    end
 end
 
 function render_construction_certificate(uc::CoequalizerResult; module_name::Union{Nothing, String}=nothing)
-    render_lean_certificate(uc.coequalizer_diagram; module_name=module_name)
+    mod = module_name === nothing ? _sanitize_module_name(String(uc.name)) : module_name
+    base_cert = render_lean_certificate(uc.coequalizer_diagram; module_name=mod)
+
+    f_sym = String(get(uc.metadata, :f, :f))
+    g_sym = String(get(uc.metadata, :g, :g))
+
+    construction_lines = String[]
+    push!(construction_lines, "")
+    push!(construction_lines, "-- Coequalizer construction declaration")
+    push!(construction_lines, "def coequalizerDecl : ConstructionDecl := {")
+    push!(construction_lines, "  kind := ConstructionKind.coequalizer,")
+    push!(construction_lines, "  diagram := exportedDiagram,")
+    push!(construction_lines, "  coequalizerMap := $(lean_string(String(uc.coequalizer_map))),")
+    push!(construction_lines, "  quotientObject := $(lean_string(String(uc.quotient_object))),")
+    push!(construction_lines, "  parallelPair := ($(lean_string(f_sym)), $(lean_string(g_sym)))")
+    push!(construction_lines, "}")
+    push!(construction_lines, "")
+    push!(construction_lines, "-- Quotient theorem: q ∘ f = q ∘ g on the coequalizing quotient")
+    push!(construction_lines, "theorem coequalizer_quotients : coequalizerDecl.QuotientAgreement := by")
+    push!(construction_lines, "  exact ConstructionDecl.quotient_of_loss exportedArtifact")
+    push!(construction_lines, "")
+
+    lines = split(base_cert, "\n")
+    insert_idx = findlast(l -> startswith(l, "end "), lines)
+    if insert_idx !== nothing
+        result_lines = vcat(lines[1:insert_idx-1], construction_lines, [lines[insert_idx]])
+        join(result_lines, "\n")
+    else
+        base_cert * "\n" * join(construction_lines, "\n")
+    end
 end
 
 """

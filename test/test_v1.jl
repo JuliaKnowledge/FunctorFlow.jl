@@ -330,11 +330,21 @@ summary = {
 print(json.dumps(summary, sort_keys=True))
 """)
         @test summary == py_summary
-    end
 
-    # ==================================================================
-    # B3. Persistent-world / temporal semantics
-    # ==================================================================
+        # Audit P1-FF-6 — summarize_predictive_state_example must derive
+        # cardinalities from the example, not hard-code them. Verify each
+        # numeric field equals the corresponding length on the input dict.
+        cs = summary["company_summaries"][1]
+        @test cs["company"] == first(example[:metadata][:companies])
+        @test cs["n_local_states"] == count(k -> k isa Tuple && string(k[1]) == "acme",
+                                            keys(example[:local_predictive_states]))
+        @test cs["n_trajectories"] == count(k -> k isa Tuple && string(k[1]) == "acme",
+                                            keys(example[:predictive_state_trajectories]))
+        @test cs["n_global_sections"] == count(k -> k isa Tuple && string(k[1]) == "acme",
+                                               keys(example[:global_sections]))
+        @test sort(cs["years"]) == sort(unique(Int(k[2]) for k in keys(example[:local_predictive_states])
+                                               if string(k[1]) == "acme"))
+    end
     @testset "Temporal Semantics" begin
         example = build_temporal_repair_example()
         plan = build_temporal_repair_compilation_plan(example)
@@ -384,6 +394,14 @@ summary = {
 print(json.dumps(summary, sort_keys=True))
 """)
         @test summary == py_summary
+
+        # Audit P1-FF-6 — summarize_temporal_repair_example must derive
+        # company / years from the actual trajectory in the example dict.
+        cs = summary["company_summaries"][1]
+        @test cs["company"] == example[:raw_trajectory].company
+        @test cs["years"] == example[:raw_trajectory].years
+        @test summary["counts"]["raw_states"] == length(example[:raw_states])
+        @test summary["counts"]["repaired_states"] == length(example[:repaired_states])
     end
 
     # ==================================================================
@@ -940,6 +958,25 @@ print(json.dumps(summary, sort_keys=True))
             @test not_p.characteristic_map(5) == false
             @test not_p.characteristic_map(-1) == true
         end
+
+        @testset "internal logic — strict error on missing characteristic_map" begin
+            # Audit P1-FF-5 — operations now throw ArgumentError instead of
+            # silently returning a degenerate predicate with characteristic_map=nothing.
+            omega = SubobjectClassifier(:Omega)
+            defined  = InternalPredicate(:defined,  omega; characteristic_map=x -> x > 0)
+            undef    = InternalPredicate(:undef,    omega)  # no characteristic_map
+
+            @test_throws ArgumentError internal_and(defined, undef)
+            @test_throws ArgumentError internal_and(undef, defined)
+            @test_throws ArgumentError internal_or(defined, undef)
+            @test_throws ArgumentError internal_or(undef, defined)
+            @test_throws ArgumentError internal_not(undef)
+
+            # Success path still works.
+            both = internal_and(defined, defined)
+            @test both.characteristic_map !== nothing
+            @test both.characteristic_map(3) == true
+        end
     end
 
     # ==================================================================
@@ -966,6 +1003,9 @@ print(json.dumps(summary, sort_keys=True))
             cert = render_construction_certificate(prod)
             @test cert isa String
             @test occursin("product", lowercase(cert))
+            @test occursin("productDecl", cert)
+            @test occursin("ConstructionKind.product", cert)
+            @test occursin("ConstructionDecl", cert)
         end
 
         @testset "coproduct certificate" begin
@@ -973,6 +1013,9 @@ print(json.dumps(summary, sort_keys=True))
             cert = render_construction_certificate(coprod)
             @test cert isa String
             @test occursin("coproduct", lowercase(cert))
+            @test occursin("coproductDecl", cert)
+            @test occursin("ConstructionKind.coproduct", cert)
+            @test occursin("ConstructionDecl", cert)
         end
 
         @testset "equalizer certificate" begin
@@ -981,6 +1024,10 @@ print(json.dumps(summary, sort_keys=True))
             cert = render_construction_certificate(eq)
             @test cert isa String
             @test occursin("equalizer", lowercase(cert))
+            @test occursin("equalizerDecl", cert)
+            @test occursin("ConstructionKind.equalizer", cert)
+            @test occursin("ConstructionDecl", cert)
+            @test occursin("parallelPair", cert)
         end
 
         @testset "coequalizer certificate" begin
@@ -993,6 +1040,10 @@ print(json.dumps(summary, sort_keys=True))
             cert = render_construction_certificate(coeq)
             @test cert isa String
             @test occursin("coequalizer", lowercase(cert))
+            @test occursin("coequalizerDecl", cert)
+            @test occursin("ConstructionKind.coequalizer", cert)
+            @test occursin("ConstructionDecl", cert)
+            @test occursin("quotientObject", cert)
         end
 
         @testset "lean certificate roundtrip" begin

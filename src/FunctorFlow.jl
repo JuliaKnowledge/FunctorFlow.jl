@@ -84,6 +84,7 @@ include("bisimulation_examples.jl")
 include("catlab_interop.jl")
 include("universal.jl")
 include("causal.jl")
+include("identifiability.jl")
 include("topos.jl")
 include("scm.jl")
 include("psr.jl")
@@ -213,6 +214,11 @@ export verify, compile_construction, universal_morphism
 # v1: Causal semantics
 export CausalContext, CausalDiagram, build_causal_diagram, causal_transport
 export interventional_expectation, is_identifiable
+# Shpitser-Pearl identifiability
+export CausalDAG, identify_effect, IdentifiabilityResult, Hedge
+export IDExpression, Joint, CondP, Marginal, Product, QFactor, pretty_print
+export is_backdoor_admissible
+export ancestors_inclusive, c_components, subgraph, remove_incoming, topological_order
 
 # v1: Topos foundations
 export SubobjectClassifier, SheafSection, SheafCoherenceCheck

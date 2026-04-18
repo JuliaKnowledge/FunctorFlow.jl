@@ -409,16 +409,23 @@ weakdeps = ["StaticArrays"]
     ForwardDiffStaticArraysExt = "StaticArrays"
 
 [[deps.FunctorFlow]]
-deps = ["Catlab", "ChainRulesCore", "JSON3", "Lux", "LuxCore", "OrderedCollections", "Random"]
+deps = ["Catlab", "ChainRulesCore", "JSON3", "OrderedCollections", "Random"]
 path = ".."
 uuid = "e8daeac3-1699-4d22-bf61-9995042cc00d"
-version = "0.1.0"
+version = "0.3.2"
 
     [deps.FunctorFlow.extensions]
+    FunctorFlowAgentFrameworkExt = "AgentFramework"
+    FunctorFlowLuxExt = ["Lux", "LuxCore"]
     FunctorFlowMakieExt = "Makie"
-    FunctorFlowMetalExt = ["Metal"]
+    FunctorFlowMetalExt = ["Metal", "Lux", "LuxCore"]
+    FunctorFlowSchemaExt = "CategoricalDiagramSchema"
 
     [deps.FunctorFlow.weakdeps]
+    AgentFramework = "8d84e483-4b84-4e3c-9ca2-3749d621083b"
+    CategoricalDiagramSchema = "06663149-d6bb-42b5-8a63-d2553351277c"
+    Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
+    LuxCore = "bb33d45b-7691-41d6-9220-0943567d0623"
     Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
     Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
 

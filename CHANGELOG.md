@@ -5,6 +5,66 @@ All notable changes to FunctorFlow.jl are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] — 2026-04-17
+
+### Added
+- **Construction certificates for `Product` / `Coproduct` / `Equalizer` /
+  `Coequalizer`**: `render_construction_certificate` now emits full
+  `ConstructionDecl`-style stanzas (kind, theorems, witness terms) instead
+  of stub strings. Closes audit P1-FF-4.
+- **Strict topos internal logic**: `internal_and`, `internal_or`, and
+  `internal_not` now raise `ArgumentError` when an operand is missing its
+  `characteristic_map`, instead of silently returning `nothing`. Closes
+  audit P1-FF-5.
+- **Derived summarizer cardinalities**: `summarize_predictive_state_example`
+  and `summarize_temporal_repair_example` now derive their per-company /
+  per-trajectory counts (`companies`, `years`, `n_local_states`,
+  `n_trajectories`, `n_global_sections`) from the example data instead of
+  hard-coding constants. Output is bit-identical to the Python parity
+  reference. Closes audit P1-FF-6.
+- **Training loops in three vignettes**: vignette 07 (DB-square obstruction
+  loss, 100 Adam steps), vignette 14 (toy JEPA MSE surrogate, 100 steps),
+  and vignette 17 (tiny C-JEPA predictor, 150 steps) now contain explicit
+  Adam training cells with initial/final-loss prints and
+  `@assert final_loss < initial_loss`. Closes audit P1-FF-7.
+
+- **SCM monomorphism (`build_scm_monomorphism`)**: rewritten from a
+  placeholder into the canonical sub-SCM inclusion `M' ↪ M` à la
+  Pearl/Bareinboim, with optional variable renaming and a `strict` flag
+  (`strict=false` admits soft-intervention sub-SCMs and tags them via
+  `metadata[:soft_intervention]`). Closes audit P1-FF-1.
+
+- `src/identifiability.jl`: complete Shpitser-Pearl ID algorithm
+  (Algorithm 1 of Shpitser & Pearl, JMLR 2008) for deciding whether a
+  causal effect `P(y | do(x))` is identifiable from observational data.
+  - New `CausalDAG` type encoding an Acyclic Directed Mixed Graph (ADMG)
+    with directed edges and bidirected (latent-confounder) edges.
+  - New `IdentifiabilityResult` struct carrying `identifiable::Bool`,
+    a symbolic `expression`, optional `Hedge` witness, `failure_reason`,
+    and `algorithm` tag.
+  - `IDExpression` AST: `Joint`, `CondP`, `Marginal`, `Product`,
+    `QFactor` with a `pretty_print` walker.
+  - `identify_effect(G, y, x)` runs the algorithm; returns the symbolic
+    post-intervention distribution when identifiable, or a hedge
+    `(F, F', R)` when not. The algorithm is sound and complete.
+  - `is_identifiable(G::CausalDAG, y, x)` is a thin wrapper.
+  - Helpers: `ancestors_inclusive`, `c_components`, `subgraph`,
+    `remove_incoming`, `topological_order`.
+  - `is_backdoor_admissible(G, x, y, Z)` for fast back-door checks.
+- `test/test_identifiability.jl`: 109 assertions covering
+  back-door admissible, front-door (`X → M → Y` with `X ↔ Y`),
+  bow arc (non-identifiable hedge), W-graph (non-identifiable hedge),
+  Tian's three-observed/one-hidden example, Pearl's napkin graph,
+  sequential do (g-formula), edge cases, and result printing.
+- Closes audit P1-FF-2.
+
+### Notes
+- Existing `is_identifiable(::CausalDiagram, ::Symbol)` API on top of the
+  high-level `CausalDiagram` type is unchanged (still returns the
+  `(identifiable=, rule=, reasoning=)` NamedTuple) for backward compat.
+  The new `identify_effect` / `is_identifiable(::CausalDAG, ...)` methods
+  expose the complete algorithm to users who supply an explicit DAG.
+
 ## [0.3.1] — 2026-04-17
 
 ### Added

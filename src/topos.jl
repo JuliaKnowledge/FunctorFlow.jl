@@ -220,11 +220,13 @@ Conjunction of two internal predicates in the topos.
 function internal_and(p1::InternalPredicate, p2::InternalPredicate;
                       classifier::SubobjectClassifier=p1.classifier,
                       name::Union{Symbol, AbstractString}=Symbol(p1.name, :_and_, p2.name))
-    combined_map = if p1.characteristic_map !== nothing && p2.characteristic_map !== nothing
-        x -> p1.characteristic_map(x) && p2.characteristic_map(x)
-    else
-        nothing
+    if p1.characteristic_map === nothing
+        throw(ArgumentError("internal_and: operand $(p1.name) has no characteristic_map; build via classify_subobject first"))
     end
+    if p2.characteristic_map === nothing
+        throw(ArgumentError("internal_and: operand $(p2.name) has no characteristic_map; build via classify_subobject first"))
+    end
+    combined_map = x -> p1.characteristic_map(x) && p2.characteristic_map(x)
     InternalPredicate(name, classifier; characteristic_map=combined_map,
                       metadata=Dict{Symbol, Any}(:op => :and, :left => p1.name, :right => p2.name))
 end
@@ -238,11 +240,13 @@ Disjunction of two internal predicates in the topos.
 function internal_or(p1::InternalPredicate, p2::InternalPredicate;
                      classifier::SubobjectClassifier=p1.classifier,
                      name::Union{Symbol, AbstractString}=Symbol(p1.name, :_or_, p2.name))
-    combined_map = if p1.characteristic_map !== nothing && p2.characteristic_map !== nothing
-        x -> p1.characteristic_map(x) || p2.characteristic_map(x)
-    else
-        nothing
+    if p1.characteristic_map === nothing
+        throw(ArgumentError("internal_or: operand $(p1.name) has no characteristic_map; build via classify_subobject first"))
     end
+    if p2.characteristic_map === nothing
+        throw(ArgumentError("internal_or: operand $(p2.name) has no characteristic_map; build via classify_subobject first"))
+    end
+    combined_map = x -> p1.characteristic_map(x) || p2.characteristic_map(x)
     InternalPredicate(name, classifier; characteristic_map=combined_map,
                       metadata=Dict{Symbol, Any}(:op => :or, :left => p1.name, :right => p2.name))
 end
@@ -255,7 +259,10 @@ Negation of an internal predicate in the topos.
 function internal_not(p::InternalPredicate;
                       classifier::SubobjectClassifier=p.classifier,
                       name::Union{Symbol, AbstractString}=Symbol(:not_, p.name))
-    negated_map = p.characteristic_map !== nothing ? (x -> !p.characteristic_map(x)) : nothing
+    if p.characteristic_map === nothing
+        throw(ArgumentError("internal_not: operand $(p.name) has no characteristic_map; build via classify_subobject first"))
+    end
+    negated_map = x -> !p.characteristic_map(x)
     InternalPredicate(name, classifier; characteristic_map=negated_map,
                       metadata=Dict{Symbol, Any}(:op => :not, :operand => p.name))
 end
