@@ -5,6 +5,64 @@ All notable changes to FunctorFlow.jl are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] — 2026-05-09
+
+### Changed (BREAKING)
+- **`Catlab` moved from `[deps]` to `[weakdeps]`** to resolve the
+  transitive dependency conflict (Catlab → Compose 0.9 → DataStructures
+  0.18 vs `TinyGrad.jl` → Symbolics → MultivariatePolynomials → older
+  DataStructures) that prevented `using FunctorFlow, TinyGrad` in the
+  same Julia session in v0.4.0.
+- **Three Catlab-using functions** (`to_presentation`, `to_symbolic`,
+  `define_theory`) moved into a new **`FunctorFlowCatlabExt`** extension
+  (`ext/FunctorFlowCatlabExt/`). They remain exported as stub generic
+  functions; the extension provides their methods. Calling them without
+  `using Catlab` now raises a `MethodError`. After `using Catlab` they
+  behave identically to v0.4.0.
+- The Catlab-using file `src/symbolic_catlab.jl` moved into the new
+  extension. The file `src/catlab_interop.jl` was renamed to
+  `src/categorical_model.jl` (keeps `CategoricalModelObject`,
+  `ModelMorphism`, `NaturalTransformation`, `verify_naturality`,
+  `is_natural`, `check_laws`, `register_model!`, `get_model`,
+  `MODEL_REGISTRY`, `to_diagram`, `diagram_to_acset`, `acset_to_diagram`,
+  and the `compose`/`apply` methods on `ModelMorphism` — all pure Julia,
+  no Catlab dependency).
+
+### Removed (BREAKING)
+- Re-exports of `nparts`, `subpart`, `add_part!`, and `incident` from
+  Catlab.CategoricalAlgebra. Users who relied on these names being
+  available via `using FunctorFlow` should now `using Catlab` or
+  `using Catlab.CategoricalAlgebra` directly.
+
+### Preserved
+- `CategoricalModelObject`, `ModelMorphism`, `NaturalTransformation`
+  remain exported from `FunctorFlow` itself (they have no Catlab
+  dependency in their definition). Code that pattern-matches on these
+  types continues to compile and run with no changes.
+- `to_acset`/`from_acset` (provided by `FunctorFlowSchemaExt` when
+  `CategoricalDiagramSchema` is loaded) — unchanged.
+- The full v0.4.0 test suite passes: 877 pass, 1 broken, 0 failed,
+  identical to the v0.4.0 baseline. Tests gated on Catlab availability
+  are wrapped in `HAS_CATLAB`/`HAS_CDS` skip-guards so the suite runs
+  cleanly in environments without Catlab.
+
+### Verified
+- `using FunctorFlow, TinyGrad` now succeeds in the same Julia session
+  (was previously blocked by the Compose↔Symbolics conflict via Catlab).
+  A small `compile_to_tinygrad` round-trip pipeline executes correctly.
+- The deeper conflict introduced by `CategoricalDiagramSchema → Catlab`
+  vs `TinyGrad → Symbolics` is **not** resolved by this release: any
+  environment that pulls in both CDS (or Catlab directly) and TinyGrad
+  still fails to resolve. Resolving that requires CDS to also weak-dep
+  Catlab — out of scope here.
+
+### Migration
+Add `import Catlab` (or `using Catlab`) to any file that calls
+`to_presentation`, `to_symbolic`, `define_theory`, or that uses
+the formerly re-exported `nparts`, `subpart`, `add_part!`, `incident`.
+The two affected vignettes (`01-getting-started`, `02-dsl-macros`) have
+been updated accordingly.
+
 ## [0.4.0] — 2026-04-18
 
 ### Added

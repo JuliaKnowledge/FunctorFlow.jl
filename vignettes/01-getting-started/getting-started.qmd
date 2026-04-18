@@ -29,6 +29,8 @@ The API uses mathematical unicode notation: **Σ** for left Kan extensions (univ
 ```{julia}
 #| output: false
 using FunctorFlow
+using Catlab  # required as of FunctorFlow v0.5.0 for `to_presentation`/`to_symbolic`/`define_theory`/`nparts`/`subpart`
+using Catlab.CategoricalAlgebra: nparts, subpart
 ```
 
 ## Core Concepts
@@ -235,7 +237,7 @@ println("ACSet Kan extensions: ", nparts(acs, :Kan))
 ```{julia}
 # Convert to a Catlab Presentation for symbolic reasoning
 pres = to_presentation(D4)
-println("Generators: ", length(FunctorFlow.Catlab.generators(pres)))
+println("Generators: ", length(Catlab.generators(pres)))
 ```
 
 ## Next Steps

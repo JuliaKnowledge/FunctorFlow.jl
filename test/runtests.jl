@@ -1,8 +1,13 @@
 using Test
 using FunctorFlow
-import Catlab
 
+const HAS_CATLAB = Base.find_package("Catlab") !== nothing
 const HAS_CDS = Base.find_package("CategoricalDiagramSchema") !== nothing
+
+if HAS_CATLAB
+    @eval import Catlab
+    @eval using Catlab.CategoricalAlgebra: nparts, subpart, incident, add_part!
+end
 if HAS_CDS
     @eval using CategoricalDiagramSchema
 end
@@ -552,8 +557,8 @@ end
     end
 
     @testset "ACSet Schema" begin
-        if !HAS_CDS
-            @info "Skipping ACSet Schema tests: CategoricalDiagramSchema not available"
+        if !HAS_CDS || !HAS_CATLAB
+            @info "Skipping ACSet Schema tests: CategoricalDiagramSchema and/or Catlab not available"
         else
         # to_acset
         D = ket_block()

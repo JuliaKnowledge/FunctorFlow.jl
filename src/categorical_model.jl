@@ -1,13 +1,15 @@
 # ============================================================================
-# catlab_interop.jl — Catlab.jl integration for v1 semantic kernel
+# categorical_model.jl — first-class categorical model objects (v1 semantic kernel)
 # ============================================================================
-
-# This module provides integration with the AlgebraicJulia ecosystem when
-# Catlab.jl is available. It enables:
-# - Representing FunctorFlow diagrams as ACSets
-# - First-class categorical model objects with ambient categories
-# - Functors between model categories
-# - Natural transformations between architectural choices
+#
+# These types and functions have NO dependency on Catlab. They define
+# CategoricalModelObject, ModelMorphism, and NaturalTransformation, plus
+# their pure-Julia operations (compose, apply, is_natural, check_laws,
+# verify_naturality, the model registry, and ACSet aliases).
+#
+# Catlab-specific functions (`to_presentation`, `to_symbolic`, `define_theory`)
+# live in `ext/FunctorFlowCatlabExt/` and are loaded automatically when
+# `using Catlab` is active alongside FunctorFlow.
 
 """
     CategoricalModelObject(name; ambient_category, interface_ports, boundary_maps, semantic_laws)
@@ -294,8 +296,8 @@ Retrieve a registered model object by name.
 get_model(name::Symbol) = MODEL_REGISTRY[name]
 
 # ---------------------------------------------------------------------------
-# Catlab integration — ACSet conversion, symbolic representation, theories
-# (Catlab is a hard dependency; this code was formerly in the extension)
+# ACSet conversion aliases (delegate to to_acset / from_acset, whose methods
+# are provided by FunctorFlowSchemaExt when CategoricalDiagramSchema is loaded)
 # ---------------------------------------------------------------------------
 
 """
@@ -315,52 +317,10 @@ Alias for `from_acset(acs; name)`.
 acset_to_diagram(acs; name::Union{Symbol,AbstractString}=:Imported) = from_acset(acs; name)
 
 """
-    define_theory(objects::AbstractVector; name=:FunctorFlowTheory) -> Presentation
-
-Build a Catlab Presentation (free category) from CategoricalModelObject instances.
-Each model object → generator of sort Ob, each boundary map → generator of sort Hom.
-"""
-function define_theory(objects::AbstractVector;
-                       name::Union{Symbol,AbstractString}=:FunctorFlowTheory)
-    pres = Catlab.Theories.Presentation(Catlab.Theories.FreeCategory)
-    ob_gens = Dict{Symbol, Any}()
-
-    for obj in objects
-        gen = Catlab.Theories.Ob(Catlab.Theories.FreeCategory, obj.name)
-        Catlab.Theories.add_generator!(pres, gen)
-        ob_gens[obj.name] = gen
-    end
-
-    hom_names = Set{Symbol}()
-    for obj in objects
-        for bm in obj.boundary_maps
-            if !haskey(ob_gens, bm.source)
-                s = Catlab.Theories.Ob(Catlab.Theories.FreeCategory, bm.source)
-                Catlab.Theories.add_generator!(pres, s)
-                ob_gens[bm.source] = s
-            end
-            if !haskey(ob_gens, bm.target)
-                t = Catlab.Theories.Ob(Catlab.Theories.FreeCategory, bm.target)
-                Catlab.Theories.add_generator!(pres, t)
-                ob_gens[bm.target] = t
-            end
-            if bm.name ∉ hom_names
-                s = ob_gens[bm.source]
-                t = ob_gens[bm.target]
-                Catlab.Theories.add_generator!(pres, Catlab.Theories.Hom(bm.name, s, t))
-                push!(hom_names, bm.name)
-            end
-        end
-    end
-
-    pres
-end
-
-"""
     verify_naturality(α::NaturalTransformation, objects::AbstractVector; morphisms=Dict()) -> NamedTuple
 
-Check the naturality condition using Catlab's symbolic algebra.
-Returns `(passed, checks, transformation)`.
+Check the naturality condition by verifying that components are present
+for each object. Returns `(passed, checks, transformation)`.
 """
 function verify_naturality(α::NaturalTransformation,
                            objects::AbstractVector;

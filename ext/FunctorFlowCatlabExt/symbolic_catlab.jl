@@ -2,14 +2,13 @@
 # symbolic_catlab.jl — Symbolic Catlab (FreeCategory) projection of a Diagram
 # ============================================================================
 #
-# This file provides a pure-Catlab symbolic view of a FunctorFlow Diagram.
-# It is independent of the ACSet schema (which now lives in
-# CategoricalDiagramSchema.jl and is wired in via FunctorFlowSchemaExt).
+# Loaded by `FunctorFlowCatlabExt` when `using Catlab` is active alongside
+# FunctorFlow. The parent extension module already provides the relevant
+# Catlab.Theories names (FreeCategory, Ob, Hom, dom, codom).
 #
-# The symbolic projection builds a Presentation of FreeCategory and a
-# dictionary of Ob/Hom expressions.
-
-using Catlab.Theories: FreeCategory, Ob, Hom, dom, codom
+# This file provides a pure-Catlab symbolic view of a FunctorFlow Diagram.
+# It is independent of the ACSet schema (which lives in
+# CategoricalDiagramSchema.jl and is wired in via FunctorFlowSchemaExt).
 
 """
     to_presentation(D::Diagram) -> Presentation
@@ -18,7 +17,7 @@ Convert a FunctorFlow Diagram into a Catlab Presentation (free category).
 Each object becomes a generator of sort Ob, each morphism a generator of
 sort Hom. Compositions become composed Hom expressions.
 """
-function to_presentation(D)
+function FunctorFlow.to_presentation(D)
     pres = Catlab.Theories.Presentation(FreeCategory)
     ob_gens = Dict{Symbol, Any}()
 
@@ -50,7 +49,7 @@ Convert a FunctorFlow Diagram into symbolic Catlab category elements.
 Returns `(objects, morphisms, compositions)` where each is a Dict
 mapping names to FreeCategory expressions.
 """
-function to_symbolic(D)
+function FunctorFlow.to_symbolic(D)
     obs = Dict{Symbol, Any}()
     for (name, _) in D.objects
         obs[name] = Ob(FreeCategory, name)

@@ -65,6 +65,31 @@ D2  = from_acset(acs)        # FunctorFlow.Diagram
 If you only `using FunctorFlow`, calling `to_acset` raises a `MethodError`
 that points you here.
 
+### Installing Catlab (for symbolic Catlab projection)
+
+As of **v0.5.0**, Catlab is also a **weak dependency** (was a hard dep in
+v0.4.0 and earlier). The functions `to_presentation`, `to_symbolic`, and
+`define_theory` only have methods once `Catlab` is loaded; the types
+`CategoricalModelObject`, `ModelMorphism`, and `NaturalTransformation`
+remain available without Catlab. The previously-re-exported names
+`nparts`, `subpart`, `add_part!`, and `incident` are no longer brought
+into scope by `using FunctorFlow` — load them from
+`Catlab.CategoricalAlgebra` directly.
+
+To enable Catlab-backed methods:
+
+```julia
+using Pkg
+Pkg.add("Catlab")
+using FunctorFlow, Catlab
+pres = to_presentation(D)    # Catlab Presentation (FreeCategory)
+sym  = to_symbolic(D)        # NamedTuple of FreeCategory Ob/Hom
+```
+
+This change resolves the transitive dependency conflict (Catlab→Compose→
+DataStructures vs `TinyGrad.jl`→Symbolics→MultivariatePolynomials) that
+prevented `using FunctorFlow, TinyGrad` in the same session in v0.4.0.
+
 ## Quick start
 
 ### Programmatic API

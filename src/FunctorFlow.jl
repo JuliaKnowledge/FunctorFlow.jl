@@ -2,7 +2,9 @@
     FunctorFlow
 
 A categorical DSL and executable IR for building diagrammatic AI systems,
-built on top of the AlgebraicJulia ecosystem (Catlab.jl, ACSets.jl).
+inspired by the AlgebraicJulia ecosystem (Catlab.jl, ACSets.jl). As of
+v0.5.0, Catlab is a *weak* dependency: load it alongside FunctorFlow to
+enable `to_presentation`, `to_symbolic`, and `define_theory`.
 
 FunctorFlow lets you build AI systems by categorical construction:
 - **Objects** are typed interfaces (token spaces, neighborhoods, plan states)
@@ -44,10 +46,6 @@ module FunctorFlow
 
 using OrderedCollections: OrderedDict
 using JSON3
-using Catlab
-using Catlab.Theories: FreeSchema, FreeCategory, Ob, Hom, dom, codom
-using Catlab.CategoricalAlgebra
-import Catlab.CategoricalAlgebra: nparts, subpart, add_part!, incident
 using ChainRulesCore: ignore_derivatives
 import ChainRulesCore
 using Random: AbstractRNG
@@ -63,13 +61,40 @@ include("composition.jl")
 include("adapters.jl")
 include("show.jl")
 
-# ACSet schema stubs and Catlab integration
+# ACSet schema stubs (CategoricalDiagramSchema integration via FunctorFlowSchemaExt)
 include("schema.jl")
-include("symbolic_catlab.jl")
+
+# Catlab-backed stub functions (methods provided by FunctorFlowCatlabExt
+# when `using Catlab` is active alongside FunctorFlow). Declared early so
+# that downstream files (e.g. `categorical_model.jl`) can reference them.
+"""
+    to_presentation(D::Diagram) -> Catlab.Presentation
+
+Convert a Diagram into a Catlab Presentation (free category). Method
+provided by `FunctorFlowCatlabExt`; requires `using Catlab` alongside
+FunctorFlow. Without Catlab loaded, calling this raises a `MethodError`.
+"""
+function to_presentation end
+
+"""
+    to_symbolic(D::Diagram) -> NamedTuple
+
+Convert a Diagram into symbolic Catlab category elements. Method provided
+by `FunctorFlowCatlabExt`; requires `using Catlab` alongside FunctorFlow.
+"""
+function to_symbolic end
+
+"""
+    define_theory(objects::AbstractVector; name=:FunctorFlowTheory) -> Catlab.Presentation
+
+Build a Catlab Presentation from CategoricalModelObject instances. Method
+provided by `FunctorFlowCatlabExt`; requires `using Catlab`.
+"""
+function define_theory end
 
 # Unicode operators (after diagram.jl provides add_left_kan! etc.)
 # Note: unicode.jl uses compose/product/coproduct which are defined later,
-# so we include it after catlab_interop.jl and universal.jl
+# so we include it after categorical_model.jl and universal.jl
 
 # DSL and block library
 include("dsl.jl")
@@ -80,8 +105,10 @@ include("democritus_examples.jl")
 include("topocoend_examples.jl")
 include("bisimulation_examples.jl")
 
-# v1: Categorical foundations
-include("catlab_interop.jl")
+# v1: Categorical foundations (CategoricalModelObject + friends; pure Julia,
+# no Catlab dep). Catlab-backed methods on `to_presentation`/`to_symbolic`/
+# `define_theory` come from `FunctorFlowCatlabExt`.
+include("categorical_model.jl")
 include("universal.jl")
 include("causal.jl")
 include("identifiability.jl")
@@ -196,8 +223,9 @@ export compile_to_executable_ir, execute_placeholder_ir
 export to_acset, from_acset, to_presentation, to_symbolic
 export diagram_to_acset, acset_to_diagram, define_theory
 export verify_naturality
-# Re-export key Catlab ACSet functions for convenience
-export nparts, subpart, add_part!, incident
+# Note: `nparts`, `subpart`, `add_part!`, `incident` are no longer re-exported
+# (v0.5.0 BREAKING). Users wanting them should `using Catlab.CategoricalAlgebra`
+# or `using ACSets` directly.
 
 # v1: Catlab interop
 export CategoricalModelObject, ModelMorphism, NaturalTransformation

@@ -27,6 +27,8 @@ Julia's macro system allows FunctorFlow to offer a concise, declarative DSL for 
 ```{julia}
 #| output: false
 using FunctorFlow
+using Catlab  # required as of FunctorFlow v0.5.0 for `to_presentation`/`nparts`/`subpart`
+using Catlab.CategoricalAlgebra: nparts, subpart
 ```
 
 ## The @functorflow Macro
