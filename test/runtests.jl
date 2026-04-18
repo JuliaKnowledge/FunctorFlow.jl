@@ -178,6 +178,8 @@ end
 
     include("test_lux_ext.jl")
 
+    include("test_lux_training.jl")
+
     @testset "Composition" begin
         child = ket_block()
         parent = Diagram(:Parent)

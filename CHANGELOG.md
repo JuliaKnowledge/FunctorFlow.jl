@@ -5,6 +5,18 @@ All notable changes to FunctorFlow.jl are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] — 2026-04-17
+
+### Added
+- New end-to-end training test (`test/test_lux_training.jl`, 105 assertions)
+  that builds a 2-layer linear `Diagram` (32 → 16 → 4), binds
+  `DiagramDenseLayer` morphisms via `compile_to_lux`, runs 100 Adam(1e-2)
+  steps with `Optimisers` + `Zygote.gradient`, and asserts that the
+  final mean-squared-error loss is less than half of the initial loss.
+  This proves that gradients actually flow through the
+  `compile_to_lux → LuxDiagramModel` pipeline. Closes audit P0-FF-2.
+- `Optimisers` added to `[extras]` and `[targets].test`.
+
 ## [0.3.0] — 2026-04-17
 
 ### Breaking
