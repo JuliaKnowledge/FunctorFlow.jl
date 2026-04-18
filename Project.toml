@@ -1,6 +1,6 @@
 name = "FunctorFlow"
 uuid = "e8daeac3-1699-4d22-bf61-9995042cc00d"
-version = "0.3.3"
+version = "0.3.4"
 authors = ["Simon Frost"]
 
 [deps]
@@ -17,17 +17,20 @@ Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
 LuxCore = "bb33d45b-7691-41d6-9220-0943567d0623"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
+Optimisers = "3bd65402-5787-11e9-1adc-39752487f4e2"
+Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [extensions]
 FunctorFlowAgentFrameworkExt = "AgentFramework"
 FunctorFlowLuxExt = ["Lux", "LuxCore"]
+FunctorFlowLuxTrainExt = ["Lux", "LuxCore", "Optimisers", "Zygote"]
 FunctorFlowMakieExt = "Makie"
 FunctorFlowMetalExt = ["Metal", "Lux", "LuxCore"]
 FunctorFlowSchemaExt = "CategoricalDiagramSchema"
 
 [compat]
 AgentFramework = "0.1"
-CategoricalDiagramSchema = "0.1"
+CategoricalDiagramSchema = "0.1, 0.2"
 Catlab = "0.16, 0.17"
 ChainRulesCore = "1"
 JSON3 = "1"
@@ -35,7 +38,9 @@ Lux = "1"
 LuxCore = "1"
 Makie = "0.20, 0.21, 0.22"
 Metal = "1.9"
+Optimisers = "0.3, 0.4"
 OrderedCollections = "1"
+Zygote = "0.6, 0.7"
 julia = "1.10"
 
 [extras]

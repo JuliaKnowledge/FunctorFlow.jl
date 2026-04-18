@@ -462,6 +462,7 @@ struct LuxDiagramModel <: LuxCore.AbstractLuxLayer
     morphism_names::Vector{Symbol}
     reducer_names::Vector{Symbol}
     comparator_names::Vector{Symbol}
+    rng::AbstractRNG
 end
 
 function LuxDiagramModel(D::Diagram;
@@ -470,7 +471,8 @@ function LuxDiagramModel(D::Diagram;
                          comparator_layers::Dict=Dict{Symbol, LuxCore.AbstractLuxLayer}(),
                          morphisms::Union{Nothing, Dict}=nothing,
                          reducers::Union{Nothing, Dict}=nothing,
-                         comparators::Union{Nothing, Dict}=nothing)
+                         comparators::Union{Nothing, Dict}=nothing,
+                         rng::AbstractRNG=Random.default_rng())
     # Build the base compiled diagram with any non-neural implementations
     compiled = compile_to_callable(D; morphisms=morphisms, reducers=reducers, comparators=comparators)
 
@@ -482,7 +484,8 @@ function LuxDiagramModel(D::Diagram;
         D, compiled, ml, rl, cl,
         sort(collect(keys(ml))),
         sort(collect(keys(rl))),
-        sort(collect(keys(cl)))
+        sort(collect(keys(cl))),
+        rng,
     )
 end
 
@@ -712,6 +715,10 @@ non-neural operations pass through unchanged.
 - `reducer_layers`: Dict mapping reducer names to Lux layers (e.g., `KETAttentionLayer`)
 - `comparator_layers`: Dict mapping comparator names to Lux layers
 - `morphisms`, `reducers`, `comparators`: Non-neural callable overrides
+- `rng`: RNG carried by the model and used as the default for downstream
+  `Lux.setup(model.rng, model)` and `train_diagram!` calls. Defaults to
+  `Random.default_rng()`. Pass a seeded `MersenneTwister`/`Xoshiro` for
+  reproducible parameter initialisation.
 
 ## Example
 
@@ -740,14 +747,16 @@ function compile_to_lux(D::Diagram;
                         comparator_layers::Dict=Dict{Symbol, LuxCore.AbstractLuxLayer}(),
                         morphisms::Union{Nothing, Dict}=nothing,
                         reducers::Union{Nothing, Dict}=nothing,
-                        comparators::Union{Nothing, Dict}=nothing)
+                        comparators::Union{Nothing, Dict}=nothing,
+                        rng::AbstractRNG=Random.default_rng())
     LuxDiagramModel(D;
                     morphism_layers=morphism_layers,
                     reducer_layers=reducer_layers,
                     comparator_layers=comparator_layers,
                     morphisms=morphisms,
                     reducers=reducers,
-                    comparators=comparators)
+                    comparators=comparators,
+                    rng=rng)
 end
 
 # ============================================================================

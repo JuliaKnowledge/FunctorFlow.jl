@@ -404,6 +404,17 @@ build_horn_lux_model(args...; kwargs...) = _lux_ext().build_horn_lux_model(args.
 build_higher_horn_lux_model(args...; kwargs...) = _lux_ext().build_higher_horn_lux_model(args...; kwargs...)
 build_bisimulation_quotient_lux_model(args...; kwargs...) = _lux_ext().build_bisimulation_quotient_lux_model(args...; kwargs...)
 
+"""
+    train_diagram!(model, ps, st, data_loader; optimizer, n_epochs, loss_fn,
+                   obstruction_weight, on_step, output_keys)
+        -> (ps, st, history)
+
+High-level training loop for a `LuxDiagramModel` that mirrors CatNet.jl's
+`train_diagram!` API. Lives in `FunctorFlowLuxTrainExt` and requires
+`using Lux, LuxCore, Optimisers, Zygote` to be loaded first.
+"""
+function train_diagram! end
+
 # Public shim names. Layer *types* (KETAttentionLayer, DiagramDenseLayer,
 # DiagramChainLayer, LuxDiagramModel) are NOT re-exported here; access them as
 # `FunctorFlowLuxExt.<TypeName>` after `using Lux`.
@@ -411,5 +422,6 @@ export compile_to_lux, RelationInferenceLayer, predict_detach_source
 export build_ket_lux_model, build_db_lux_model, build_gt_lux_model, build_basket_rocket_lux_model
 export build_topocoend_lux_model, build_horn_lux_model, build_higher_horn_lux_model
 export build_bisimulation_quotient_lux_model
+export train_diagram!
 
 end # module FunctorFlow
