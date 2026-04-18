@@ -15,7 +15,7 @@ format:
     monofont: "JuliaMono"
 engine: julia
 julia:
-  exeflags: ["--project=../.."]
+  exeflags: ["--project=.."]
 ---
 
 ## Introduction

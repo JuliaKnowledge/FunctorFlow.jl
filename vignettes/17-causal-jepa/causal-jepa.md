@@ -23,6 +23,7 @@ Simon Frost
   Equivalent](#bisimulation-when-two-masking-strategies-are-equivalent)
 - [EMA Target Encoder as Frozen
   Coalgebra](#ema-target-encoder-as-frozen-coalgebra)
+- [Training a Tiny C-JEPA Predictor](#training-a-tiny-c-jepa-predictor)
 - [Summary and Correspondence Table](#summary-and-correspondence-table)
 
 ## Introduction
@@ -687,6 +688,106 @@ morphism** that contracts the distance between the online and target
 state spaces. The fixed point (after many updates) is where the two
 coalgebras become **bisimilar** — the target encoder faithfully
 represents the online encoder’s learned dynamics.
+
+## Training a Tiny C-JEPA Predictor
+
+To make the categorical structure operational, we now train a small
+Lux-backed encoder/predictor pair. The setup mirrors C-JEPA’s masked
+prediction objective: the predictor must reconstruct a masked entity’s
+representation from the unmasked context. We use an MSE surrogate of the
+joint history+future loss to keep the vignette self-contained — the
+categorical content (an obstruction between the masked-context path and
+the unmasked-target path) is identical.
+
+``` julia
+using Lux
+using LuxCore
+using Optimisers
+using Zygote: gradient
+
+const _LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
+
+rng_t = Random.MersenneTwister(11)
+
+# Categorical structure: ContextSlots ─encoder→ ContextRepr ─predictor→ MaskedRepr
+D_cj = Diagram(:CJEPATrain)
+add_object!(D_cj, :ContextSlots; kind=:input,  shape="(8,)")
+add_object!(D_cj, :ContextRepr;  kind=:latent, shape="(4,)")
+add_object!(D_cj, :MaskedRepr;   kind=:latent, shape="(4,)")
+add_morphism!(D_cj, :encoder,   :ContextSlots, :ContextRepr)
+add_morphism!(D_cj, :predictor, :ContextRepr,  :MaskedRepr)
+compose!(D_cj, :encoder, :predictor; name=:context_to_masked)
+
+train_cjepa = compile_to_lux(D_cj;
+    morphism_layers=Dict(
+        :encoder   => _LuxExt.DiagramDenseLayer(8, 4),
+        :predictor => _LuxExt.DiagramDenseLayer(4, 4),
+    )
+)
+
+ps_c, st_c = Lux.setup(rng_t, train_cjepa)
+
+# Synthetic batch: each "scene" has 8-dim context (3 unmasked entity slots
+# + padding) and a 4-dim target representation for the masked entity. The
+# predictor must learn the influence-neighborhood map.
+batch = 16
+X_ctx = randn(rng_t, Float32, 8, batch)
+true_neighborhood = randn(rng_t, Float32, 4, 8)  # ground-truth influence
+Y_masked = true_neighborhood * X_ctx
+
+function cjepa_loss(p)
+    result, _ = train_cjepa(Dict(:ContextSlots => X_ctx), p, st_c)
+    ŷ = result[:values][:context_to_masked]
+    sum((ŷ .- Y_masked) .^ 2) / length(Y_masked)
+end
+
+initial_loss = cjepa_loss(ps_c)
+opt_state = Optimisers.setup(Optimisers.Adam(1f-2), ps_c)
+
+losses = Float32[initial_loss]
+for step in 1:150
+    gs = gradient(cjepa_loss, ps_c)[1]
+    opt_state, ps_c = Optimisers.update(opt_state, ps_c, gs)
+    if step % 10 == 0
+        push!(losses, cjepa_loss(ps_c))
+        println("  step $(lpad(step, 3)) — C-JEPA loss = $(round(losses[end]; sigdigits=4))")
+    end
+end
+
+final_loss = cjepa_loss(ps_c)
+println("\nC-JEPA loss: $(round(initial_loss; sigdigits=4)) → $(round(final_loss; sigdigits=4))")
+println("Reduction factor: $(round(final_loss / initial_loss; sigdigits=3))")
+
+@assert isfinite(final_loss)
+@assert final_loss < initial_loss "C-JEPA training did not reduce loss"
+```
+
+      step  10 — C-JEPA loss = 7.444
+      step  20 — C-JEPA loss = 5.101
+      step  30 — C-JEPA loss = 3.83
+      step  40 — C-JEPA loss = 2.984
+      step  50 — C-JEPA loss = 2.246
+      step  60 — C-JEPA loss = 1.672
+      step  70 — C-JEPA loss = 1.319
+      step  80 — C-JEPA loss = 1.061
+      step  90 — C-JEPA loss = 0.8303
+      step 100 — C-JEPA loss = 0.6425
+      step 110 — C-JEPA loss = 0.4982
+      step 120 — C-JEPA loss = 0.3892
+      step 130 — C-JEPA loss = 0.3075
+      step 140 — C-JEPA loss = 0.2454
+      step 150 — C-JEPA loss = 0.1976
+
+    C-JEPA loss: 11.7 → 0.1976
+    Reduction factor: 0.0169
+
+Adam steps drive the predictor to recover the influence neighborhood —
+the right-Kan kernel that makes the masked entity predictable from its
+context. In the full C-JEPA pipeline this scalar MSE would be replaced
+by the joint $\mathcal{L}_\text{history} + \mathcal{L}_\text{future}$
+objective with EMA target encoder, but the optimization geometry is the
+same: minimization forces the predictor to factor through the minimal
+sufficient context.
 
 ## Summary and Correspondence Table
 

@@ -33,6 +33,13 @@ algebraic Julia packages like DiagrammaticEquations.jl.
 
 ``` julia
 using FunctorFlow
+# As of FunctorFlow v0.5.0 Catlab is a weak dependency. Loading it activates
+# `to_presentation`/`to_symbolic`/`define_theory`. Loading
+# CategoricalDiagramSchema activates `to_acset`/`from_acset`. We use selective
+# imports to avoid the `Diagram` name clash between FunctorFlow and Catlab.
+import Catlab
+using CategoricalDiagramSchema
+using Catlab.CategoricalAlgebra: nparts, subpart
 ```
 
 ## Core Concepts
@@ -295,7 +302,7 @@ println("ACSet Kan extensions: ", nparts(acs, :Kan))
 ``` julia
 # Convert to a Catlab Presentation for symbolic reasoning
 pres = to_presentation(D4)
-println("Generators: ", length(FunctorFlow.Catlab.generators(pres)))
+println("Generators: ", length(Catlab.generators(pres)))
 ```
 
     Generators: 3

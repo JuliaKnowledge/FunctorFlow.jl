@@ -1,6 +1,6 @@
 # Canonical V1 Example
 Simon Frost
-2026-03-29
+2026-04-18
 
 - [Overview](#overview)
 - [Step 1: Define KET Models as Categorical
@@ -305,12 +305,14 @@ end
 
     Computed values:
       SharedContext → Dict{Any, Any}
-      right__aggregate → Dict{Any, Any}
-      proj_right_output → Dict{Any, Any}
       left__Values → Dict{Symbol, Vector{Float64}}
+      right__ContextualizedValues → Dict{Any, Any}
       proj_left_output → Dict{Any, Any}
-      right__Values → Dict{Symbol, Vector{Float64}}
       right__Incidence → Dict{Tuple{Symbol, Symbol}, Float64}
+      right__aggregate → Dict{Any, Any}
+      left__ContextualizedValues → Dict{Any, Any}
+      proj_right_output → Dict{Any, Any}
+      right__Values → Dict{Symbol, Vector{Float64}}
       left__aggregate → Dict{Any, Any}
       left__Incidence → Dict{Tuple{Symbol, Symbol}, Float64}
 

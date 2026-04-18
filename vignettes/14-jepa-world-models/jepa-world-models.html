@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="FunctorFlow.jl">
+<meta name="author" content="Simon Frost">
 
 <title>JEPA as Categorical World Model</title>
 <style>
@@ -127,9 +127,10 @@ window.Quarto = {
   </ul></li>
   <li><a href="#part-7-lean-4-proof-certificates" id="toc-part-7-lean-4-proof-certificates" class="nav-link" data-scroll-target="#part-7-lean-4-proof-certificates">Part 7: Lean 4 Proof Certificates</a></li>
   <li><a href="#part-8-ema-update-collapse-prevention" id="toc-part-8-ema-update-collapse-prevention" class="nav-link" data-scroll-target="#part-8-ema-update-collapse-prevention">Part 8: EMA Update (Collapse Prevention)</a></li>
+  <li><a href="#part-9-training-a-toy-jepa" id="toc-part-9-training-a-toy-jepa" class="nav-link" data-scroll-target="#part-9-training-a-toy-jepa">Part 9: Training a Toy JEPA</a></li>
   <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">Summary</a></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="jepa-world-models.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="../../jepa-world-models.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="jepa-world-models.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="jepa-world-models.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
 </div>
 <main class="content" id="quarto-document-content">
 
@@ -146,7 +147,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>FunctorFlow.jl </p>
+             <p>Simon Frost </p>
           </div>
   </div>
     
@@ -665,6 +666,90 @@ After 5 EMA steps (decay=0.99):
 Target slowly tracks online → prevents collapse without negatives</code></pre>
 </div>
 </div>
+</section>
+<section id="part-9-training-a-toy-jepa" class="level2">
+<h2 class="anchored" data-anchor-id="part-9-training-a-toy-jepa">Part 9: Training a Toy JEPA</h2>
+<p>The forward passes above motivate the categorical structure, but a JEPA’s operational claim is that <strong>prediction in embedding space is learnable</strong>. Here we wire up a tiny Lux-backed encoder/predictor, define an MSE surrogate of JEPA’s prediction loss (predictor(encoder(x_ctx)) ≈ target_encoder(x_tgt)), and run 100 Adam steps. We use MSE rather than the full contrastive setup with EMA negatives — the simplification keeps the vignette short while still demonstrating that gradients flow through the encoder→predictor composition.</p>
+<div id="26" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Lux</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">LuxCore</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Optimisers</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Zygote</span>: gradient</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Random</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> _LuxExt <span class="op">=</span> <span class="bu">Base</span>.<span class="fu">get_extension</span>(FunctorFlow, <span class="op">:</span>FunctorFlowLuxExt)</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>rng_t <span class="op">=</span> <span class="bu">Random</span>.<span class="fu">MersenneTwister</span>(<span class="fl">7</span>)</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Build a JEPA diagram with two neural morphisms: encoder and predictor.</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>D_t <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>JEPATrain)</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_t, <span class="op">:</span>Obs;     kind<span class="op">=:</span>input,   shape<span class="op">=</span><span class="st">"(8,)"</span>)</span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_t, <span class="op">:</span>CtxRepr; kind<span class="op">=:</span>latent,  shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_t, <span class="op">:</span>PredRepr; kind<span class="op">=:</span>latent, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_t, <span class="op">:</span>encoder,   <span class="op">:</span>Obs,     <span class="op">:</span>CtxRepr)</span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_t, <span class="op">:</span>predictor, <span class="op">:</span>CtxRepr, <span class="op">:</span>PredRepr)</span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a><span class="fu">compose!</span>(D_t, <span class="op">:</span>encoder, <span class="op">:</span>predictor; name<span class="op">=:</span>embed_predict)</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>train_jepa <span class="op">=</span> <span class="fu">compile_to_lux</span>(D_t;</span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>    morphism_layers<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>encoder   <span class="op">=&gt;</span> _LuxExt.<span class="fu">DiagramDenseLayer</span>(<span class="fl">8</span>, <span class="fl">4</span>),</span>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>predictor <span class="op">=&gt;</span> _LuxExt.<span class="fu">DiagramDenseLayer</span>(<span class="fl">4</span>, <span class="fl">4</span>),</span>
+<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a>ps_j, st_j <span class="op">=</span> Lux.<span class="fu">setup</span>(rng_t, train_jepa)</span>
+<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Synthetic paired (context, target) batch — predictor must learn the</span></span>
+<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a><span class="co"># linear map from encoded context to encoded target. We freeze the target</span></span>
+<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a><span class="co"># encoding to a fixed random projection (no EMA loop here for brevity).</span></span>
+<span id="cb25-33"><a href="#cb25-33" aria-hidden="true" tabindex="-1"></a>batch <span class="op">=</span> <span class="fl">16</span></span>
+<span id="cb25-34"><a href="#cb25-34" aria-hidden="true" tabindex="-1"></a>X_ctx <span class="op">=</span> <span class="fu">randn</span>(rng_t, <span class="dt">Float32</span>, <span class="fl">8</span>, batch)</span>
+<span id="cb25-35"><a href="#cb25-35" aria-hidden="true" tabindex="-1"></a>target_W <span class="op">=</span> <span class="fu">randn</span>(rng_t, <span class="dt">Float32</span>, <span class="fl">4</span>, <span class="fl">8</span>)</span>
+<span id="cb25-36"><a href="#cb25-36" aria-hidden="true" tabindex="-1"></a>Y_tgt <span class="op">=</span> target_W <span class="op">*</span> X_ctx  <span class="co"># what predictor(encoder(X_ctx)) should reproduce</span></span>
+<span id="cb25-37"><a href="#cb25-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-38"><a href="#cb25-38" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">jepa_mse_loss</span>(p)</span>
+<span id="cb25-39"><a href="#cb25-39" aria-hidden="true" tabindex="-1"></a>    result, _ <span class="op">=</span> <span class="fu">train_jepa</span>(<span class="fu">Dict</span>(<span class="op">:</span>Obs <span class="op">=&gt;</span> X_ctx), p, st_j)</span>
+<span id="cb25-40"><a href="#cb25-40" aria-hidden="true" tabindex="-1"></a>    ŷ <span class="op">=</span> result[<span class="op">:</span>values][<span class="op">:</span>embed_predict]</span>
+<span id="cb25-41"><a href="#cb25-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>((ŷ <span class="op">.-</span> Y_tgt) <span class="op">.^</span> <span class="fl">2</span>) <span class="op">/</span> <span class="fu">length</span>(Y_tgt)</span>
+<span id="cb25-42"><a href="#cb25-42" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb25-43"><a href="#cb25-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-44"><a href="#cb25-44" aria-hidden="true" tabindex="-1"></a>initial_loss <span class="op">=</span> <span class="fu">jepa_mse_loss</span>(ps_j)</span>
+<span id="cb25-45"><a href="#cb25-45" aria-hidden="true" tabindex="-1"></a>opt_state <span class="op">=</span> Optimisers.<span class="fu">setup</span>(Optimisers.<span class="fu">Adam</span>(<span class="fl">1f-2</span>), ps_j)</span>
+<span id="cb25-46"><a href="#cb25-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-47"><a href="#cb25-47" aria-hidden="true" tabindex="-1"></a>losses <span class="op">=</span> <span class="dt">Float32</span>[initial_loss]</span>
+<span id="cb25-48"><a href="#cb25-48" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span></span>
+<span id="cb25-49"><a href="#cb25-49" aria-hidden="true" tabindex="-1"></a>    gs <span class="op">=</span> <span class="fu">gradient</span>(jepa_mse_loss, ps_j)[<span class="fl">1</span>]</span>
+<span id="cb25-50"><a href="#cb25-50" aria-hidden="true" tabindex="-1"></a>    opt_state, ps_j <span class="op">=</span> Optimisers.<span class="fu">update</span>(opt_state, ps_j, gs)</span>
+<span id="cb25-51"><a href="#cb25-51" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> step <span class="op">%</span> <span class="fl">10</span> <span class="op">==</span> <span class="fl">0</span></span>
+<span id="cb25-52"><a href="#cb25-52" aria-hidden="true" tabindex="-1"></a>        <span class="fu">push!</span>(losses, <span class="fu">jepa_mse_loss</span>(ps_j))</span>
+<span id="cb25-53"><a href="#cb25-53" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"  step </span><span class="sc">$</span>(<span class="fu">lpad</span>(step, <span class="fl">3</span>))<span class="st"> — JEPA loss = </span><span class="sc">$</span>(<span class="fu">round</span>(losses[<span class="kw">end</span>]; sigdigits<span class="op">=</span><span class="fl">4</span>))<span class="st">"</span>)</span>
+<span id="cb25-54"><a href="#cb25-54" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb25-55"><a href="#cb25-55" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb25-56"><a href="#cb25-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-57"><a href="#cb25-57" aria-hidden="true" tabindex="-1"></a>final_loss <span class="op">=</span> <span class="fu">jepa_mse_loss</span>(ps_j)</span>
+<span id="cb25-58"><a href="#cb25-58" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">JEPA loss: </span><span class="sc">$</span>(<span class="fu">round</span>(initial_loss; sigdigits<span class="op">=</span><span class="fl">4</span>))<span class="st"> → </span><span class="sc">$</span>(<span class="fu">round</span>(final_loss; sigdigits<span class="op">=</span><span class="fl">4</span>))<span class="st">"</span>)</span>
+<span id="cb25-59"><a href="#cb25-59" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Reduction factor: </span><span class="sc">$</span>(<span class="fu">round</span>(final_loss <span class="op">/</span> initial_loss; sigdigits<span class="op">=</span><span class="fl">3</span>))<span class="st">"</span>)</span>
+<span id="cb25-60"><a href="#cb25-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-61"><a href="#cb25-61" aria-hidden="true" tabindex="-1"></a><span class="pp">@assert</span> <span class="fu">isfinite</span>(final_loss)</span>
+<span id="cb25-62"><a href="#cb25-62" aria-hidden="true" tabindex="-1"></a><span class="pp">@assert</span> final_loss <span class="op">&lt;</span> initial_loss <span class="st">"JEPA training did not reduce loss"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  step  10 — JEPA loss = 9.272
+  step  20 — JEPA loss = 7.166
+  step  30 — JEPA loss = 5.577
+  step  40 — JEPA loss = 4.331
+  step  50 — JEPA loss = 3.393
+  step  60 — JEPA loss = 2.654
+  step  70 — JEPA loss = 2.057
+  step  80 — JEPA loss = 1.549
+  step  90 — JEPA loss = 1.123
+  step 100 — JEPA loss = 0.7889
+
+JEPA loss: 12.64 → 0.7889
+Reduction factor: 0.0624</code></pre>
+</div>
+</div>
+<p>The predictor (categorically: an endofunctor on the latent state space) learns to reproduce the target encoding. In a full JEPA pipeline this MSE would be replaced by the contrastive prediction loss with an EMA target encoder (see Part 8) plus variance/covariance regularizers (see Part 6) to prevent collapse. The categorical content is identical: both losses are <em>obstructions to commutativity</em> of the encoder/predictor square.</p>
 </section>
 <section id="summary" class="level2">
 <h2 class="anchored" data-anchor-id="summary">Summary</h2>

@@ -16,7 +16,7 @@ format:
     toc: true
 engine: julia
 julia:
-  exeflags: ["--project=../.."]
+  exeflags: ["--project=.."]
 ---
 
 ## Overview

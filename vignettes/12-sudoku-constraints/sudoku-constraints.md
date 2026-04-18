@@ -34,6 +34,8 @@ showing how the same categorical patterns work in both languages.
 
 ``` julia
 using FunctorFlow
+using CategoricalDiagramSchema  # activates `to_acset` (weakdep as of FF v0.5.0)
+using Catlab.CategoricalAlgebra: nparts
 using Random
 ```
 
@@ -362,7 +364,7 @@ println("  Kan extensions: ", nparts(acs, :Kan))
 ```
 
     ACSet representation:
-      Nodes: 10
+      Nodes: 13
       Edges: 3
       Kan extensions: 3
 

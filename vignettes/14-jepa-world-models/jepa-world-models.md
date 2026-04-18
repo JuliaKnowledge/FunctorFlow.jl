@@ -1,5 +1,5 @@
 # JEPA as Categorical World Model
-FunctorFlow.jl
+Simon Frost
 
 - [Introduction](#introduction)
 - [Part 1: Coalgebra — World Models as State
@@ -17,6 +17,7 @@ FunctorFlow.jl
 - [Part 7: Lean 4 Proof Certificates](#part-7-lean-4-proof-certificates)
 - [Part 8: EMA Update (Collapse
   Prevention)](#part-8-ema-update-collapse-prevention)
+- [Part 9: Training a Toy JEPA](#part-9-training-a-toy-jepa)
 - [Summary](#summary)
 
 ## Introduction
@@ -528,6 +529,104 @@ println("\nTarget slowly tracks online → prevents collapse without negatives")
       Online: Float32[0.5, 0.6, 0.7] (unchanged)
 
     Target slowly tracks online → prevents collapse without negatives
+
+## Part 9: Training a Toy JEPA
+
+The forward passes above motivate the categorical structure, but a
+JEPA’s operational claim is that **prediction in embedding space is
+learnable**. Here we wire up a tiny Lux-backed encoder/predictor, define
+an MSE surrogate of JEPA’s prediction loss (predictor(encoder(x_ctx)) ≈
+target_encoder(x_tgt)), and run 100 Adam steps. We use MSE rather than
+the full contrastive setup with EMA negatives — the simplification keeps
+the vignette short while still demonstrating that gradients flow through
+the encoder→predictor composition.
+
+``` julia
+using Lux
+using LuxCore
+using Optimisers
+using Zygote: gradient
+using Random
+
+const _LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
+
+rng_t = Random.MersenneTwister(7)
+
+# Build a JEPA diagram with two neural morphisms: encoder and predictor.
+D_t = Diagram(:JEPATrain)
+add_object!(D_t, :Obs;     kind=:input,   shape="(8,)")
+add_object!(D_t, :CtxRepr; kind=:latent,  shape="(4,)")
+add_object!(D_t, :PredRepr; kind=:latent, shape="(4,)")
+
+add_morphism!(D_t, :encoder,   :Obs,     :CtxRepr)
+add_morphism!(D_t, :predictor, :CtxRepr, :PredRepr)
+compose!(D_t, :encoder, :predictor; name=:embed_predict)
+
+train_jepa = compile_to_lux(D_t;
+    morphism_layers=Dict(
+        :encoder   => _LuxExt.DiagramDenseLayer(8, 4),
+        :predictor => _LuxExt.DiagramDenseLayer(4, 4),
+    )
+)
+
+ps_j, st_j = Lux.setup(rng_t, train_jepa)
+
+# Synthetic paired (context, target) batch — predictor must learn the
+# linear map from encoded context to encoded target. We freeze the target
+# encoding to a fixed random projection (no EMA loop here for brevity).
+batch = 16
+X_ctx = randn(rng_t, Float32, 8, batch)
+target_W = randn(rng_t, Float32, 4, 8)
+Y_tgt = target_W * X_ctx  # what predictor(encoder(X_ctx)) should reproduce
+
+function jepa_mse_loss(p)
+    result, _ = train_jepa(Dict(:Obs => X_ctx), p, st_j)
+    ŷ = result[:values][:embed_predict]
+    sum((ŷ .- Y_tgt) .^ 2) / length(Y_tgt)
+end
+
+initial_loss = jepa_mse_loss(ps_j)
+opt_state = Optimisers.setup(Optimisers.Adam(1f-2), ps_j)
+
+losses = Float32[initial_loss]
+for step in 1:100
+    gs = gradient(jepa_mse_loss, ps_j)[1]
+    opt_state, ps_j = Optimisers.update(opt_state, ps_j, gs)
+    if step % 10 == 0
+        push!(losses, jepa_mse_loss(ps_j))
+        println("  step $(lpad(step, 3)) — JEPA loss = $(round(losses[end]; sigdigits=4))")
+    end
+end
+
+final_loss = jepa_mse_loss(ps_j)
+println("\nJEPA loss: $(round(initial_loss; sigdigits=4)) → $(round(final_loss; sigdigits=4))")
+println("Reduction factor: $(round(final_loss / initial_loss; sigdigits=3))")
+
+@assert isfinite(final_loss)
+@assert final_loss < initial_loss "JEPA training did not reduce loss"
+```
+
+      step  10 — JEPA loss = 9.272
+      step  20 — JEPA loss = 7.166
+      step  30 — JEPA loss = 5.577
+      step  40 — JEPA loss = 4.331
+      step  50 — JEPA loss = 3.393
+      step  60 — JEPA loss = 2.654
+      step  70 — JEPA loss = 2.057
+      step  80 — JEPA loss = 1.549
+      step  90 — JEPA loss = 1.123
+      step 100 — JEPA loss = 0.7889
+
+    JEPA loss: 12.64 → 0.7889
+    Reduction factor: 0.0624
+
+The predictor (categorically: an endofunctor on the latent state space)
+learns to reproduce the target encoding. In a full JEPA pipeline this
+MSE would be replaced by the contrastive prediction loss with an EMA
+target encoder (see Part 8) plus variance/covariance regularizers (see
+Part 6) to prevent collapse. The categorical content is identical: both
+losses are *obstructions to commutativity* of the encoder/predictor
+square.
 
 ## Summary
 

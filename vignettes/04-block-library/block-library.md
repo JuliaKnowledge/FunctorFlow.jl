@@ -287,7 +287,7 @@ by name using `build_macro`:
 println("Available macros: ", collect(keys(MACRO_LIBRARY)))
 ```
 
-    Available macros: [:democritus_assembly, :ket, :topocoend, :basket_workflow, :db_square, :kan_jepa, :bisimulation_quotient, :gt_neighborhood, :structured_lm_duality, :world_model, :completion, :basket_rocket_pipeline, :rocket_repair, :democritus_gluing, :jepa, :hjepa, :energy, :horn_fill]
+    Available macros: [:democritus_assembly, :ket, :topocoend, :basket_workflow, :db_square, :kan_jepa, :higher_horn, :bisimulation_quotient, :gt_neighborhood, :structured_lm_duality, :world_model, :completion, :basket_rocket_pipeline, :rocket_repair, :democritus_gluing, :jepa, :hjepa, :energy, :horn_fill]
 
 ``` julia
 # Build a block by name

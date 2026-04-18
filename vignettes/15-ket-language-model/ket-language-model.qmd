@@ -15,7 +15,7 @@ format:
     monofont: "JuliaMono"
 engine: julia
 julia:
-  exeflags: ["--project=../.."]
+  exeflags: ["--project=.."]
 ---
 
 ## Introduction
@@ -38,9 +38,6 @@ We build the model as a FunctorFlow `Diagram`, compile it to a Lux neural networ
 
 ```{julia}
 #| output: false
-using Pkg
-Pkg.activate(joinpath(@__DIR__, ".."))
-
 using FunctorFlow
 using Lux
 using LuxCore
@@ -48,6 +45,12 @@ using Random
 using Optimisers
 using Zygote
 using Statistics
+
+# Lux layer types live in `FunctorFlowLuxExt` (FF v0.3.0+) and are not
+# re-exported. Bring them into scope after `using Lux` triggers ext loading.
+const _LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
+const KETAttentionLayer = _LuxExt.KETAttentionLayer
+const DiagramDenseLayer = _LuxExt.DiagramDenseLayer
 ```
 
 ## Data Loading

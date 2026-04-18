@@ -623,6 +623,19 @@ println(cert_eq)
     theorem exportedArtifact_sound : exportedArtifact.Sound :=
       LoweringArtifact.sound_of_check exportedArtifact_checks
 
+
+    -- Equalizer construction declaration
+    def equalizerDecl : ConstructionDecl := {
+      kind := ConstructionKind.equalizer,
+      diagram := exportedDiagram,
+      equalizerMap := "base__f",
+      parallelPair := ("f", "g")
+    }
+
+    -- Equalizer agreement theorem: f ∘ e = g ∘ e on the equalizing subobject
+    theorem equalizer_agrees : equalizerDecl.ParallelAgreement := by
+      exact ConstructionDecl.agreement_of_loss exportedArtifact
+
     end FunctorFlowProofs.Generated.Equalizer
 
 Proof certificates are plain-text summaries intended for inclusion in

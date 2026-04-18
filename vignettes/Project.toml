@@ -1,4 +1,6 @@
 [deps]
+CategoricalDiagramSchema = "06663149-d6bb-42b5-8a63-d2553351277c"
+Catlab = "134e5e36-593f-5add-ad60-77f754baafbe"
 FunctorFlow = "e8daeac3-1699-4d22-bf61-9995042cc00d"
 Functors = "d9f16b24-f501-4c13-a1f2-28368ffc5196"
 Lux = "b2108857-7c20-44ae-9111-449ecde12c47"

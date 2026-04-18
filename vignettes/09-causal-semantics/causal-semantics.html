@@ -367,7 +367,7 @@ Transport with RN ops:     [:source_regime__intervene, :source_regime__condition
 <div class="cell-output cell-output-stdout">
 <pre><code>Intervention result: Dict{Any, Any}()
 Conditioning result: Dict{Any, Any}()
-All values:          Dict{Symbol, Any}(:Observations =&gt; Dict(:a =&gt; 1.0, :b =&gt; 2.0, :c =&gt; 3.0), :intervene =&gt; Dict{Any, Any}(), :condition =&gt; Dict{Any, Any}(), :CausalStructure =&gt; Dict{Tuple{Symbol, Symbol}, Bool}((:a, :b) =&gt; 1, (:b, :c) =&gt; 1))</code></pre>
+All values:          Dict{Symbol, Any}(:Observations =&gt; Dict(:a =&gt; 1.0, :b =&gt; 2.0, :c =&gt; 3.0), :intervene =&gt; Dict{Any, Any}(), :ConditionalState =&gt; Dict{Any, Any}(), :condition =&gt; Dict{Any, Any}(), :InterventionalState =&gt; Dict{Any, Any}(), :CausalStructure =&gt; Dict{Tuple{Symbol, Symbol}, Bool}((:a, :b) =&gt; 1, (:b, :c) =&gt; 1))</code></pre>
 </div>
 </div>
 <p>When a <code>density_ratio_fn</code> is supplied, each observation is reweighted by <span class="math inline">\(\rho(y) = p_{\text{do}}(y) / p_{\text{obs}}(y)\)</span> before aggregation — this is the importance-weighting step that turns observational averages into interventional expectations.</p>

@@ -50,9 +50,6 @@ The dedicated follow-ups are:
 ## Setup
 
 ``` julia
-using Pkg
-Pkg.activate(joinpath(@__DIR__, ".."))
-
 using FunctorFlow
 ```
 
@@ -216,6 +213,10 @@ becomes a neural `L2` objective over plan embeddings.
 
 ``` julia
 using Lux, Random
+
+# Lux layer types live in `FunctorFlowLuxExt` (FF v0.3.0+); not re-exported.
+const _LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
+const KETAttentionLayer = _LuxExt.KETAttentionLayer
 
 d_model = 16
 rng = Random.MersenneTwister(7)

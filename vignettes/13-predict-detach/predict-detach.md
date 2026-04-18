@@ -40,6 +40,14 @@ using Random
 using Statistics
 using Optimisers
 using Printf
+using CategoricalDiagramSchema  # activates `to_acset` (weakdep as of FF v0.5.0)
+using Catlab.CategoricalAlgebra: nparts
+
+# Lux layer types live in `FunctorFlowLuxExt` (FF v0.3.0+) and are not
+# re-exported. Pull them into scope after `using Lux` triggers the extension.
+const _LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
+const DiagramDenseLayer = _LuxExt.DiagramDenseLayer
+const KETAttentionLayer = _LuxExt.KETAttentionLayer
 
 # CPU device; for Apple Silicon GPU, use `using Metal; const dev = Lux.gpu_device()`
 const dev = identity
@@ -138,9 +146,9 @@ for (name, D) in [("Causal", D_causal), ("Noncausal", D_noncausal), ("Predict-De
 end
 ```
 
-    Causal: 2 nodes, 0 edges, 1 Σ
-    Noncausal: 2 nodes, 0 edges, 1 Σ
-    Predict-Detach: 2 nodes, 0 edges, 1 Σ
+    Causal: 3 nodes, 0 edges, 1 Σ
+    Noncausal: 3 nodes, 0 edges, 1 Σ
+    Predict-Detach: 3 nodes, 0 edges, 1 Σ
 
 ## KET Model
 

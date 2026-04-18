@@ -98,7 +98,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#loss-curves" id="toc-loss-curves" class="nav-link" data-scroll-target="#loss-curves">Loss Curves</a></li>
   <li><a href="#the-categorical-perspective" id="toc-the-categorical-perspective" class="nav-link" data-scroll-target="#the-categorical-perspective">The Categorical Perspective</a></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="predict-detach.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="../../predict-detach.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="predict-detach.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="predict-detach.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
 </div>
 <main class="content" id="quarto-document-content">
 
@@ -150,10 +150,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Statistics</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Optimisers</span></span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Printf</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># CPU device; for Apple Silicon GPU, use `using Metal; const dev = Lux.gpu_device()`</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> dev <span class="op">=</span> identity</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Device: CPU"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CategoricalDiagramSchema</span>  <span class="co"># activates `to_acset` (weakdep as of FF v0.5.0)</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Catlab.CategoricalAlgebra</span>: nparts</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Lux layer types live in `FunctorFlowLuxExt` (FF v0.3.0+) and are not</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># re-exported. Pull them into scope after `using Lux` triggers the extension.</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> _LuxExt <span class="op">=</span> <span class="bu">Base</span>.<span class="fu">get_extension</span>(FunctorFlow, <span class="op">:</span>FunctorFlowLuxExt)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> DiagramDenseLayer <span class="op">=</span> _LuxExt.DiagramDenseLayer</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> KETAttentionLayer <span class="op">=</span> _LuxExt.KETAttentionLayer</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co"># CPU device; for Apple Silicon GPU, use `using Metal; const dev = Lux.gpu_device()`</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> dev <span class="op">=</span> identity</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Device: CPU"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="the-synthetic-copy-task" class="level2">
@@ -244,9 +252,9 @@ Example: [10, 35, 48, 37, 10, 5, 9, 18, 31, 45, 8, 18, 31, 45, 8, 45]</code></pr
 <span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"</span><span class="sc">$</span>name<span class="st">: </span><span class="sc">$</span>(<span class="fu">nparts</span>(acs, <span class="op">:</span>Node))<span class="st"> nodes, </span><span class="sc">$</span>(<span class="fu">nparts</span>(acs, <span class="op">:</span>Edge))<span class="st"> edges, </span><span class="sc">$</span>(<span class="fu">nparts</span>(acs, <span class="op">:</span>Kan))<span class="st"> Σ"</span>)</span>
 <span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Causal: 2 nodes, 0 edges, 1 Σ
-Noncausal: 2 nodes, 0 edges, 1 Σ
-Predict-Detach: 2 nodes, 0 edges, 1 Σ</code></pre>
+<pre><code>Causal: 3 nodes, 0 edges, 1 Σ
+Noncausal: 3 nodes, 0 edges, 1 Σ
+Predict-Detach: 3 nodes, 0 edges, 1 Σ</code></pre>
 </div>
 </div>
 </section>

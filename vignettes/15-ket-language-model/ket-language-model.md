@@ -41,9 +41,6 @@ vocabulary. At the end we briefly compare results on WikiText-2.
 ## Setup
 
 ``` julia
-using Pkg
-Pkg.activate(joinpath(@__DIR__, ".."))
-
 using FunctorFlow
 using Lux
 using LuxCore
@@ -51,6 +48,12 @@ using Random
 using Optimisers
 using Zygote
 using Statistics
+
+# Lux layer types live in `FunctorFlowLuxExt` (FF v0.3.0+) and are not
+# re-exported. Bring them into scope after `using Lux` triggers ext loading.
+const _LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
+const KETAttentionLayer = _LuxExt.KETAttentionLayer
+const DiagramDenseLayer = _LuxExt.DiagramDenseLayer
 ```
 
 ## Data Loading
@@ -149,8 +152,8 @@ println("Target col 1: ", [id_to_token[i] for i in tgt[:, 1]])
 
     Input shape : (8, 2)
     Target shape: (8, 2)
-    Input col 1 : ["made", "top", "management", "changes", "and", "disclosed", "the", "end"]
-    Target col 1: ["top", "management", "changes", "and", "disclosed", "the", "end", "of"]
+    Input col 1 : ["similar", "<unk>", "from", "gm", "'s", "auto", "operations", "to"]
+    Target col 1: ["<unk>", "from", "gm", "'s", "auto", "operations", "to", "suppliers"]
 
 ## FunctorFlow Diagram
 

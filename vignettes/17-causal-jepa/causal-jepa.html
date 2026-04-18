@@ -126,9 +126,10 @@ window.Quarto = {
   <li><a href="#topos-theoretic-view-subobject-classifier-for-masking" id="toc-topos-theoretic-view-subobject-classifier-for-masking" class="nav-link" data-scroll-target="#topos-theoretic-view-subobject-classifier-for-masking">Topos-Theoretic View: Subobject Classifier for Masking</a></li>
   <li><a href="#bisimulation-when-two-masking-strategies-are-equivalent" id="toc-bisimulation-when-two-masking-strategies-are-equivalent" class="nav-link" data-scroll-target="#bisimulation-when-two-masking-strategies-are-equivalent">Bisimulation: When Two Masking Strategies Are Equivalent</a></li>
   <li><a href="#ema-target-encoder-as-frozen-coalgebra" id="toc-ema-target-encoder-as-frozen-coalgebra" class="nav-link" data-scroll-target="#ema-target-encoder-as-frozen-coalgebra">EMA Target Encoder as Frozen Coalgebra</a></li>
+  <li><a href="#training-a-tiny-c-jepa-predictor" id="toc-training-a-tiny-c-jepa-predictor" class="nav-link" data-scroll-target="#training-a-tiny-c-jepa-predictor">Training a Tiny C-JEPA Predictor</a></li>
   <li><a href="#summary-and-correspondence-table" id="toc-summary-and-correspondence-table" class="nav-link" data-scroll-target="#summary-and-correspondence-table">Summary and Correspondence Table</a></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="causal-jepa.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="../../causal-jepa.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="causal-jepa.md"><i class="bi bi-file-code"></i>Github (GFM)</a></li><li><a href="causal-jepa.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
 </div>
 <main class="content" id="quarto-document-content">
 
@@ -751,6 +752,93 @@ After 100 EMA updates:
 </div>
 </div>
 <p>The coalgebraic interpretation: each EMA step is a <strong>coalgebra morphism</strong> that contracts the distance between the online and target state spaces. The fixed point (after many updates) is where the two coalgebras become <strong>bisimilar</strong> — the target encoder faithfully represents the online encoder’s learned dynamics.</p>
+</section>
+<section id="training-a-tiny-c-jepa-predictor" class="level2">
+<h2 class="anchored" data-anchor-id="training-a-tiny-c-jepa-predictor">Training a Tiny C-JEPA Predictor</h2>
+<p>To make the categorical structure operational, we now train a small Lux-backed encoder/predictor pair. The setup mirrors C-JEPA’s masked prediction objective: the predictor must reconstruct a masked entity’s representation from the unmasked context. We use an MSE surrogate of the joint history+future loss to keep the vignette self-contained — the categorical content (an obstruction between the masked-context path and the unmasked-target path) is identical.</p>
+<div id="36" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Lux</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">LuxCore</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Optimisers</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Zygote</span>: gradient</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> _LuxExt <span class="op">=</span> <span class="bu">Base</span>.<span class="fu">get_extension</span>(FunctorFlow, <span class="op">:</span>FunctorFlowLuxExt)</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>rng_t <span class="op">=</span> <span class="bu">Random</span>.<span class="fu">MersenneTwister</span>(<span class="fl">11</span>)</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Categorical structure: ContextSlots ─encoder→ ContextRepr ─predictor→ MaskedRepr</span></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>D_cj <span class="op">=</span> <span class="fu">Diagram</span>(<span class="op">:</span>CJEPATrain)</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cj, <span class="op">:</span>ContextSlots; kind<span class="op">=:</span>input,  shape<span class="op">=</span><span class="st">"(8,)"</span>)</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cj, <span class="op">:</span>ContextRepr;  kind<span class="op">=:</span>latent, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a><span class="fu">add_object!</span>(D_cj, <span class="op">:</span>MaskedRepr;   kind<span class="op">=:</span>latent, shape<span class="op">=</span><span class="st">"(4,)"</span>)</span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_cj, <span class="op">:</span>encoder,   <span class="op">:</span>ContextSlots, <span class="op">:</span>ContextRepr)</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a><span class="fu">add_morphism!</span>(D_cj, <span class="op">:</span>predictor, <span class="op">:</span>ContextRepr,  <span class="op">:</span>MaskedRepr)</span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a><span class="fu">compose!</span>(D_cj, <span class="op">:</span>encoder, <span class="op">:</span>predictor; name<span class="op">=:</span>context_to_masked)</span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a>train_cjepa <span class="op">=</span> <span class="fu">compile_to_lux</span>(D_cj;</span>
+<span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a>    morphism_layers<span class="op">=</span><span class="fu">Dict</span>(</span>
+<span id="cb34-21"><a href="#cb34-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>encoder   <span class="op">=&gt;</span> _LuxExt.<span class="fu">DiagramDenseLayer</span>(<span class="fl">8</span>, <span class="fl">4</span>),</span>
+<span id="cb34-22"><a href="#cb34-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">:</span>predictor <span class="op">=&gt;</span> _LuxExt.<span class="fu">DiagramDenseLayer</span>(<span class="fl">4</span>, <span class="fl">4</span>),</span>
+<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-26"><a href="#cb34-26" aria-hidden="true" tabindex="-1"></a>ps_c, st_c <span class="op">=</span> Lux.<span class="fu">setup</span>(rng_t, train_cjepa)</span>
+<span id="cb34-27"><a href="#cb34-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-28"><a href="#cb34-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Synthetic batch: each "scene" has 8-dim context (3 unmasked entity slots</span></span>
+<span id="cb34-29"><a href="#cb34-29" aria-hidden="true" tabindex="-1"></a><span class="co"># + padding) and a 4-dim target representation for the masked entity. The</span></span>
+<span id="cb34-30"><a href="#cb34-30" aria-hidden="true" tabindex="-1"></a><span class="co"># predictor must learn the influence-neighborhood map.</span></span>
+<span id="cb34-31"><a href="#cb34-31" aria-hidden="true" tabindex="-1"></a>batch <span class="op">=</span> <span class="fl">16</span></span>
+<span id="cb34-32"><a href="#cb34-32" aria-hidden="true" tabindex="-1"></a>X_ctx <span class="op">=</span> <span class="fu">randn</span>(rng_t, <span class="dt">Float32</span>, <span class="fl">8</span>, batch)</span>
+<span id="cb34-33"><a href="#cb34-33" aria-hidden="true" tabindex="-1"></a>true_neighborhood <span class="op">=</span> <span class="fu">randn</span>(rng_t, <span class="dt">Float32</span>, <span class="fl">4</span>, <span class="fl">8</span>)  <span class="co"># ground-truth influence</span></span>
+<span id="cb34-34"><a href="#cb34-34" aria-hidden="true" tabindex="-1"></a>Y_masked <span class="op">=</span> true_neighborhood <span class="op">*</span> X_ctx</span>
+<span id="cb34-35"><a href="#cb34-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-36"><a href="#cb34-36" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">cjepa_loss</span>(p)</span>
+<span id="cb34-37"><a href="#cb34-37" aria-hidden="true" tabindex="-1"></a>    result, _ <span class="op">=</span> <span class="fu">train_cjepa</span>(<span class="fu">Dict</span>(<span class="op">:</span>ContextSlots <span class="op">=&gt;</span> X_ctx), p, st_c)</span>
+<span id="cb34-38"><a href="#cb34-38" aria-hidden="true" tabindex="-1"></a>    ŷ <span class="op">=</span> result[<span class="op">:</span>values][<span class="op">:</span>context_to_masked]</span>
+<span id="cb34-39"><a href="#cb34-39" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>((ŷ <span class="op">.-</span> Y_masked) <span class="op">.^</span> <span class="fl">2</span>) <span class="op">/</span> <span class="fu">length</span>(Y_masked)</span>
+<span id="cb34-40"><a href="#cb34-40" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb34-41"><a href="#cb34-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-42"><a href="#cb34-42" aria-hidden="true" tabindex="-1"></a>initial_loss <span class="op">=</span> <span class="fu">cjepa_loss</span>(ps_c)</span>
+<span id="cb34-43"><a href="#cb34-43" aria-hidden="true" tabindex="-1"></a>opt_state <span class="op">=</span> Optimisers.<span class="fu">setup</span>(Optimisers.<span class="fu">Adam</span>(<span class="fl">1f-2</span>), ps_c)</span>
+<span id="cb34-44"><a href="#cb34-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-45"><a href="#cb34-45" aria-hidden="true" tabindex="-1"></a>losses <span class="op">=</span> <span class="dt">Float32</span>[initial_loss]</span>
+<span id="cb34-46"><a href="#cb34-46" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">150</span></span>
+<span id="cb34-47"><a href="#cb34-47" aria-hidden="true" tabindex="-1"></a>    gs <span class="op">=</span> <span class="fu">gradient</span>(cjepa_loss, ps_c)[<span class="fl">1</span>]</span>
+<span id="cb34-48"><a href="#cb34-48" aria-hidden="true" tabindex="-1"></a>    opt_state, ps_c <span class="op">=</span> Optimisers.<span class="fu">update</span>(opt_state, ps_c, gs)</span>
+<span id="cb34-49"><a href="#cb34-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> step <span class="op">%</span> <span class="fl">10</span> <span class="op">==</span> <span class="fl">0</span></span>
+<span id="cb34-50"><a href="#cb34-50" aria-hidden="true" tabindex="-1"></a>        <span class="fu">push!</span>(losses, <span class="fu">cjepa_loss</span>(ps_c))</span>
+<span id="cb34-51"><a href="#cb34-51" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"  step </span><span class="sc">$</span>(<span class="fu">lpad</span>(step, <span class="fl">3</span>))<span class="st"> — C-JEPA loss = </span><span class="sc">$</span>(<span class="fu">round</span>(losses[<span class="kw">end</span>]; sigdigits<span class="op">=</span><span class="fl">4</span>))<span class="st">"</span>)</span>
+<span id="cb34-52"><a href="#cb34-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb34-53"><a href="#cb34-53" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb34-54"><a href="#cb34-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-55"><a href="#cb34-55" aria-hidden="true" tabindex="-1"></a>final_loss <span class="op">=</span> <span class="fu">cjepa_loss</span>(ps_c)</span>
+<span id="cb34-56"><a href="#cb34-56" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">C-JEPA loss: </span><span class="sc">$</span>(<span class="fu">round</span>(initial_loss; sigdigits<span class="op">=</span><span class="fl">4</span>))<span class="st"> → </span><span class="sc">$</span>(<span class="fu">round</span>(final_loss; sigdigits<span class="op">=</span><span class="fl">4</span>))<span class="st">"</span>)</span>
+<span id="cb34-57"><a href="#cb34-57" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Reduction factor: </span><span class="sc">$</span>(<span class="fu">round</span>(final_loss <span class="op">/</span> initial_loss; sigdigits<span class="op">=</span><span class="fl">3</span>))<span class="st">"</span>)</span>
+<span id="cb34-58"><a href="#cb34-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-59"><a href="#cb34-59" aria-hidden="true" tabindex="-1"></a><span class="pp">@assert</span> <span class="fu">isfinite</span>(final_loss)</span>
+<span id="cb34-60"><a href="#cb34-60" aria-hidden="true" tabindex="-1"></a><span class="pp">@assert</span> final_loss <span class="op">&lt;</span> initial_loss <span class="st">"C-JEPA training did not reduce loss"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  step  10 — C-JEPA loss = 7.444
+  step  20 — C-JEPA loss = 5.101
+  step  30 — C-JEPA loss = 3.83
+  step  40 — C-JEPA loss = 2.984
+  step  50 — C-JEPA loss = 2.246
+  step  60 — C-JEPA loss = 1.672
+  step  70 — C-JEPA loss = 1.319
+  step  80 — C-JEPA loss = 1.061
+  step  90 — C-JEPA loss = 0.8303
+  step 100 — C-JEPA loss = 0.6425
+  step 110 — C-JEPA loss = 0.4982
+  step 120 — C-JEPA loss = 0.3892
+  step 130 — C-JEPA loss = 0.3075
+  step 140 — C-JEPA loss = 0.2454
+  step 150 — C-JEPA loss = 0.1976
+
+C-JEPA loss: 11.7 → 0.1976
+Reduction factor: 0.0169</code></pre>
+</div>
+</div>
+<p>Adam steps drive the predictor to recover the influence neighborhood — the right-Kan kernel that makes the masked entity predictable from its context. In the full C-JEPA pipeline this scalar MSE would be replaced by the joint <span class="math inline">\(\mathcal{L}_\text{history} + \mathcal{L}_\text{future}\)</span> objective with EMA target encoder, but the optimization geometry is the same: minimization forces the predictor to factor through the minimal sufficient context.</p>
 </section>
 <section id="summary-and-correspondence-table" class="level2">
 <h2 class="anchored" data-anchor-id="summary-and-correspondence-table">Summary and Correspondence Table</h2>

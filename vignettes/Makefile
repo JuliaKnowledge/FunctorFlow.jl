@@ -25,7 +25,7 @@ qmd_file = $(wildcard $(1)/*.qmd)
 # Quarto flags
 QUARTO := quarto
 QUARTO_FLAGS := --execute
-JULIA_PROJECT_DIR := $(realpath ..)
+JULIA_PROJECT_DIR := $(realpath .)
 
 # Export JULIA_PROJECT for Quarto's Julia engine (QuartoNotebookRunner)
 export JULIA_PROJECT := $(JULIA_PROJECT_DIR)

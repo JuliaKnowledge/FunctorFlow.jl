@@ -39,6 +39,13 @@ using Lux
 using LuxCore
 using Random
 
+# As of FunctorFlow v0.3.0 the Lux layer types live in `FunctorFlowLuxExt`
+# and are not re-exported. Bring them into scope after `using Lux` triggers
+# the extension load.
+const _LuxExt = Base.get_extension(FunctorFlow, :FunctorFlowLuxExt)
+const DiagramDenseLayer  = _LuxExt.DiagramDenseLayer
+const KETAttentionLayer  = _LuxExt.KETAttentionLayer
+
 rng = Random.MersenneTwister(42)
 ```
 
@@ -47,7 +54,7 @@ rng = Random.MersenneTwister(42)
 A `DiagramDenseLayer` wraps a standard dense (affine) transformation as a FunctorFlow morphism layer. It maps an input dimension to an output dimension with learnable weights and biases.
 
 ```{julia}
-dense = FunctorFlow.DiagramDenseLayer(8, 4)
+dense = DiagramDenseLayer(8, 4)
 ```
 
 Initialize parameters and state, then run a forward pass.
@@ -69,7 +76,7 @@ The `KETAttentionLayer` implements the attention mechanism used in the KET (Kan 
 The layer internally computes Q, K, V projections from a single `source` input of shape `(d_model, seq_len[, batch])`.
 
 ```{julia}
-attn = FunctorFlow.KETAttentionLayer(16; n_heads=1)
+attn = KETAttentionLayer(16; n_heads=1)
 ps_a, st_a = Lux.setup(rng, attn)
 source = randn(rng, Float32, 16, 5)  # d_model × seq_len
 out_a, st_a2 = attn(source, ps_a, st_a)
@@ -79,7 +86,7 @@ println("Attention output size: ", size(out_a))
 ### Multi-head attention
 
 ```{julia}
-mha = FunctorFlow.KETAttentionLayer(16; n_heads=4)
+mha = KETAttentionLayer(16; n_heads=4)
 ps_m, st_m = Lux.setup(rng, mha)
 out_m, st_m2 = mha(source, ps_m, st_m)
 println("Multi-head output size: ", size(out_m))
@@ -109,7 +116,7 @@ Compile the diagram into a Lux model, providing a `KETAttentionLayer` for the re
 ```{julia}
 model = compile_to_lux(D;
     reducer_layers=Dict(
-        :ket_attention => FunctorFlow.KETAttentionLayer(8; n_heads=1)
+        :ket_attention => KETAttentionLayer(8; n_heads=1)
     )
 )
 ```
@@ -137,8 +144,8 @@ db = db_square(; name=:NeuralDB)
 
 model_db = compile_to_lux(db;
     morphism_layers=Dict(
-        :f => FunctorFlow.DiagramDenseLayer(4, 4),
-        :g => FunctorFlow.DiagramDenseLayer(4, 4)
+        :f => DiagramDenseLayer(4, 4),
+        :g => DiagramDenseLayer(4, 4)
     )
 )
 ```
@@ -165,10 +172,10 @@ gt = gt_neighborhood_block(; name=:NeuralGT, reducer=:ket_attention)
 
 model_gt = compile_to_lux(gt;
     morphism_layers=Dict(
-        :lift => FunctorFlow.DiagramDenseLayer(8, 8)
+        :lift => DiagramDenseLayer(8, 8)
     ),
     reducer_layers=Dict(
-        :ket_attention => FunctorFlow.KETAttentionLayer(8; n_heads=2)
+        :ket_attention => KETAttentionLayer(8; n_heads=2)
     )
 )
 ```
@@ -282,8 +289,8 @@ Compile with neural layers only for the unbound morphisms.
 ```{julia}
 model_mixed = compile_to_lux(D_mixed;
     morphism_layers=Dict(
-        :encode => FunctorFlow.DiagramDenseLayer(8, 4),
-        :decode => FunctorFlow.DiagramDenseLayer(4, 4)
+        :encode => DiagramDenseLayer(8, 4),
+        :decode => DiagramDenseLayer(4, 4)
     )
 )
 
@@ -330,7 +337,12 @@ batch = randn(rng, Float32, 4, 8)
 
 function db_obstruction_loss(p)
     result, _ = train_model(Dict(:State => batch), p, st_train)
-    sum(result[:losses])
+    # Compute the obstruction loss directly from the path values to keep the
+    # gradient path Zygote-friendly (Dict literal_getindex on result[:losses]
+    # currently confuses Zygote). The DB square's obstruction is l2(fg, gf).
+    fg = result[:values][:p1]
+    gf = result[:values][:p2]
+    sum((fg .- gf) .^ 2) / length(fg)
 end
 
 initial_loss = db_obstruction_loss(ps_train)

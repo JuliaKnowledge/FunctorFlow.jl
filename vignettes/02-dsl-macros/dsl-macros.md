@@ -28,6 +28,13 @@ style.
 
 ``` julia
 using FunctorFlow
+# Catlab and CategoricalDiagramSchema are weak deps as of FunctorFlow v0.5.0;
+# loading them activates `to_presentation`/`to_symbolic` and `to_acset`
+# respectively. Use `import Catlab` (not `using`) to avoid the `Diagram`
+# name clash with FunctorFlow.
+import Catlab
+using CategoricalDiagramSchema
+using Catlab.CategoricalAlgebra: nparts, subpart
 ```
 
 ## The @functorflow Macro
@@ -243,7 +250,7 @@ println("Kan extensions in ACSet: ", nparts(acs, :Kan))
 ``` julia
 # Convert to Catlab Presentation for symbolic reasoning
 pres = to_presentation(D4)
-println("Generators: ", length(FunctorFlow.Catlab.generators(pres)))
+println("Generators: ", length(Catlab.generators(pres)))
 ```
 
     Generators: 3

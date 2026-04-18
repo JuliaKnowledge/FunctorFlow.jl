@@ -240,7 +240,7 @@ println("All values:          ", result[:all_values])
 
     Intervention result: Dict{Any, Any}()
     Conditioning result: Dict{Any, Any}()
-    All values:          Dict{Symbol, Any}(:Observations => Dict(:a => 1.0, :b => 2.0, :c => 3.0), :intervene => Dict{Any, Any}(), :condition => Dict{Any, Any}(), :CausalStructure => Dict{Tuple{Symbol, Symbol}, Bool}((:a, :b) => 1, (:b, :c) => 1))
+    All values:          Dict{Symbol, Any}(:Observations => Dict(:a => 1.0, :b => 2.0, :c => 3.0), :intervene => Dict{Any, Any}(), :ConditionalState => Dict{Any, Any}(), :condition => Dict{Any, Any}(), :InterventionalState => Dict{Any, Any}(), :CausalStructure => Dict{Tuple{Symbol, Symbol}, Bool}((:a, :b) => 1, (:b, :c) => 1))
 
 When a `density_ratio_fn` is supplied, each observation is reweighted by
 $\rho(y) = p_{\text{do}}(y) / p_{\text{obs}}(y)$ before aggregation —

@@ -29,7 +29,12 @@ The API uses mathematical unicode notation: **Σ** for left Kan extensions (univ
 ```{julia}
 #| output: false
 using FunctorFlow
-using Catlab  # required as of FunctorFlow v0.5.0 for `to_presentation`/`to_symbolic`/`define_theory`/`nparts`/`subpart`
+# As of FunctorFlow v0.5.0 Catlab is a weak dependency. Loading it activates
+# `to_presentation`/`to_symbolic`/`define_theory`. Loading
+# CategoricalDiagramSchema activates `to_acset`/`from_acset`. We use selective
+# imports to avoid the `Diagram` name clash between FunctorFlow and Catlab.
+import Catlab
+using CategoricalDiagramSchema
 using Catlab.CategoricalAlgebra: nparts, subpart
 ```
 
