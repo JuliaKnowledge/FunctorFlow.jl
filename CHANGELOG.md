@@ -5,6 +5,32 @@ All notable changes to FunctorFlow.jl are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] — 2026-04-17
+
+### Added
+- **Self-contained `proofs/` Lake project** (`FunctorFlowProofs`): Lean 4
+  schema for the certificates emitted by `render_lean_certificate`,
+  `render_construction_certificate`, and `render_jepa_certificate`. No
+  Mathlib dependency — defines `OperationKind`, `OperationDecl`,
+  `PortDecl`, `DiagramDecl`, `LossDecl`, `LoweringArtifact`
+  (with `check`/`Sound`/`sound_of_check`/`lossIsObstruction`/
+  `loss_obstruction_of_check`/`CoalgebraExact`/
+  `coalgebra_exact_of_zero_loss`), `ConstructionDecl` (six kinds with
+  trivial universal-property Props + matching constructors),
+  `CoalgebraDecl` / `BisimulationDecl` (with
+  `bisim_implies_final_eq`), and `EnergyDecl`
+  (with `nonneg_of_standard`).
+- **Lean certificate roundtrip test** (`test/test_lean_certificates.jl`):
+  opt-in via `FF_LEAN_CI=true`; emits a small diagram + pullback
+  certificate and runs `lake build` to verify it type-checks.
+- **`Lean` GitHub Actions workflow** (`.github/workflows/lean.yml`):
+  builds the bare `proofs/` Lake project on every PR/push touching
+  `proofs/`, `src/proof_interface.jl`, or the test/workflow itself, then
+  re-runs `Pkg.test()` with `FF_LEAN_CI=true` to verify emitted
+  certificates round-trip through `lake build`.
+
+Closes audit P1-FF-3 ("wire emitted Lean certificates into Julia CI").
+
 ## [0.3.2] — 2026-04-17
 
 ### Added

@@ -225,6 +225,36 @@ The optional `AgentFramework.jl` extension can then turn `CLIFFAgentSpec`,
 agents, workflow checkpoint requests, and checkpoint payloads for LLM-backed
 execution.
 
+## Lean certificates
+
+FunctorFlow.jl can emit Lean 4 certificate files that record diagram /
+universal-construction / JEPA invariants. They are checked against a
+self-contained Lake project under `proofs/` (no Mathlib dependency).
+
+```julia
+using FunctorFlow
+
+D = ket_block()
+cert = render_lean_certificate(D; module_name="MyKET")
+write("proofs/FunctorFlowProofs/Generated/MyKET.lean",
+      "import FunctorFlowProofs\n\n" * cert)
+```
+
+Then verify with [elan / lake](https://leanprover-community.github.io/install/):
+
+```bash
+cd proofs && lake build
+```
+
+The full Julia → Lean roundtrip lives in `test/test_lean_certificates.jl`
+and is opt-in:
+
+```bash
+FF_LEAN_CI=true julia --project=. -e 'using Pkg; Pkg.test()'
+```
+
+The same flow runs in CI via `.github/workflows/lean.yml`.
+
 ## Dependencies
 
 - **Required**: OrderedCollections.jl, JSON3.jl

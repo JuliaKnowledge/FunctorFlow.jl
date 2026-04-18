@@ -1,0 +1,49 @@
+name: Lean
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'proofs/**'
+      - 'src/proof_interface.jl'
+      - 'test/test_lean_certificates.jl'
+      - '.github/workflows/lean.yml'
+  pull_request:
+    paths:
+      - 'proofs/**'
+      - 'src/proof_interface.jl'
+      - 'test/test_lean_certificates.jl'
+      - '.github/workflows/lean.yml'
+  workflow_dispatch:
+
+jobs:
+  lean-build:
+    name: lake build (proofs/)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Lean library
+        uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: ./proofs
+
+  julia-lean-roundtrip:
+    name: emit + verify Lean certificates
+    needs: lean-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lean toolchain (elan)
+        uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: ./proofs
+          build: false
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10'
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Run FunctorFlow.jl tests with Lean certificate roundtrip
+        env:
+          FF_LEAN_CI: 'true'
+        uses: julia-actions/julia-runtest@v1

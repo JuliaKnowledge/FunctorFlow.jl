@@ -595,6 +595,9 @@ end
     # JEPA, Coalgebra, and Energy tests
     include("test_jepa.jl")
 
+    # Lean certificate verification (opt-in via FF_LEAN_CI=true)
+    include("test_lean_certificates.jl")
+
     @testset "Schema roundtrip" begin
         if HAS_CDS
             include("test_schema_roundtrip.jl")
