@@ -5,6 +5,58 @@ All notable changes to FunctorFlow.jl are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-04-18
+
+### Added
+- **`FunctorFlowTinyGradExt` extension** (`ext/FunctorFlowTinyGradExt/`):
+  compiles a `Diagram` to one of two TinyGrad-backed engines:
+  - `TinyGradBackend` (`mode = :round_trip`) — round-trips Julia arrays
+    through `TinyGrad.TinyTensor` for every morphism. Always works,
+    regardless of whether reducers/morphisms are opaque Julia callables.
+  - `UOpCompiledBackend` (`mode = :uop`) — attempts to trace each
+    morphism into the shared TinyGrad UOp DAG. When all ops trace
+    cleanly the entire diagram becomes a single fused UOp graph that can
+    be re-realised with new inputs without re-walking Julia code (see
+    the `compiled.fully_traced` flag). Falls back to opaque per-op
+    execution when tracing fails (e.g. for `:ket` reducers operating on
+    `Dict`s).
+  - Public entry point: `compile_to_tinygrad(D; mode = :round_trip)`
+    returns a callable `FFTinyGradModel`. Lower-level constructors
+    `tinygrad_backend()` / `uop_compiled_backend()` are also exported.
+  - Architectural pattern parity with
+    `CatNet.jl/ext/CatNetTinyGradExt`. Together with CDS this completes
+    the `CDS ⇄ FF ⇄ CN ⇄ TinyGrad` shared-schema pipeline.
+- **`AbstractFunctorFlowBackend`** abstract type plus generic methods
+  `lower(backend, D)`, `realize(backend, compiled, inputs)`,
+  `backend_name(backend)`, `supports_dtype(backend, T)`. Tagged with
+  `ChainRulesCore.@non_differentiable` on the ext-lookup helper to keep
+  Zygote from chasing the extension boundary.
+- **Vignette 27** (`vignettes/27-tinygrad-backend/`): end-to-end demo of
+  both backends, schema round-trip, and an informal performance
+  comparison.
+- **`test/test_tinygrad_ext.jl`** — 8 testsets covering backend
+  metadata, identity diagrams, a 3-layer MLP, UOp full-trace parity,
+  opaque fallback, re-run, composition + obstruction loss, and schema
+  round-trip. Gated on `using TinyGrad` succeeding; skipped (with a
+  banner) in environments where TinyGrad cannot resolve.
+- **`test/setup_local_dev.jl`** — convenience script to `Pkg.develop`
+  sibling repos (TinyGrad.jl, CategoricalDiagramSchema.jl) into the FF
+  test env, mirroring CN's pattern.
+
+### Notes
+- TinyGrad is **weakdeps-only**. The standard FF env (no TinyGrad)
+  continues to pass cleanly: 877 pass + 1 broken/skipped (the
+  TinyGrad ext testset).
+- **Known dependency conflict**: TinyGrad's transitive
+  `Symbolics.jl 7 → MultivariatePolynomials ≥ 0.5.12` is incompatible
+  with FF's `Catlab → Compose / GATlab → DataStructures = "0.18"`
+  (whose latest `MultivariatePolynomials` is 0.5.9). Therefore the
+  TinyGrad ext cannot be exercised by FF's CI in the standard
+  `Pkg.test()` sandbox — users wanting to use the TinyGrad backend must
+  build a custom env (FF dev source + TinyGrad without Catlab) or wait
+  for upstream `DataStructures = "0.19"` adoption across Compose /
+  GATlab / ACSets. Vignette 27 documents the workaround.
+
 ## [0.3.3] — 2026-04-17
 
 ### Added

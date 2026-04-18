@@ -2,7 +2,7 @@
 
 julia_version = "1.12.5"
 manifest_format = "2.0"
-project_hash = "53dc7917a90cb78f3cb31adf42d9d409ccc179f5"
+project_hash = "d838463d7850b02c3c9731e4f8750cb6572eaccf"
 
 [[deps.ACSets]]
 deps = ["AlgebraicInterfaces", "Base64", "CompTime", "DataStructures", "JSON3", "MLStyle", "OrderedCollections", "PEG", "Permutations", "Pkg", "PrettyTables", "Random", "Reexport", "SHA", "StaticArrays", "StructEquality", "StructTypes", "Tables"]
@@ -164,7 +164,7 @@ version = "0.8.5"
 deps = ["Catlab", "ChainRulesCore", "JSON3", "OrderedCollections", "Random"]
 path = "."
 uuid = "e8daeac3-1699-4d22-bf61-9995042cc00d"
-version = "0.3.4"
+version = "0.4.0"
 
     [deps.FunctorFlow.extensions]
     FunctorFlowAgentFrameworkExt = "AgentFramework"
@@ -173,6 +173,7 @@ version = "0.3.4"
     FunctorFlowMakieExt = "Makie"
     FunctorFlowMetalExt = ["Metal", "Lux", "LuxCore"]
     FunctorFlowSchemaExt = "CategoricalDiagramSchema"
+    FunctorFlowTinyGradExt = "TinyGrad"
 
     [deps.FunctorFlow.weakdeps]
     AgentFramework = "8d84e483-4b84-4e3c-9ca2-3749d621083b"
@@ -182,6 +183,7 @@ version = "0.3.4"
     Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
     Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
     Optimisers = "3bd65402-5787-11e9-1adc-39752487f4e2"
+    TinyGrad = "b7752126-0b1d-4f54-8195-f272948c7ed7"
     Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [[deps.GATlab]]

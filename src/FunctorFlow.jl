@@ -424,4 +424,84 @@ export build_topocoend_lux_model, build_horn_lux_model, build_higher_horn_lux_mo
 export build_bisimulation_quotient_lux_model
 export train_diagram!
 
+# ---------------------------------------------------------------------------
+# Backend abstraction — used by execution backends like TinyGrad.
+#
+# Introduced in v0.4.0 alongside FunctorFlowTinyGradExt.  Each backend
+# implements `lower(backend, diagram, params, inputs)` and
+# `realize(backend, lowered, inputs)` plus the metadata helpers
+# `backend_name` and `supports_dtype`.  See the extension modules in
+# `ext/` for concrete implementations.
+# ---------------------------------------------------------------------------
+
+"""Supertype for FunctorFlow execution backends (e.g. TinyGrad)."""
+abstract type AbstractFunctorFlowBackend end
+
+"""Lower a `Diagram` to a backend-specific executable representation."""
+function lower(backend::AbstractFunctorFlowBackend, diagram, args...; kwargs...)
+    error("lower not implemented for $(typeof(backend))")
+end
+
+"""Execute a lowered representation on inputs."""
+function realize(backend::AbstractFunctorFlowBackend, lowered, inputs)
+    error("realize not implemented for $(typeof(backend))")
+end
+
+"""Return the string name of the backend."""
+backend_name(::AbstractFunctorFlowBackend) = "unknown"
+
+"""Check if a dtype is supported by this backend."""
+supports_dtype(::AbstractFunctorFlowBackend, ::Type) = false
+
+export AbstractFunctorFlowBackend, lower, realize, backend_name, supports_dtype
+
+# ---------------------------------------------------------------------------
+# TinyGrad neural backend — shims that resolve to FunctorFlowTinyGradExt.
+#
+# TinyGrad is a weak dependency.  Concrete backend code lives in
+# `ext/FunctorFlowTinyGradExt/`.  The shims below resolve via
+# `Base.get_extension` once `using TinyGrad` has been called.
+# ---------------------------------------------------------------------------
+
+@inline function _tinygrad_ext()
+    ext = Base.get_extension(@__MODULE__, :FunctorFlowTinyGradExt)
+    ext === nothing && error(
+        "FunctorFlow's TinyGrad backend requires `using TinyGrad` before any of " *
+        "`compile_to_tinygrad`, `tinygrad_backend`, or `uop_compiled_backend`. " *
+        "TinyGrad is a weak dependency as of FunctorFlow v0.4.0; add it to your " *
+        "project and `import TinyGrad` first."
+    )
+    return ext
+end
+
+ChainRulesCore.@non_differentiable _tinygrad_ext()
+
+"""
+    compile_to_tinygrad(D::Diagram; backend=:array_roundtrip, kwargs...)
+
+Compile a FunctorFlow `Diagram` to a TinyGrad-backed callable model.
+Requires `using TinyGrad` first.  See
+`FunctorFlowTinyGradExt.compile_to_tinygrad` for full keyword docs.
+"""
+compile_to_tinygrad(args...; kwargs...) = _tinygrad_ext().compile_to_tinygrad(args...; kwargs...)
+
+"""
+    tinygrad_backend() -> TinyGradBackend
+
+Construct the array-round-trip TinyGrad backend.  Requires `using TinyGrad`.
+"""
+tinygrad_backend(args...; kwargs...) = _tinygrad_ext().TinyGradBackend(args...; kwargs...)
+
+"""
+    uop_compiled_backend() -> UOpCompiledBackend
+
+Construct the UOp-compiled TinyGrad backend.  Requires `using TinyGrad`.
+This backend traces FunctorFlow morphisms through TinyGrad's lazy tensor
+system and falls back to array round-trip for non-traceable morphisms
+(dict-based reducers, broadcasted Julia ops, etc.).
+"""
+uop_compiled_backend(args...; kwargs...) = _tinygrad_ext().UOpCompiledBackend(args...; kwargs...)
+
+export compile_to_tinygrad, tinygrad_backend, uop_compiled_backend
+
 end # module FunctorFlow
