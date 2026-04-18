@@ -8,7 +8,7 @@ using FunctorFlow: Diagram, FFObject, Morphism, Composition, KanExtension,
 using CategoricalDiagramSchema
 using CategoricalDiagramSchema: CategoricalDiagramACSet, make_diagram,
     DEFAULT_SHAPE, DEFAULT_DTYPE, DEFAULT_METADATA, DEFAULT_WEIGHT
-using Catlab.CategoricalAlgebra: add_part!, subpart, nparts, incident
+using CategoricalDiagramSchema: add_part!, subpart, nparts, incident
 
 import FunctorFlow: to_acset, from_acset
 

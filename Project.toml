@@ -33,7 +33,7 @@ FunctorFlowTinyGradExt = "TinyGrad"
 
 [compat]
 AgentFramework = "0.1"
-CategoricalDiagramSchema = "0.1, 0.2"
+CategoricalDiagramSchema = "0.1, 0.2, 0.3"
 Catlab = "0.16, 0.17"
 ChainRulesCore = "1"
 JSON3 = "1"
