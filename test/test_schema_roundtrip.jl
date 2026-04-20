@@ -157,4 +157,31 @@ using Test
         D2 = acset_to_diagram(acs; name=:Aliased)
         @test D2.name == :Aliased
     end
+
+    @testset "json_portable=true round-trip via cds_to_json" begin
+        D = FunctorFlow.Diagram(:JP)
+        FunctorFlow.add_object!(D, :x; shape="(10,)", kind=:input,
+                                metadata=Dict{Symbol,Any}(:dtype=>Float32))
+        FunctorFlow.add_object!(D, :y; shape="(4,)", kind=:output)
+        FunctorFlow.add_morphism!(D, :f, :x, :y)
+
+        acs = to_acset(D; json_portable=true)
+        # JP-mode column types: shape→Vector{Int}, dtype→Symbol
+        @test acs[1, :node_shape] isa AbstractVector
+        @test acs[:, :node_dtype] isa AbstractVector{Symbol}
+        # dtype was promoted out of metadata, so it must NOT also live there
+        for md in acs[:, :node_metadata]
+            @test !haskey(md, :dtype)
+        end
+
+        j = cds_to_json(acs)
+        acs_back = cds_from_json(typeof(acs), j)
+        @test cds_isequal(acs, acs_back)
+
+        D2 = from_acset(acs_back; name=:JP2)
+        @test D2.objects[:x].shape == "(10,)"
+        @test D2.objects[:x].metadata[:dtype] === :Float32
+        @test D2.objects[:y].shape == "(4,)"
+        @test haskey(D2.operations, :f)
+    end
 end

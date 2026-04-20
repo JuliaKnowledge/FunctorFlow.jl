@@ -5,6 +5,30 @@ All notable changes to FunctorFlow.jl are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] — 2026-05-09
+
+### Added
+- **JSON-portable ACSet emission** via a new `json_portable=true` keyword
+  on `to_acset`. The portable form uses `ShapeType=Vector{Int}` and
+  `DTypeType=Symbol`, matching the contract documented on
+  `cds_from_json`. This unlocks a direct `Diagram → ACSet → JSON →
+  ACSet → Diagram` round-trip via
+  `CategoricalDiagramSchema.cds_to_json` / `cds_from_json` without
+  needing to hop through `TinyGrad.to_cds_acset`. Default mode
+  (`json_portable=false`) is unchanged and backwards-compatible.
+  - Symbol-valued user metadata (e.g. `:kind => :skip_connection`) is
+    normalised to `String` at write time so that JSON3 round-trip is a
+    fixed point (JSON has no Symbol type). The same normalisation is
+    applied to `Vector{Symbol}` and `Tuple` values, recursively into
+    nested `AbstractDict`s.
+- `from_acset` now reads both the default form (`Tuple` shape, `Type`
+  dtype) *and* the JSON-portable form (`Vector{Int}` shape, `Symbol`
+  dtype) transparently, so consumers don't need to know which form
+  produced the ACSet. JP-form dtypes surface through
+  `obj.metadata[:dtype]` as a `Symbol` (e.g. `:Float32`).
+- New `@testset "json_portable=true round-trip via cds_to_json"` in
+  `test/test_schema_roundtrip.jl` exercises both halves of the contract.
+
 ## [0.5.0] — 2026-05-09
 
 ### Changed (BREAKING)

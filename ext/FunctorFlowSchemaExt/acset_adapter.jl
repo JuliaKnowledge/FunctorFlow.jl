@@ -38,25 +38,93 @@ function _format_shape(shape::Tuple)
     length(shape) == 1 && return "($(shape[1]),)"
     return "(" * join(shape, ", ") * ")"
 end
+_format_shape(shape::AbstractVector) = _format_shape(Tuple(Int.(shape)))
 
 _edge_metadata(op) = copy(op.metadata)
 
+# JSON-portable encodings (mirror TinyGradCDSExt conventions).
+_jp_shape_from_str(s)        = Int[_parse_shape(s)...]
+
+# FF stores dtype as either a Type, Symbol, String, the sentinel `Any`
+# (DEFAULT_DTYPE), or nothing. Project all of these onto a Symbol with a
+# canonical `:unspecified` for the absent case so JSON round-trips cleanly.
+_jp_dtype(::Nothing)         = :unspecified
+_jp_dtype(::Type{Any})       = :unspecified
+_jp_dtype(t::Type)           = nameof(t)
+_jp_dtype(s::Symbol)         = s
+_jp_dtype(s::AbstractString) = Symbol(s)
+_jp_dtype(other)             = Symbol(string(other))
+
+# Walk a metadata Dict and Symbol→String-normalise its values so that
+# round-tripping through JSON3 (which has no Symbol type) is a fixed
+# point. We touch *values* only (keys are always Symbol). Recurses one
+# level into `AbstractVector{Symbol}` (e.g. `Composition.chain`) and
+# leaves other values untouched.
+function _jp_normalize_metadata(md::AbstractDict)
+    out = Dict{Symbol, Any}()
+    for (k, v) in md
+        out[Symbol(k)] = _jp_normalize_value(v)
+    end
+    out
+end
+_jp_normalize_metadata(md) = md  # passthrough for non-Dict
+_jp_normalize_value(v::Symbol) = String(v)
+_jp_normalize_value(v::AbstractVector{Symbol}) = String.(v)
+_jp_normalize_value(v::Tuple) = [_jp_normalize_value(x) for x in v]
+_jp_normalize_value(v::AbstractDict) = _jp_normalize_metadata(v)
+_jp_normalize_value(v) = v
+
 # ---- to_acset --------------------------------------------------------------
 
-function to_acset(D::Diagram)
-    acs = make_diagram()
+"""
+    to_acset(D::Diagram; json_portable::Bool=false) -> CategoricalDiagramACSet
+
+Project a FunctorFlow `Diagram` onto the shared
+`CategoricalDiagramACSet` schema.
+
+When `json_portable=true`, the returned ACSet uses
+`ShapeType=Vector{Int}` and `DTypeType=Symbol` so that
+`CategoricalDiagramSchema.cds_to_json` / `cds_from_json` can round-trip
+it. Shape strings are parsed to integer vectors and dtypes are
+projected onto canonical symbols (e.g. `:Float32`, `:Int64`;
+`Any`/`nothing` ↦ `:unspecified`). `Composition.chain` symbols inside
+metadata become `Vector{String}` so that `Dict{Symbol,Any}` is
+fixed-point under JSON3 parse.
+
+The default form (`json_portable=false`) preserves the richer in-memory
+types but is not JSON-round-trippable (`Tuple` shapes have no JSON
+encoding).
+"""
+function to_acset(D::Diagram; json_portable::Bool = false)
+    acs = json_portable ?
+          make_diagram(; ShapeType = Vector{Int}, DTypeType = Symbol) :
+          make_diagram()
     node_idx = Dict{Symbol, Int}()
     edge_idx = Dict{Symbol, Int}()
 
     # Nodes
     for (name, obj) in D.objects
-        shape = _parse_shape(obj.shape)
-        dtype = get(obj.metadata, :dtype, DEFAULT_DTYPE)
+        shape_jp = _jp_shape_from_str(obj.shape)
+        shape    = json_portable ? shape_jp : Tuple(shape_jp)
+        raw_dtype = get(obj.metadata, :dtype, DEFAULT_DTYPE)
+        dtype = json_portable ? _jp_dtype(raw_dtype) : raw_dtype
         md = copy(obj.metadata)
-        if obj.shape !== nothing
+        # The `ff_string_shape` round-trip aid is FF-internal noise that
+        # JSON consumers don't need and that complicates `cds_isequal`.
+        # In default mode we keep emitting it for backward compatibility.
+        if !json_portable && obj.shape !== nothing
             md[:ff_string_shape] = obj.shape
         end
+        # In JP mode dtype is now a first-class column; strip it from
+        # metadata to avoid (a) duplication and (b) JSON3 lossily
+        # converting a `Type` value to a `String` on round-trip.
+        if json_portable
+            delete!(md, :dtype)
+        end
         md[:description] = obj.description
+        if json_portable
+            md = _jp_normalize_metadata(md)
+        end
         nid = add_part!(acs, :Node;
             node_name = name,
             node_kind = obj.kind,
@@ -73,18 +141,32 @@ function to_acset(D::Diagram)
             sid = get(node_idx, op.source, nothing)
             tid = get(node_idx, op.target, nothing)
             (sid === nothing || tid === nothing) && continue
+            emd = _edge_metadata(op)
+            if json_portable
+                emd = _jp_normalize_metadata(emd)
+            end
             eid = add_part!(acs, :Edge;
                 src = sid, tgt = tid,
                 edge_name = name,
                 edge_kind = :morphism,
-                edge_metadata = _edge_metadata(op),
+                edge_metadata = emd,
             )
             edge_idx[name] = eid
         elseif op isa Composition
             sid = get(node_idx, op.source, nothing)
             tid = get(node_idx, op.target, nothing)
             (sid === nothing || tid === nothing) && continue
-            md = merge(_edge_metadata(op), Dict{Symbol, Any}(:chain => op.chain))
+            chain_val = json_portable ? String.(op.chain) : op.chain
+            md = merge(_edge_metadata(op), Dict{Symbol, Any}(:chain => chain_val))
+            if json_portable
+                md = _jp_normalize_metadata(md)
+                # Preserve chain as the JSON-portable Vector{String} we
+                # explicitly built (the generic normalizer would have
+                # converted Vector{Symbol} but the value is already
+                # Vector{String}; this is a no-op in JP mode but keeps
+                # intent explicit).
+                md[:chain] = chain_val
+            end
             eid = add_part!(acs, :Edge;
                 src = sid, tgt = tid,
                 edge_name = name,
@@ -104,11 +186,15 @@ function to_acset(D::Diagram)
                 tid = add_part!(acs, :Node;
                     node_name = tgt_name,
                     node_kind = :kan_target,
-                    node_shape = DEFAULT_SHAPE,
-                    node_dtype = DEFAULT_DTYPE,
+                    node_shape = json_portable ? Int[] : DEFAULT_SHAPE,
+                    node_dtype = json_portable ? :unspecified : DEFAULT_DTYPE,
                     node_metadata = tmd,
                 )
                 node_idx[tgt_name] = tid
+            end
+            kmd = copy(op.metadata)
+            if json_portable
+                kmd = _jp_normalize_metadata(kmd)
             end
             add_part!(acs, :Kan;
                 kan_src = sid,
@@ -117,18 +203,22 @@ function to_acset(D::Diagram)
                 kan_name = name,
                 kan_dir = op.direction == LEFT ? :left : :right,
                 kan_reducer = op.reducer,
-                kan_metadata = copy(op.metadata),
+                kan_metadata = kmd,
             )
         end
     end
 
     # Obstruction losses
     for (name, loss) in D.losses
+        omd = copy(loss.metadata)
+        if json_portable
+            omd = _jp_normalize_metadata(omd)
+        end
         lid = add_part!(acs, :ObsLoss;
             obs_name = name,
             obs_comparator = loss.comparator,
             obs_weight = loss.weight,
-            obs_metadata = copy(loss.metadata),
+            obs_metadata = omd,
         )
         for (left_name, right_name) in loss.paths
             l_eid = get(edge_idx, left_name, nothing)
@@ -169,7 +259,17 @@ function from_acset(acs; name::Union{Symbol, AbstractString} = :Imported)
             push!(auto_targets, nname)
             continue
         end
-        shape_str = _format_shape(node_shapes[i])
+        # Re-hydrate shape from either Tuple (default form) or Vector{Int}
+        # (JSON-portable form).
+        raw_shape = node_shapes[i]
+        shape_tup = if raw_shape isa Tuple
+            raw_shape
+        elseif raw_shape isa AbstractVector
+            isempty(raw_shape) ? () : Tuple(Int.(raw_shape))
+        else
+            ()
+        end
+        shape_str = _format_shape(shape_tup)
         # Prefer a previously-recorded ff_string_shape for exact round-trip
         if meta isa AbstractDict && haskey(meta, :ff_string_shape)
             ff_s = meta[:ff_string_shape]
@@ -185,6 +285,14 @@ function from_acset(acs; name::Union{Symbol, AbstractString} = :Imported)
                 k in (:ff_string_shape, :description, :auto_kan_target) && continue
                 clean_meta[Symbol(k)] = v
             end
+        end
+        # If the JSON-portable form was used, the dtype was promoted to a
+        # column-level Symbol; surface it through metadata[:dtype] so the
+        # FF object sees something sensible.
+        dtype_col = subpart(acs, :node_dtype)[i]
+        if dtype_col isa Symbol && dtype_col !== :unspecified &&
+           !haskey(clean_meta, :dtype)
+            clean_meta[:dtype] = dtype_col
         end
         add_object!(D, nname;
             kind = node_kinds[i],
