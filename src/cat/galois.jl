@@ -62,6 +62,19 @@ end
 # ----------------------------------------------------------------------------
 
 """
+    _derivation_ops(O, At, inc) -> (up, down)
+
+The two derivation operators of a formal context (its Galois connection):
+`up(A) = {attrs shared by all of A}` and `down(B) = {objects having all of B}`,
+where `inc` is the set of `(object, attribute)` incidence pairs.
+"""
+function _derivation_ops(O, At, inc)
+    up(A)   = Set(m for m in At if all((o, m) in inc for o in A))   # objects → shared attributes
+    down(B) = Set(o for o in O if all((o, m) in inc for m in B))    # attributes → common objects
+    (up, down)
+end
+
+"""
     formal_concepts(objects, attributes, incidence) -> Vector{NamedTuple}
 
 The formal concepts `(extent, intent)` of a context, where `incidence` is the
@@ -73,9 +86,7 @@ an attribute set `B` with `A' = B` and `B' = A` under the derivation operators
 function formal_concepts(objects, attributes, incidence)
     O = collect(objects); At = collect(attributes)
     inc = Set(incidence)
-    # derivation operators
-    up(A) = Set(m for m in At if all((o, m) in inc for o in A))           # objects → shared attributes
-    down(B) = Set(o for o in O if all((o, m) in inc for m in B))          # attributes → common objects
+    up, down = _derivation_ops(O, At, inc)
     concepts = NamedTuple[]
     seen = Set{Any}()
     # every concept's extent is down(B) for some attribute set; generate from attribute-closed sets
@@ -102,7 +113,6 @@ connection): `extent' = intent` and `intent' = extent`.
 """
 function is_formal_concept(extent, intent, objects, attributes, incidence)
     O = collect(objects); At = collect(attributes); inc = Set(incidence)
-    up(A) = Set(m for m in At if all((o, m) in inc for o in A))
-    down(B) = Set(o for o in O if all((o, m) in inc for m in B))
+    up, down = _derivation_ops(O, At, inc)
     Set(up(extent)) == Set(intent) && Set(down(intent)) == Set(extent)
 end

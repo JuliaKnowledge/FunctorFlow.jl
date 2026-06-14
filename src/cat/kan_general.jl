@@ -29,18 +29,17 @@ function left_kan(F::FinFunctor, X::SetFunctor)
         end
         idx = Dict{Any,Int}(t => i for (i, t) in enumerate(tagged))
         parent = collect(1:length(tagged))
-        find(i) = (while parent[i] != i; parent[i] = parent[parent[i]]; i = parent[i]; end; i)
         for c in objects(C), c2 in objects(C), u in homset(C, c, c2)
             Fu = F(u); Xu = hommap(X, u)
             for h2 in homset(D, F.ob_map[c2], d)
                 h = compose(D, Fu, h2)
                 for x in ob(X, c).elements
-                    i, j = find(idx[(c, h, x)]), find(idx[(c2, h2, Xu(x))])
+                    i, j = _uf_find!(parent, idx[(c, h, x)]), _uf_find!(parent, idx[(c2, h2, Xu(x))])
                     i == j || (parent[i] = j)
                 end
             end
         end
-        repof = Dict{Any,Any}(t => tagged[find(idx[t])] for t in tagged)
+        repof = Dict{Any,Any}(t => tagged[_uf_find!(parent, idx[t])] for t in tagged)
         repcache[d] = repof
         ob_map[d] = FinSet(unique(values(repof)))
     end

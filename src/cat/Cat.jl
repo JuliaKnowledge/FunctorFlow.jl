@@ -95,6 +95,21 @@ end
 Base.:(==)(f::FinFunction, g::FinFunction) =
     f.dom == g.dom && f.cod == g.cod && all(f.map[x] == g.map[x] for x in f.dom.elements)
 
+"""
+    _uf_find!(parent::Vector{Int}, i::Int) -> Int
+
+Root of `i` in an integer union-find forest, with path-halving (mutates
+`parent`). Shared by the quotient/colimit constructions (`coequalizer`,
+`colimit`, `left_kan`) that glue tagged elements into equivalence classes.
+"""
+function _uf_find!(parent::Vector{Int}, i::Int)
+    while parent[i] != i
+        parent[i] = parent[parent[i]]
+        i = parent[i]
+    end
+    i
+end
+
 # ----------------------------------------------------------------------------
 # Small categories: abstract interface + free category on a finite DAG
 # ----------------------------------------------------------------------------

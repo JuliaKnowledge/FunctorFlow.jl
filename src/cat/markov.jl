@@ -68,16 +68,11 @@ markov_id(A) = StochMap(A, A, Dict{Any, Dist}(a => dirac(a) for a in A))
 
 """`markov_compose(f, g)` — Kleisli/Chapman–Kolmogorov composition `g ∘ f`."""
 function markov_compose(f::StochMap, g::StochMap)
-    kernel = Dict{Any, Dist}()
-    for a in f.dom
-        acc = Dict{Any, Rational{Int}}()
-        for (b, pb) in f.kernel[a].support
-            for (c, pc) in g.kernel[b].support
-                acc[c] = get(acc, c, 0 // 1) + pb * pc
-            end
-        end
-        kernel[a] = Dist(acc)
-    end
+    # `Dist` accumulates repeated outcomes, so we hand it the (c, pb·pc) pairs directly.
+    kernel = Dict{Any, Dist}(
+        a => Dist((c, pb * pc) for (b, pb) in f.kernel[a].support
+                               for (c, pc) in g.kernel[b].support)
+        for a in f.dom)
     StochMap(f.dom, g.cod, kernel)
 end
 
@@ -94,14 +89,10 @@ markov_discard(A) = StochMap(A, [()], Dict{Any, Dist}(a => dirac(()) for a in A)
 function markov_tensor(f::StochMap, g::StochMap)
     dom = [(a, c) for a in f.dom for c in g.dom]
     cod = [(b, d) for b in f.cod for d in g.cod]
-    kernel = Dict{Any, Dist}()
-    for (a, c) in dom
-        acc = Dict{Any, Rational{Int}}()
-        for (b, pb) in f.kernel[a].support, (d, pd) in g.kernel[c].support
-            acc[(b, d)] = get(acc, (b, d), 0 // 1) + pb * pd
-        end
-        kernel[(a, c)] = Dist(acc)
-    end
+    kernel = Dict{Any, Dist}(
+        (a, c) => Dist(((b, d), pb * pd) for (b, pb) in f.kernel[a].support
+                                         for (d, pd) in g.kernel[c].support)
+        for (a, c) in dom)
     StochMap(dom, cod, kernel)
 end
 

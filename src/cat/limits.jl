@@ -152,15 +152,14 @@ function coequalizer(f::FinFunction, g::FinFunction)
     B = f.cod
     idx = Dict(b => i for (i, b) in enumerate(B.elements))
     parent = collect(1:length(B.elements))
-    find(i) = (while parent[i] != i; parent[i] = parent[parent[i]]; i = parent[i]; end; i)
     for a in f.dom.elements
-        i, j = find(idx[f(a)]), find(idx[g(a)])
+        i, j = _uf_find!(parent, idx[f(a)]), _uf_find!(parent, idx[g(a)])
         i == j || (parent[i] = j)
     end
     # canonical class representative = smallest-index element
     rep = Dict{Any,Any}()
     for b in B.elements
-        r = find(idx[b])
+        r = _uf_find!(parent, idx[b])
         rep[b] = B.elements[r]
     end
     classes = unique(rep[b] for b in B.elements)

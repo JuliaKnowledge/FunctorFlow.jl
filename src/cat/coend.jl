@@ -113,8 +113,13 @@ struct CoendCocone
     coeq::CoequalizerCocone
 end
 
-# Fold a vector of FinSets into one coproduct with tagged injections.
-# Returns (apex, injections::Vector{FinFunction}) where injection i : Sᵢ → apex.
+"""
+    _nary_coproduct(sets, tags) -> (apex::FinSet, injs::Vector{FinFunction})
+
+Fold a vector of `FinSet`s into one coproduct with tagged injections: each
+element becomes `(tag, x)`, and `injs[i] : sets[i] → apex` tags elements with
+their source set's `tags[i]`. (`tags`/`sets` are zipped, so they must align.)
+"""
 function _nary_coproduct(sets::Vector{FinSet}, tags::Vector{Symbol})
     elts = Any[]
     for (tag, S) in zip(tags, sets), x in S.elements
@@ -167,9 +172,8 @@ function coend(P::Profunctor)
     # Two parallel maps  H ⇉ D : per heteromorphism, tag its λ- and ρ-images into ⊔diag.
     src_map = Dict{Any,Any}()
     tgt_map = Dict{Any,Any}()
-    for (i, n) in enumerate(edge_names)
-        # locate this edge's (name, src, tgt)
-        (nm, es, et) = C.edges[findfirst(e -> e[1] == n, C.edges)]
+    # edge_names is built from C.edges in order, so the i-th het summand is C.edges[i].
+    for (i, (n, es, et)) in enumerate(C.edges)
         λ = P.lact[n]   # P(t,s) → P(es=src, src) on the contravariant variable
         ρ = P.ract[n]   # P(t,s) → P(et=tgt, tgt)
         for x in het_sets[i].elements
@@ -288,8 +292,7 @@ function end_(P::Profunctor)
     alltrue = Tuple(fill(true, length(edge_names)))
     for fam in Dprod.elements
         bits = Bool[]
-        for (ei, n) in enumerate(edge_names)
-            (nm, es, et) = C.edges[findfirst(e -> e[1] == n, C.edges)]
+        for (n, es, et) in C.edges
             λ = P.lact[n]; ρ = P.ract[n]
             xc  = fam[pos[es]]
             xc2 = fam[pos[et]]

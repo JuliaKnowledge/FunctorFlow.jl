@@ -26,6 +26,7 @@ struct Lens
     put::FinFunction          # S×A → S
 end
 
+"""Cartesian product `X×Y` as a `FinSet` of `(x, y)` pairs (the carrier for lens domains)."""
 _prod(X::Vector, Y::Vector) = FinSet(Any[(x, y) for x in X for y in Y])
 
 """`lens_id(S)` — the identity lens (`get = id`, `put` keeps the new value)."""

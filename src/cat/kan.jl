@@ -35,17 +35,16 @@ function colimit(X::SetFunctor)
     tagged = Any[(o, x) for o in objs for x in ob(X, o).elements]
     idx = Dict{Any, Int}(t => i for (i, t) in enumerate(tagged))
     parent = collect(1:length(tagged))
-    find(i) = (while parent[i] != i; parent[i] = parent[parent[i]]; i = parent[i]; end; i)
     for (n, s, t) in cat.edges
         fn = X.edge_map[n]
         for x in ob(X, s).elements
-            i, j = find(idx[(s, x)]), find(idx[(t, fn(x))])
+            i, j = _uf_find!(parent, idx[(s, x)]), _uf_find!(parent, idx[(t, fn(x))])
             i == j || (parent[i] = j)
         end
     end
     repof = Dict{Any, Any}()
     for t in tagged
-        repof[t] = tagged[find(idx[t])]
+        repof[t] = tagged[_uf_find!(parent, idx[t])]
     end
     apex = FinSet(unique(values(repof)))
     legs = Dict{Symbol, FinFunction}(

@@ -73,7 +73,10 @@ Kleisli composition of `f : a → T(b)` and `g : b → T(c)`:
 function kleisli_compose(m::Monad, f::PathMor, g::PathMor)
     C = m.functor.dom
     # g : b → T(c); recover c as the object whose T-image is g.cod
-    cobj = objects(C)[findfirst(o -> m.functor.ob_map[o] == g.cod, objects(C))]
+    objs = objects(C)
+    k = findfirst(o -> m.functor.ob_map[o] == g.cod, objs)
+    k === nothing && throw(ArgumentError("kleisli_compose: cod $(g.cod) of g is not in the image of T (g is not a Kleisli morphism for this monad)"))
+    cobj = objs[k]
     compose(C, f, compose(C, m.functor(g), m.mult.components[cobj]))
 end
 

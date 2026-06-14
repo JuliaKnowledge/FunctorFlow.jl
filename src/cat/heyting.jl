@@ -46,10 +46,17 @@ function hjoin(H::HeytingAlgebra, x, y)
     error("no least upper bound for $x, $y (not a lattice)")
 end
 
-htop(H::HeytingAlgebra) = something(findfirst(t -> all(hle(H, x, t) for x in H.elements), H.elements), nothing) |>
-    i -> i === nothing ? error("no top") : H.elements[i]
-hbot(H::HeytingAlgebra) = something(findfirst(b -> all(hle(H, b, x) for x in H.elements), H.elements), nothing) |>
-    i -> i === nothing ? error("no bottom") : H.elements[i]
+# The unique element satisfying `pred`, or `error(what)` if there is none.
+function _unique_bound(H::HeytingAlgebra, pred, what::AbstractString)
+    i = findfirst(pred, H.elements)
+    i === nothing && error("no $what")
+    H.elements[i]
+end
+
+"""`htop(H)` — the top element `⊤` (above every element)."""
+htop(H::HeytingAlgebra) = _unique_bound(H, t -> all(hle(H, x, t) for x in H.elements), "top")
+"""`hbot(H)` — the bottom element `⊥` (below every element)."""
+hbot(H::HeytingAlgebra) = _unique_bound(H, b -> all(hle(H, b, x) for x in H.elements), "bottom")
 
 """`himply(H, x, y)` — Heyting implication `x ⇒ y`: the greatest `z` with `z∧x ≤ y`."""
 function himply(H::HeytingAlgebra, x, y)
