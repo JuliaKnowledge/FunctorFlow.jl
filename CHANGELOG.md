@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0] — 2026-06-13
 
+### Higher-categorical layer: coends, operads, 2-categories, sheaves + a general chain rule
+Four more kernel modules — the higher-categorical structures behind attention,
+wiring, pasting, and gluing — plus the backprop chain rule upgraded from
+per-instance certificates to a real, Mathlib-free Lean theorem. (Developed as
+five isolated experiments, then merged onto the kernel.)
+
+- **Coends & profunctors** (`src/cat/coend.jl`): `Profunctor` (a functor
+  `Cᵒᵖ × C → FinSet`) and its **coend** `∫^c P(c,c)`, realised as the
+  coequalizer of the two dinaturality maps — so it inherits the *verified*
+  universal property already proved for `Cat.coequalizer` in `limits.jl`. The
+  worked example is **attention as a coend**: the same colimit-of-a-bimodule
+  that `Cat.left_kan` computes pointwise. Also ships `end_` (the dual end).
+  Exports: `Profunctor`, `profunctor_diag`, `CoendCocone`, `coend`,
+  `coend_class`, `verify_coend`, `EndCone`, `end_`.
+- **Operads / multicategories** (`src/cat/operad.jl`): finite one-colored
+  (symmetric) operads with substitution `γ : O(n) × O(k₁) × … → O(Σkᵢ)`, the
+  associativity & unit laws (and optional `Sₙ`-equivariance) checked by
+  enumeration. A FunctorFlow wiring diagram *is* an operation in the operad of
+  wiring diagrams — `γ` is "substitute a sub-architecture for a box". Ships
+  `commutative_operad`, `associative_operad`, `wiring_operad`,
+  `little_intervals_operad`, `unary_monoid`, plus `operad_laws` /
+  `operad_symmetry_laws`.
+- **Strict 2-categories / bicategories** (`src/cat/twocat.jl`): 0-, 1-, and
+  2-cells with **vertical** (`vcomp`) and **horizontal** (`hcomp`) composition
+  tied by the **interchange law**, all tabulated and checked by enumeration
+  (`check_two_category_laws`). `cat_two_category` builds the 2-category of small
+  categories / `FinFunctor`s / `FunctorNatTrans`es by actually computing the
+  natural-transformation composites; `deloop_monoid` is the smallest example.
+  Para reparametrisations form a *bi*category (`para_is_bicategory_note`).
+- **Sheaves** (`src/cat/sheaf.jl`): Grothendieck (co)topologies in the dual
+  ("co") setting consistent with the kernel's copresheaves + cosieves —
+  `Coverage`, `covering_sieves`, `is_grothendieck_topology`, `matching_families`,
+  `amalgamations`, `is_separated`, `is_sheaf`, `separated_reflection`. Sheaf
+  gluing (every matching family has a unique amalgamation) is the structural
+  backbone of corpus-synthesis-as-colimit; ships `span_site` / `span_sheaf` /
+  `span_non_sheaf` worked examples.
+- **General chain rule, proved in Lean 4** (`proofs/FunctorFlowProofs/ChainRule.lean`):
+  where `Learn.lean` certifies *instances* of `(g∘f)ᵀ = fᵀ∘gᵀ` over `ℤ_n`
+  matrices by `native_decide`, this proves the **general** theorem
+  `(A·B)ᵀ = Bᵀ·Aᵀ` for all conforming matrices, **by induction, with no
+  Mathlib and no `native_decide`**. An index-based `Mat` representation gives
+  `transp_mul` (unconditional given conformance), and `matT_matMul` bridges it
+  to `Learn.lean`'s `List (List Nat)` encoding. Verified `sorry`/`admit`-free;
+  `#print axioms` shows only `propext` / `Classical.choice` / `Quot.sound` (no
+  `sorryAx`). Backprop functoriality — the chain rule — is now a genuine
+  theorem, not only a per-network certificate.
+- Tests: `test_coend.jl`, `test_operad.jl`, `test_twocat.jl`, `test_sheaf.jl`
+  (coend = `left_kan` agreement and a non-universal cocone rejected; operad laws
+  with a broken-associativity negative control; the interchange law with a
+  violation caught; the sheaf condition with a non-sheaf presheaf rejected). Full
+  suite: **1493 pass, 0 fail, 2 broken** (the expected TinyGrad/Makie skips); the
+  Lean `proofs/` project (16 modules incl. `ChainRule`) builds clean.
+
 ### Breadth wave: internal logic, Galois/FCA, Grothendieck, Rel, Poly, F-algebras
 Six more categorical structures, each with an AI reading:
 

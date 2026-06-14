@@ -364,15 +364,49 @@ Cat.moore_to_poly(M)                                # a state machine IS a depen
 Cat.cata(eval_algebra, term)                        # a fold/tree-RNN IS a catamorphism (initial algebra)
 ```
 
+### Coends, operads, 2-categories, sheaves
+
+The higher-categorical layer — each built on (and reusing the verified universal
+properties of) the kernel:
+
+```julia
+Cat.coend(P)                       # ∫^c P(c,c) as a coequalizer of dinaturality — "attention as a coend"
+Cat.wiring_operad(...)             # diagrams/wiring as an operad: γ = "substitute a sub-architecture for a box"
+Cat.operad_laws(O)                 # operad associativity + unit, checked by enumeration
+Cat.cat_two_category(...)          # a strict 2-category of categories/functors/natural transformations
+Cat.check_interchange_law(K)       # the 2-cell interchange law (pasting squares agree)
+Cat.is_sheaf(C, J, F)              # the sheaf condition: every matching family glues to a unique amalgamation
+```
+
+- **Coends** (`src/cat/coend.jl`): a `Profunctor` `Cᵒᵖ × C → Set` and its coend
+  `∫^c P(c,c)`, realised as the coequalizer of the two dinaturality maps — so it
+  inherits the *verified* universal property of `Cat.coequalizer`. The worked
+  example is **attention as a coend** (the same colimit-of-a-bimodule that
+  `left_kan` computes pointwise).
+- **Operads / multicategories** (`src/cat/operad.jl`): one-colored (symmetric)
+  operads with substitution `γ`, the associativity/unit (and equivariance) laws
+  checked by enumeration. A FunctorFlow wiring diagram *is* an operation in the
+  operad of wiring diagrams; `γ` is "plug a sub-architecture into a box".
+- **Strict 2-categories / bicategories** (`src/cat/twocat.jl`): 0/1/2-cells with
+  vertical and horizontal composition tied by the **interchange law**;
+  `cat_two_category` builds the 2-category of small categories, functors and
+  natural transformations (Para reparametrisations form a *bi*category).
+- **Sheaves** (`src/cat/sheaf.jl`): Grothendieck (co)topologies, matching
+  families, amalgamations, and `is_separated` / `is_sheaf` — local-to-global
+  gluing, the structural backbone of corpus-synthesis-as-colimit.
+
 So the connection between category theory and AI is concrete and certified:
 **backprop-as-functor**, JEPA-exactness-as-commutativity, attention/KET-as-Kan-
-extension, RNNs/automata-as-coalgebras, folds/tree-RNNs-as-catamorphisms,
+extension (and **attention-as-a-coend**), RNNs/automata-as-coalgebras,
+folds/tree-RNNs-as-catamorphisms,
 probability/causality-as-a-Markov-category, embeddings-as-enriched-categories,
 learning-as-lenses/Para, dynamical-systems-as-polynomial-functors,
 concept-learning-as-Galois-connections, neuro-symbolic-logic-as-a-Heyting-algebra,
+wiring-diagrams-as-operads, pasting-squares-as-2-cells, local-to-global-gluing-as-sheaves,
 causal-models-as-categories, counterfactuals-as-pushouts, and
 corpus-synthesis-as-colimit — every piece on one kernel, runtime-checked and
-(for the kernel laws) machine-checked in Lean.
+(for the kernel laws) machine-checked in Lean (including a Mathlib-free,
+induction-proved **general chain rule** `(A·B)ᵀ = Bᵀ·Aᵀ`).
 
 The categorical foundation is now complete, applied, and certified: every
 classical construction is law-checked at runtime *and* Lean-certified, and the
