@@ -651,6 +651,9 @@ end
     include("test_enriched.jl")
     include("test_optics.jl")
 
+    # Strict 2-categories / bicategories (interchange law; Para's 2-cells)
+    include("test_twocat.jl")
+
     # Internal logic (Heyting), Galois/FCA, Grothendieck; Rel/Poly/F-algebras
     include("test_logic_lattice.jl")
     include("test_dynamics_recursion.jl")

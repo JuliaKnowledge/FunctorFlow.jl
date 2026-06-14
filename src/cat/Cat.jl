@@ -261,6 +261,7 @@ include("poly.jl")
 include("falgebra.jl")
 include("coend.jl")
 include("operad.jl")
+include("twocat.jl")
 
 # Finitely-presented categories (with relations)
 export FinPresentedCat, normalize, commutative_square
@@ -314,6 +315,7 @@ export powerset_unit, powerset_mult, kleisli_to_rel
 export Poly, monomial, PolyMap, is_poly_morphism, poly_id, poly_compose, moore_to_poly
 # F-algebras & catamorphisms (folds / recursion schemes)
 export Signature, Term, terms_upto, FAlgebra, cata, cata_is_homomorphism, arithmetic_signature
+<<<<<<< HEAD
 # Coends & profunctors (attention-as-a-coend; coend = coequalizer of dinaturality)
 export Profunctor, profunctor_diag
 export CoendCocone, coend, coend_class, verify_coend
@@ -322,5 +324,13 @@ export EndCone, end_
 export Operad, operad_ops, operad_arity, operad_id, operad_compose, operad_laws
 export operad_act, operad_symmetry_laws, unary_monoid
 export commutative_operad, associative_operad, wiring_operad, little_intervals_operad
+# Strict 2-categories / bicategories
+export TwoCategory, OneCell, TwoCell
+export zerocells, vcomp, hcomp
+export check_vertical_category_laws, check_horizontal_category_laws,
+       check_interchange_law, check_two_category_laws
+export deloop_monoid, cat_two_category
+export vcompose, hcompose, identity_nat
+export para_reparam_two_cell, para_is_bicategory_note
 
 end # module Cat
