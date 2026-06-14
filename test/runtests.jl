@@ -652,6 +652,9 @@ end
     include("test_logic_lattice.jl")
     include("test_dynamics_recursion.jl")
 
+    # Operads / multicategories (compositional architectures & wiring)
+    include("test_operad.jl")
+
     # Capstone: the causal/counterfactual layer re-founded on the Cat kernel
     include("test_cat_causal.jl")
 

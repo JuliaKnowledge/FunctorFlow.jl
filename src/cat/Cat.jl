@@ -259,6 +259,7 @@ include("grothendieck.jl")
 include("rel.jl")
 include("poly.jl")
 include("falgebra.jl")
+include("operad.jl")
 
 # Finitely-presented categories (with relations)
 export FinPresentedCat, normalize, commutative_square
@@ -312,5 +313,9 @@ export powerset_unit, powerset_mult, kleisli_to_rel
 export Poly, monomial, PolyMap, is_poly_morphism, poly_id, poly_compose, moore_to_poly
 # F-algebras & catamorphisms (folds / recursion schemes)
 export Signature, Term, terms_upto, FAlgebra, cata, cata_is_homomorphism, arithmetic_signature
+# Operads / multicategories (compositional architectures & wiring)
+export Operad, operad_ops, operad_arity, operad_id, operad_compose, operad_laws
+export operad_act, operad_symmetry_laws, unary_monoid
+export commutative_operad, associative_operad, wiring_operad, little_intervals_operad
 
 end # module Cat
