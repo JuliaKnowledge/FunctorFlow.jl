@@ -10,3 +10,4 @@ import FunctorFlowProofs.Enriched
 import FunctorFlowProofs.Optics
 import FunctorFlowProofs.Heyting
 import FunctorFlowProofs.Galois
+import FunctorFlowProofs.ChainRule
