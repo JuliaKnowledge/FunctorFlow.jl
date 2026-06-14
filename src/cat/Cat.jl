@@ -321,7 +321,6 @@ export powerset_unit, powerset_mult, kleisli_to_rel
 export Poly, monomial, PolyMap, is_poly_morphism, poly_id, poly_compose, moore_to_poly
 # F-algebras & catamorphisms (folds / recursion schemes)
 export Signature, Term, terms_upto, FAlgebra, cata, cata_is_homomorphism, arithmetic_signature
-<<<<<<< HEAD
 # Coends & profunctors (attention-as-a-coend; coend = coequalizer of dinaturality)
 export Profunctor, profunctor_diag
 export CoendCocone, coend, coend_class, verify_coend
