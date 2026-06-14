@@ -512,7 +512,8 @@ end
 
         @test contains(cert, "BisimulationDecl")
         @test contains(cert, "bisim_enc_equiv")
-        @test contains(cert, "bisimilar_iff_final_coalgebra_equal")
+        @test contains(cert, "bisim_enc_equiv_wellformed")
+        @test contains(cert, "WellFormed")
     end
 
     @testset "Certificate with energy functions" begin

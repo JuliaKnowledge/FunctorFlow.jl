@@ -366,11 +366,122 @@ function covariance_regularization(representations; eps::Real=1e-4)
     off_diag_sum / d
 end
 
+# ---------------------------------------------------------------------------
+# Batch-level self-supervised energies (operate on representation matrices
+# with columns = samples; vectors are treated as a single Dx1 sample).
+# ---------------------------------------------------------------------------
+
+"""Coerce a representation into a `D × N` matrix (columns = samples)."""
+_as_repr_matrix(x::AbstractMatrix) = x
+_as_repr_matrix(x::AbstractVector{<:Real}) = reshape(collect(float.(x)), :, 1)
+_as_repr_matrix(x) = reshape(_flatten_numeric(x), :, 1)
+
+"""
+    energy_vicreg(x, y; sim_coeff=25.0, var_coeff=25.0, cov_coeff=1.0)
+
+VICReg energy (Bardes, Ponce & LeCun 2022) between two batches of
+representations `x`, `y` (each `D × N`, columns = samples):
+
+    sim·‖x − y‖²/N  +  var·[v(x)+v(y)]  +  cov·[c(x)+c(y)]
+
+where `v` is the variance hinge (`variance_regularization`) and `c` the
+off-diagonal covariance penalty (`covariance_regularization`). Combines an
+invariance term with the two collapse-prevention terms.
+"""
+function energy_vicreg(x, y; sim_coeff::Real=25.0, var_coeff::Real=25.0, cov_coeff::Real=1.0)
+    X = _as_repr_matrix(x)
+    Y = _as_repr_matrix(y)
+    n = max(size(X, 2), size(Y, 2))
+    invariance = sum((X .- Y) .^ 2) / max(1, length(X))
+    var_term = variance_regularization(X) + variance_regularization(Y)
+    cov_term = covariance_regularization(X) + covariance_regularization(Y)
+    sim_coeff * invariance + var_coeff * var_term + cov_coeff * cov_term
+end
+
+"""
+    energy_barlow_twins(x, y; lambda=0.005)
+
+Barlow Twins energy (Zbontar et al. 2021): build the cross-correlation
+matrix `C` between batch-normalised features of `x` and `y` and penalise
+its deviation from the identity:
+
+    Σᵢ (1 − Cᵢᵢ)²  +  λ · Σᵢ≠ⱼ Cᵢⱼ²
+
+Requires a batch (≥2 samples); falls back to `energy_l2` for single samples.
+"""
+function energy_barlow_twins(x, y; lambda::Real=0.005)
+    X = _as_repr_matrix(x)
+    Y = _as_repr_matrix(y)
+    n = size(X, 2)
+    (n < 2 || size(Y, 2) != n) && return energy_l2(x, y)
+    Xn = _standardize_rows(X)
+    Yn = _standardize_rows(Y)
+    C = (Xn * Yn') ./ n           # D × D cross-correlation
+    d = size(C, 1)
+    on_diag = 0.0
+    off_diag = 0.0
+    for i in 1:d, j in 1:size(C, 2)
+        if i == j
+            on_diag += (1.0 - C[i, j])^2
+        else
+            off_diag += C[i, j]^2
+        end
+    end
+    on_diag + lambda * off_diag
+end
+
+"""Standardize each row (feature) of a `D × N` matrix to zero mean, unit std."""
+function _standardize_rows(M::AbstractMatrix)
+    n = size(M, 2)
+    μ = sum(M; dims=2) ./ n
+    centered = M .- μ
+    σ = sqrt.(sum(centered .^ 2; dims=2) ./ max(1, n) .+ 1e-8)
+    centered ./ σ
+end
+
+"""
+    energy_contrastive(x, y; temperature=0.07)
+
+InfoNCE / contrastive energy. Treats the columns of `x` as anchors and the
+columns of `y` as candidates; the positive for anchor `i` is candidate `i`,
+all other columns are negatives. Returns the mean InfoNCE loss over anchors
+using cosine-similarity logits scaled by `1/temperature`.
+"""
+function energy_contrastive(x, y; temperature::Real=0.07)
+    X = _normalize_cols(_as_repr_matrix(x))
+    Y = _normalize_cols(_as_repr_matrix(y))
+    n = size(X, 2)
+    (n < 2 || size(Y, 2) != n) && return energy_cosine(x, y)
+    logits = (X' * Y) ./ temperature      # N × N: logits[i, j] = sim(anchorᵢ, candⱼ)
+    total = 0.0
+    for i in 1:n
+        row = logits[i, :]
+        m = maximum(row)
+        denom = sum(exp.(row .- m))
+        total += -(row[i] - m - log(denom))   # -log softmax at the positive
+    end
+    total / n
+end
+
+"""L2-normalise each column of a matrix."""
+function _normalize_cols(M::AbstractMatrix)
+    out = similar(float.(M))
+    for j in 1:size(M, 2)
+        col = @view M[:, j]
+        nrm = sqrt(sum(col .^ 2) + 1e-8)
+        out[:, j] = col ./ nrm
+    end
+    out
+end
+
 """Registry of built-in energy function implementations."""
 const BUILTIN_ENERGY_FUNCTIONS = Dict{Symbol, Any}(
     :l2 => energy_l2,
     :cosine => energy_cosine,
     :smooth_l1 => energy_smooth_l1,
+    :vicreg => energy_vicreg,
+    :barlow_twins => energy_barlow_twins,
+    :contrastive => energy_contrastive,
 )
 
 """Registry of built-in regularization functions."""
@@ -378,6 +489,165 @@ const BUILTIN_REGULARIZERS = Dict{Symbol, Any}(
     :variance => variance_regularization,
     :covariance => covariance_regularization,
 )
+
+# ---------------------------------------------------------------------------
+# Energy / cost evaluation — the execution path that turns declared
+# EnergyFunction / CostModule metadata into actual numbers against an
+# executed environment (an `ExecutionResult` or a value dictionary).
+# ---------------------------------------------------------------------------
+
+_cost_env(result::ExecutionResult) = result.values
+_cost_env(env::AbstractDict) = env
+
+function _lookup_env(env, ref::Symbol)
+    haskey(env, ref) || throw(ArgumentError(
+        "energy/cost evaluation: value :$(ref) not found in the environment " *
+        "(did you `run` the diagram and pass its result/values?)"))
+    env[ref]
+end
+
+"""
+    evaluate_energy(ef::EnergyFunction, env; registry=BUILTIN_ENERGY_FUNCTIONS) -> Float64
+
+Evaluate a single `EnergyFunction` against an executed environment. The
+function named by `ef.energy_type` is looked up in `registry` and applied to
+the values bound to `ef.domain`. Two-argument energies receive the first two
+domain objects; the `:contrastive` energy is passed `ef.temperature`.
+"""
+function evaluate_energy(ef::EnergyFunction, env; registry=BUILTIN_ENERGY_FUNCTIONS)
+    fn = get(registry, ef.energy_type, nothing)
+    fn === nothing && throw(ArgumentError(
+        "No implementation for energy type :$(ef.energy_type). Available: " *
+        "$(sort(collect(keys(registry)))). Supply it via the `registry` kwarg."))
+    length(ef.domain) >= 2 || throw(ArgumentError(
+        "EnergyFunction :$(ef.name) needs at least two domain objects, got $(ef.domain)"))
+    a = _lookup_env(env, ef.domain[1])
+    b = _lookup_env(env, ef.domain[2])
+    val = ef.energy_type === :contrastive ? fn(a, b; temperature=ef.temperature) : fn(a, b)
+    Float64(val)
+end
+
+"""
+    compute_energies(compiled_or_diagram, env; registry=BUILTIN_ENERGY_FUNCTIONS) -> Dict{Symbol,Float64}
+
+Evaluate every `EnergyFunction` declared on a diagram against an executed
+environment (`ExecutionResult` or value dict). Returns name → energy value.
+"""
+function compute_energies(D::Diagram, env; registry=BUILTIN_ENERGY_FUNCTIONS)
+    e = _cost_env(env)
+    Dict{Symbol, Float64}(name => evaluate_energy(ef, e; registry=registry)
+                          for (name, ef) in get_energy_functions(D))
+end
+compute_energies(compiled::CompiledDiagram, env; kwargs...) =
+    compute_energies(compiled.diagram, env; kwargs...)
+
+"""
+    evaluate_cost_module(cm::CostModule, env; energy_registry, regularizer_registry,
+                         trainable_costs=Dict()) -> (total::Float64, components::Dict)
+
+Evaluate a `CostModule` decomposition `C = Σ uᵢ·ICᵢ + Σ vⱼ·TCⱼ` against an
+executed environment. Intrinsic cost components are mapped to concrete
+computations by `cost_type`:
+
+- `:prediction` / `:reconstruction` → squared-L2 energy between the first two
+  `source_refs`
+- `:variance` / `:covariance` → the corresponding regulariser on the first
+  `source_ref`
+- `:information` → `0.0` (no estimator wired in; reported in `components`)
+
+Trainable costs are evaluated only when a critic function for them is supplied
+via `trainable_costs[name]` (a callable `env -> Real`); otherwise they
+contribute `0.0` and are flagged in `components`.
+"""
+function evaluate_cost_module(cm::CostModule, env;
+                              energy_registry=BUILTIN_ENERGY_FUNCTIONS,
+                              regularizer_registry=BUILTIN_REGULARIZERS,
+                              trainable_costs::AbstractDict=Dict{Symbol, Any}())
+    e = _cost_env(env)
+    components = Dict{Symbol, Float64}()
+    total = 0.0
+
+    for ic in cm.intrinsic_costs
+        raw = _evaluate_intrinsic_cost(ic, e, energy_registry, regularizer_registry)
+        weighted = ic.weight * raw
+        components[ic.name] = weighted
+        total += weighted
+    end
+
+    for tc in cm.trainable_costs
+        critic = get(trainable_costs, tc.name, get(trainable_costs, tc.critic_morphism, nothing))
+        raw = critic === nothing ? 0.0 : Float64(critic(e))
+        weighted = tc.weight * raw
+        components[tc.name] = weighted
+        total += weighted
+    end
+
+    (total, components)
+end
+
+function _evaluate_intrinsic_cost(ic::IntrinsicCost, env, energy_registry, regularizer_registry)
+    refs = ic.source_refs
+    if ic.cost_type in (:prediction, :reconstruction)
+        length(refs) >= 2 || throw(ArgumentError(
+            "IntrinsicCost :$(ic.name) of type $(ic.cost_type) needs two source_refs, got $(refs)"))
+        fn = get(energy_registry, :l2, energy_l2)
+        return Float64(fn(_lookup_env(env, refs[1]), _lookup_env(env, refs[2])))
+    elseif ic.cost_type in (:variance, :covariance)
+        length(refs) >= 1 || throw(ArgumentError(
+            "IntrinsicCost :$(ic.name) of type $(ic.cost_type) needs a source_ref"))
+        reg = get(regularizer_registry, ic.cost_type, nothing)
+        reg === nothing && throw(ArgumentError("No regulariser for :$(ic.cost_type)"))
+        return Float64(reg(_as_repr_matrix(_lookup_env(env, refs[1]))))
+    elseif ic.cost_type === :information
+        return 0.0
+    else
+        throw(ArgumentError("Unknown intrinsic cost_type :$(ic.cost_type) on :$(ic.name)"))
+    end
+end
+
+"""
+    compute_costs(compiled_or_diagram, env; kwargs...) -> Dict{Symbol,Any}
+
+Evaluate every `CostModule` declared on a diagram against an executed
+environment. Returns module name → `Dict("total" => …, "components" => …)`.
+Keyword args are forwarded to [`evaluate_cost_module`](@ref).
+"""
+function compute_costs(D::Diagram, env; kwargs...)
+    e = _cost_env(env)
+    out = Dict{Symbol, Any}()
+    for (name, cm) in get_cost_modules(D)
+        total, components = evaluate_cost_module(cm, e; kwargs...)
+        out[name] = Dict{String, Any}("total" => total,
+                                      "components" => Dict(String(k) => v for (k, v) in components))
+    end
+    out
+end
+compute_costs(compiled::CompiledDiagram, env; kwargs...) =
+    compute_costs(compiled.diagram, env; kwargs...)
+
+"""
+    run_with_costs(D::Diagram, inputs; energy_registry, regularizer_registry,
+                   trainable_costs, comparators, reducers, morphisms)
+        -> (result::ExecutionResult, energies::Dict, costs::Dict)
+
+Run a diagram and additionally evaluate all declared energy functions and
+cost modules against the resulting environment. This is the executable
+counterpart to the declarative `add_energy_function!` / `add_cost_module!`
+API: it actually computes the energies/costs rather than only recording them.
+"""
+function run_with_costs(D::Diagram, inputs::AbstractDict;
+                        energy_registry=BUILTIN_ENERGY_FUNCTIONS,
+                        regularizer_registry=BUILTIN_REGULARIZERS,
+                        trainable_costs::AbstractDict=Dict{Symbol, Any}(),
+                        morphisms=nothing, reducers=nothing, comparators=nothing)
+    result = run(D, inputs; morphisms=morphisms, reducers=reducers, comparators=comparators)
+    energies = compute_energies(D, result; registry=energy_registry)
+    costs = compute_costs(D, result;
+                          energy_registry=energy_registry,
+                          regularizer_registry=regularizer_registry,
+                          trainable_costs=trainable_costs)
+    (result, energies, costs)
+end
 
 # ---------------------------------------------------------------------------
 # Energy-based cost block builder

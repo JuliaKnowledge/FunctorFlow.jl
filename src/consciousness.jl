@@ -51,11 +51,12 @@ AttentionScoreWeights(; salience=0.35, relevance=0.30, novelty=0.20, urgency=0.1
 
 struct ConsciousFieldOfView
     capacity::Int
-end
-
-function ConsciousFieldOfView(capacity::Integer=7)
-    capacity >= 1 || throw(ArgumentError("capacity must be at least 1"))
-    ConsciousFieldOfView(Int(capacity))
+    # Inner constructor so the validation cannot be bypassed by the
+    # auto-generated `ConsciousFieldOfView(::Int)` default constructor.
+    function ConsciousFieldOfView(capacity::Integer=7)
+        capacity >= 1 || throw(ArgumentError("capacity must be at least 1"))
+        new(Int(capacity))
+    end
 end
 
 struct BroadcastSelection

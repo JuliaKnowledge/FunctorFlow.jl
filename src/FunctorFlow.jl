@@ -61,6 +61,13 @@ include("composition.jl")
 include("adapters.jl")
 include("show.jl")
 
+# Verified categorical kernel (pure Julia) + Diagram↔category bridge.
+# Interface verbs (compose/id/dom/cod/homset/is_natural) stay namespaced inside
+# `Cat` to avoid clashing with FunctorFlow's own `compose`/`is_natural`; the
+# bridge below references them qualified.
+include("cat/Cat.jl")
+include("cat_bridge.jl")
+
 # ACSet schema stubs (CategoricalDiagramSchema integration via FunctorFlowSchemaExt)
 include("schema.jl")
 
@@ -112,6 +119,9 @@ include("categorical_model.jl")
 include("universal.jl")
 include("causal.jl")
 include("identifiability.jl")
+include("counterfactuals.jl")
+include("corpus_synthesis.jl")
+include("cat_causal.jl")   # causal/counterfactual layer re-founded on the Cat kernel
 include("topos.jl")
 include("scm.jl")
 include("psr.jl")
@@ -122,6 +132,8 @@ include("evidence_convergence.jl")
 include("cliff_router.jl")
 include("cliff_artifacts.jl")
 include("cliff_runtime.jl")
+include("cliff_textbook.jl")
+include("cat_integration.jl")   # horizontal: CLIFF/JEPA on the kernel + end-to-end pipeline
 include("data_bridges.jl")
 include("proof_shapes.jl")
 include("semantic_compiler.jl")
@@ -134,9 +146,36 @@ include("energy.jl")
 
 # Proof interface (after universal.jl and coalgebra/jepa so it can reference all types)
 include("proof_interface.jl")
+include("cat_certificates.jl")   # Lean certification of the Cat kernel
 
 # Unicode operators (after everything they depend on is defined)
 include("unicode.jl")
+
+# ---------------------------------------------------------------------------
+# Makie visualization — stub functions whose methods are provided by
+# `FunctorFlowMakieExt` once `using Makie` (or a Makie backend) is active.
+# Makie is a weak dependency; calling these without it raises a clear error.
+# ---------------------------------------------------------------------------
+
+"""
+    plot_diagram(D::Diagram; kwargs...) -> Makie.Figure
+
+Render a FunctorFlow `Diagram` as a layered graph (objects, morphisms, Kan
+extensions, obstruction losses). Method provided by `FunctorFlowMakieExt`;
+requires a Makie backend (`using CairoMakie` / `GLMakie`) loaded alongside
+FunctorFlow. Without Makie, this raises a `MethodError` pointing here.
+"""
+function plot_diagram end
+
+"""
+    plot_diagram!(ax, D::Diagram; kwargs...) -> ax
+
+In-place variant of [`plot_diagram`](@ref) that draws into an existing Makie
+axis. Method provided by `FunctorFlowMakieExt`.
+"""
+function plot_diagram! end
+
+export plot_diagram, plot_diagram!
 
 # ===== Public API =====
 
@@ -210,6 +249,12 @@ export FOUNDATIONS_TUTORIAL_LIBRARY, PLANNING_TUTORIAL_LIBRARY, UNIFIED_TUTORIAL
 # Proof interface
 export diagram_certificate_payload, render_lean_certificate, write_lean_certificate
 export render_construction_certificate, render_jepa_certificate
+export render_cat_certificate, render_functor_certificate
+export render_adjunction_certificate, render_monad_certificate
+export render_colimit_certificate, render_limit_certificate
+export render_backprop_certificate, render_bisimulation_certificate
+export render_metric_certificate, render_lens_certificate
+export render_heyting_certificate, render_galois_certificate
 export ProofShape, PullbackProofShape, PushoutProofShape, LeftKanProofShape, RightKanProofShape, ProofBundle
 export SCMMonomorphismProofShape, SCMCharacteristicMapProofShape
 export prove_pullback_shape, prove_pushout_shape, prove_left_kan_shape, prove_right_kan_shape
@@ -226,6 +271,18 @@ export verify_naturality
 # Note: `nparts`, `subpart`, `add_part!`, `incident` are no longer re-exported
 # (v0.5.0 BREAKING). Users wanting them should `using Catlab.CategoricalAlgebra`
 # or `using ACSets` directly.
+
+# Verified categorical kernel (Cat submodule) + Yoneda. Type names and the
+# Yoneda functions are re-exported; interface verbs remain `Cat.compose` etc.
+using .Cat: FinSet, FinFunction, FreeCat, FinPresentedCat, PathMor, FinFunctor, SetFunctor,
+            CatNatTrans, representable_functor, representable_presheaf, yoneda_map, yoneda_inverse,
+            yoneda_lemma_holds, is_representable, commutative_square
+export Cat
+export FinSet, FinFunction, FreeCat, FinPresentedCat, PathMor, FinFunctor, SetFunctor, CatNatTrans
+export representable_functor, representable_presheaf
+export yoneda_map, yoneda_inverse, yoneda_lemma_holds, is_representable
+export commutative_square
+export diagram_freecat, diagram_setfunctor
 
 # v1: Catlab interop
 export CategoricalModelObject, ModelMorphism, NaturalTransformation
@@ -247,6 +304,21 @@ export CausalDAG, identify_effect, IdentifiabilityResult, Hedge
 export IDExpression, Joint, CondP, Marginal, Product, QFactor, pretty_print
 export is_backdoor_admissible
 export ancestors_inclusive, c_components, subgraph, remove_incoming, topological_order
+# Counterfactuals (built on identify_effect)
+export CausalTriple, causal_triple, relation_polarity, build_causal_dag_from_triples
+export Counterfactual, counterfactual, counterfactual_effect, build_counterfactuals_from_triples
+# Causal categories (capstone: causal layer on the Cat kernel)
+export causal_category, intervention_functor, twin_network, twin_causal_diagram
+export causal_capstone, build_causal_capstone_example, causal_markov_kernel
+# Horizontal integration: CLIFF/JEPA on the kernel + end-to-end pipeline
+export cliff_knowledge_category, demos_reachable_from, jepa_square_category
+export integrated_pipeline, end_to_end_capstone
+# Corpus synthesis
+export CorpusClaim, SynthesizedClaim, CoherenceMetrics, CorpusSynthesisResult
+export glue_corpus_claims, corpus_truth_value, homotopy_coherence, query_alignment
+export synthesize_corpus, summarize_corpus_synthesis
+export build_corpus_synthesis_example
+export corpus_gluing_diagram, corpus_colimit   # categorical (colimit) view
 
 # v1: Topos foundations
 export SubobjectClassifier, SheafSection, SheafCoherenceCheck
@@ -322,6 +394,10 @@ export summarize_cliff_route_trace
 export build_cliff_orchestration_example, build_cliff_orchestration_compilation_plan
 export build_cliff_orchestration_executable_ir, execute_cliff_orchestration_example
 export summarize_cliff_orchestration_example
+# CLIFF textbook grounding (Categories for AGI chapter linkage)
+export TextbookChapter, CATAGI_TEXTBOOK, textbook_chapter, textbook_chapters
+export recommend_chapters, chapters_for_route, chapters_for_primitive
+export runnable_demos, route_with_textbook
 export agentframework_capabilities, build_agentframework_agent
 export build_agentframework_request_event, build_agentframework_checkpoint
 
@@ -362,9 +438,12 @@ export CollapsePreventionStrategy, EMA_TARGET, CONTRASTIVE, VICREG, BARLOW_TWINS
 export add_energy_function!, get_energy_functions
 export add_cost_module!, get_cost_modules
 export energy_l2, energy_cosine, energy_smooth_l1
+export energy_vicreg, energy_barlow_twins, energy_contrastive
 export variance_regularization, covariance_regularization
 export BUILTIN_ENERGY_FUNCTIONS, BUILTIN_REGULARIZERS
 export EnergyBlockConfig, energy_block
+# Energy / cost execution path
+export evaluate_energy, compute_energies, evaluate_cost_module, compute_costs, run_with_costs
 
 # ---------------------------------------------------------------------------
 # Lux neural backend — shims that resolve to FunctorFlowLuxExt

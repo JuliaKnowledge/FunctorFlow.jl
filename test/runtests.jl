@@ -3,6 +3,8 @@ using FunctorFlow
 
 const HAS_CATLAB = Base.find_package("Catlab") !== nothing
 const HAS_CDS = Base.find_package("CategoricalDiagramSchema") !== nothing
+const HAS_LUX = Base.find_package("Lux") !== nothing
+const HAS_MAKIE = Base.find_package("Makie") !== nothing
 
 if HAS_CATLAB
     @eval import Catlab
@@ -181,9 +183,12 @@ end
         @test result3.losses[:obs] > 0.0   # non-commutative
     end
 
-    include("test_lux_ext.jl")
-
-    include("test_lux_training.jl")
+    if HAS_LUX
+        include("test_lux_ext.jl")
+        include("test_lux_training.jl")
+    else
+        @info "Skipping Lux extension tests: Lux not available"
+    end
 
     include("test_tinygrad_ext.jl")
 
@@ -601,6 +606,60 @@ end
 
     # JEPA, Coalgebra, and Energy tests
     include("test_jepa.jl")
+
+    # Energy function math + cost-module execution path
+    include("test_energy.jl")
+
+    # CLIFF conscious-workspace layer and textbook-grounded routing
+    include("test_consciousness.jl")
+    include("test_cliff_textbook.jl")
+
+    # Counterfactuals (on identify_effect) + multi-document corpus synthesis
+    include("test_counterfactuals.jl")
+    include("test_corpus_synthesis.jl")
+
+    # Verified categorical kernel + Yoneda / representables / presheaves
+    include("test_cat_kernel.jl")
+    include("test_yoneda.jl")
+
+    # Verified universal properties (limits/colimits) + adjunctions
+    include("test_limits.jl")
+    include("test_adjunction.jl")
+
+    # Finitely-presented categories (relations) + Kan extensions (colim/lim)
+    include("test_presented.jl")
+    include("test_kan.jl")
+
+    # Monads / Kleisli + Kan extensions along an arbitrary functor
+    include("test_monads.jl")
+    include("test_kan_general.jl")
+
+    # Subobject classifier of the presheaf topos
+    include("test_topos_classifier.jl")
+
+    # Categorical deep learning: backpropagation as a functor
+    include("test_learn.jl")
+
+    # Coalgebras / automata + Markov categories (probability & causality)
+    include("test_coalg.jl")
+    include("test_markov.jl")
+
+    # Enriched/metric categories + lenses & Para (representation & gradient learning)
+    include("test_enriched.jl")
+    include("test_optics.jl")
+
+    # Internal logic (Heyting), Galois/FCA, Grothendieck; Rel/Poly/F-algebras
+    include("test_logic_lattice.jl")
+    include("test_dynamics_recursion.jl")
+
+    # Capstone: the causal/counterfactual layer re-founded on the Cat kernel
+    include("test_cat_causal.jl")
+
+    # Horizontal integration: CLIFF/JEPA on the kernel + end-to-end pipeline
+    include("test_cat_integration.jl")
+
+    # Makie visualization extension (skipped unless a backend is installed)
+    include("test_makie_ext.jl")
 
     # Lean certificate verification (opt-in via FF_LEAN_CI=true)
     include("test_lean_certificates.jl")

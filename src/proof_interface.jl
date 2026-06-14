@@ -57,11 +57,20 @@ function _operation_decl(op::Dict{Symbol, Any})
 end
 
 """
-    render_lean_certificate(D::Diagram; module_name=nothing) -> String
+    render_lean_certificate(D::Diagram; module_name=nothing, loss_values=Dict()) -> String
 
 Generate Lean 4 source code for a diagram certificate.
+
+Each obstruction loss declared on `D` is recorded in the emitted
+`LoweringArtifact.losses` with a `value` taken from `loss_values` (keyed by
+loss name, `Symbol` or `String`), defaulting to `0` — i.e. "claimed exact".
+The emitted `exportedArtifact_lossesZero` theorem (and the construction /
+JEPA exactness theorems) are proven *from* these recorded values via
+`native_decide`, so emitting a nonzero loss value makes the corresponding
+exactness/commutativity claim fail to type-check.
 """
-function render_lean_certificate(D::Diagram; module_name::Union{Nothing, String}=nothing)
+function render_lean_certificate(D::Diagram; module_name::Union{Nothing, String}=nothing,
+                                 loss_values::AbstractDict=Dict{Symbol, Int}())
     mod = module_name === nothing ? _sanitize_module_name(String(D.name)) : module_name
     payload = diagram_certificate_payload(D)
 
@@ -88,15 +97,27 @@ function render_lean_certificate(D::Diagram; module_name::Union{Nothing, String}
     for p in payload["ports"]
         push!(port_strs, "{ name := $(lean_string(p["name"])), ref := $(lean_string(p["ref"])), kind := $(lean_string(p["kind"])), portType := $(lean_string(p["port_type"])), direction := $(lean_string(p["direction"])) }")
     end
-    push!(lines, "  ports := $(lean_list(port_strs))")
+    push!(lines, "  ports := $(lean_list(port_strs)),")
+
+    # Loss names are declared refs (loss-kind ports point at them).
+    push!(lines, "  lossNames := $(lean_list([lean_string(String(loss.name)) for loss in values(D.losses)]))")
     push!(lines, "}")
     push!(lines, "")
+
+    # Recorded obstruction losses (value defaults to 0 = claimed exact).
+    loss_strs = String[]
+    for loss in values(D.losses)
+        v = get(loss_values, loss.name, get(loss_values, String(loss.name), 0))
+        v >= 0 || throw(ArgumentError("loss value for :$(loss.name) must be a non-negative integer (got $v)"))
+        push!(loss_strs, "{ name := $(lean_string(String(loss.name))), value := $(Int(v)) }")
+    end
 
     # Lowering artifact
     push!(lines, "def exportedArtifact : LoweringArtifact := {")
     push!(lines, "  diagram := exportedDiagram,")
     push!(lines, "  resolvedRefs := true,")
-    push!(lines, "  portsClosed := true")
+    push!(lines, "  portsClosed := true,")
+    push!(lines, "  losses := $(lean_list(loss_strs))")
     push!(lines, "}")
     push!(lines, "")
 
@@ -105,6 +126,10 @@ function render_lean_certificate(D::Diagram; module_name::Union{Nothing, String}
     push!(lines, "")
     push!(lines, "theorem exportedArtifact_sound : exportedArtifact.Sound :=")
     push!(lines, "  LoweringArtifact.sound_of_check exportedArtifact_checks")
+    push!(lines, "")
+    push!(lines, "-- All recorded obstruction losses are zero (the artifact is exact as configured).")
+    push!(lines, "theorem exportedArtifact_lossesZero : exportedArtifact.AllLossesZero :=")
+    push!(lines, "  exportedArtifact.allLossesZero_of_check (by native_decide)")
     push!(lines, "")
     push!(lines, "end FunctorFlowProofs.Generated.$mod")
 
@@ -134,9 +159,10 @@ function render_construction_certificate(uc::PullbackResult; module_name::Union{
     push!(construction_lines, "  interfaceMorphisms := $(lean_list([lean_string(String(m)) for m in uc.interface_morphisms]))")
     push!(construction_lines, "}")
     push!(construction_lines, "")
-    push!(construction_lines, "-- Commuting square theorem: both projections agree on shared interface")
-    push!(construction_lines, "theorem pullback_commutes : pullbackDecl.CommutingSquare := by")
-    push!(construction_lines, "  exact ConstructionDecl.commuting_of_loss exportedArtifact")
+    push!(construction_lines, "-- Commuting square: the projection morphisms and shared base are declared")
+    push!(construction_lines, "-- in the cone, and the recorded commuting obstruction is zero.")
+    push!(construction_lines, "theorem pullback_commutes : pullbackDecl.CommutingSquare exportedArtifact :=")
+    push!(construction_lines, "  ConstructionDecl.commuting_of_checks (by native_decide) (by native_decide)")
     push!(construction_lines, "")
 
     # Insert before the end namespace line
@@ -166,6 +192,10 @@ function render_construction_certificate(uc::PushoutResult; module_name::Union{N
     push!(construction_lines, "  interfaceMorphisms := $(lean_list([lean_string(String(m)) for m in uc.interface_morphisms]))")
     push!(construction_lines, "}")
     push!(construction_lines, "")
+    push!(construction_lines, "-- Universal cocone: the injection morphisms and shared sub-object are declared.")
+    push!(construction_lines, "theorem pushout_universal : pushoutDecl.UniversalCocone exportedArtifact :=")
+    push!(construction_lines, "  ConstructionDecl.universal_cocone_of_checks (by native_decide) (by native_decide)")
+    push!(construction_lines, "")
 
     lines = split(base_cert, "\n")
     insert_idx = findlast(l -> startswith(l, "end "), lines)
@@ -190,9 +220,9 @@ function render_construction_certificate(uc::ProductResult; module_name::Union{N
     push!(construction_lines, "  projections := $(lean_list([lean_string(String(p)) for p in uc.projections]))")
     push!(construction_lines, "}")
     push!(construction_lines, "")
-    push!(construction_lines, "-- Universal property: any cone factors uniquely through the product")
-    push!(construction_lines, "theorem product_universal : productDecl.UniversalCone := by")
-    push!(construction_lines, "  exact ConstructionDecl.universal_of_projections exportedArtifact")
+    push!(construction_lines, "-- Universal cone: each factor namespace has a declared object in the product.")
+    push!(construction_lines, "theorem product_universal : productDecl.UniversalCone exportedArtifact :=")
+    push!(construction_lines, "  ConstructionDecl.universal_cone_of_checks (by native_decide) (by native_decide)")
     push!(construction_lines, "")
 
     lines = split(base_cert, "\n")
@@ -218,9 +248,9 @@ function render_construction_certificate(uc::CoproductResult; module_name::Union
     push!(construction_lines, "  injections := $(lean_list([lean_string(String(i)) for i in uc.injections]))")
     push!(construction_lines, "}")
     push!(construction_lines, "")
-    push!(construction_lines, "-- Universal property: any cocone factors uniquely through the coproduct")
-    push!(construction_lines, "theorem coproduct_universal : coproductDecl.UniversalCocone := by")
-    push!(construction_lines, "  exact ConstructionDecl.universal_of_injections exportedArtifact")
+    push!(construction_lines, "-- Universal cocone: each summand namespace has a declared object in the coproduct.")
+    push!(construction_lines, "theorem coproduct_universal : coproductDecl.UniversalCocone exportedArtifact :=")
+    push!(construction_lines, "  ConstructionDecl.universal_cocone_of_checks (by native_decide) (by native_decide)")
     push!(construction_lines, "")
 
     lines = split(base_cert, "\n")
@@ -250,9 +280,10 @@ function render_construction_certificate(uc::EqualizerResult; module_name::Union
     push!(construction_lines, "  parallelPair := ($(lean_string(f_sym)), $(lean_string(g_sym)))")
     push!(construction_lines, "}")
     push!(construction_lines, "")
-    push!(construction_lines, "-- Equalizer agreement theorem: f ∘ e = g ∘ e on the equalizing subobject")
-    push!(construction_lines, "theorem equalizer_agrees : equalizerDecl.ParallelAgreement := by")
-    push!(construction_lines, "  exact ConstructionDecl.agreement_of_loss exportedArtifact")
+    push!(construction_lines, "-- Equalizer agreement: the equalizer map is declared and the recorded")
+    push!(construction_lines, "-- agreement obstruction (f∘e = g∘e) is zero.")
+    push!(construction_lines, "theorem equalizer_agrees : equalizerDecl.ParallelAgreement exportedArtifact :=")
+    push!(construction_lines, "  ConstructionDecl.parallel_agreement_of_checks (by native_decide) (by native_decide)")
     push!(construction_lines, "")
 
     lines = split(base_cert, "\n")
@@ -283,9 +314,10 @@ function render_construction_certificate(uc::CoequalizerResult; module_name::Uni
     push!(construction_lines, "  parallelPair := ($(lean_string(f_sym)), $(lean_string(g_sym)))")
     push!(construction_lines, "}")
     push!(construction_lines, "")
-    push!(construction_lines, "-- Quotient theorem: q ∘ f = q ∘ g on the coequalizing quotient")
-    push!(construction_lines, "theorem coequalizer_quotients : coequalizerDecl.QuotientAgreement := by")
-    push!(construction_lines, "  exact ConstructionDecl.quotient_of_loss exportedArtifact")
+    push!(construction_lines, "-- Quotient agreement: the coequalizer map and quotient object are declared")
+    push!(construction_lines, "-- and the recorded obstruction (q∘f = q∘g) is zero.")
+    push!(construction_lines, "theorem coequalizer_quotients : coequalizerDecl.QuotientAgreement exportedArtifact :=")
+    push!(construction_lines, "  ConstructionDecl.quotient_agreement_of_checks (by native_decide) (by native_decide)")
     push!(construction_lines, "")
 
     lines = split(base_cert, "\n")
@@ -371,8 +403,8 @@ function render_jepa_certificate(D::Diagram; module_name::Union{Nothing, String}
         for loss in jepa_losses
             lname = String(loss.name)
             push!(extra_lines, "theorem jepa_$(lname)_is_obstruction :")
-            push!(extra_lines, "    exportedArtifact.lossIsObstruction $(lean_string(lname)) := by")
-            push!(extra_lines, "  exact LoweringArtifact.loss_obstruction_of_check exportedArtifact_checks")
+            push!(extra_lines, "    exportedArtifact.lossIsObstruction $(lean_string(lname)) :=")
+            push!(extra_lines, "  LoweringArtifact.loss_obstruction_of_hasLoss (by native_decide)")
             push!(extra_lines, "")
         end
 
@@ -386,7 +418,7 @@ function render_jepa_certificate(D::Diagram; module_name::Union{Nothing, String}
         push!(extra_lines, "")
     end
 
-    # Bisimulation declarations
+    # Bisimulation declarations + well-formedness theorems
     if !isempty(bisimulations)
         push!(extra_lines, "-- Bisimulation declarations")
         for (name, b) in bisimulations
@@ -397,16 +429,11 @@ function render_jepa_certificate(D::Diagram; module_name::Union{Nothing, String}
             push!(extra_lines, "  relation := $(lean_string(String(b.relation)))")
             push!(extra_lines, "}")
             push!(extra_lines, "")
+            push!(extra_lines, "/-- The recorded bisimulation names both coalgebras and a relation witness. -/")
+            push!(extra_lines, "theorem bisim_$(name)_wellformed : (bisim_$(name)).WellFormed :=")
+            push!(extra_lines, "  BisimulationDecl.wellFormed_of_check (by native_decide)")
+            push!(extra_lines, "")
         end
-
-        push!(extra_lines, "/-- Two coalgebras are bisimilar iff they map to the same element")
-        push!(extra_lines, "    in the final coalgebra — behavioral equivalence. -/")
-        push!(extra_lines, "theorem bisimilar_iff_final_coalgebra_equal")
-        push!(extra_lines, "    (A B : CoalgebraDecl) (R : BisimulationDecl)")
-        push!(extra_lines, "    (h : R.isBisimulation A B) :")
-        push!(extra_lines, "    A.finalImage = B.finalImage :=")
-        push!(extra_lines, "  CoalgebraDecl.bisim_implies_final_eq h")
-        push!(extra_lines, "")
     end
 
     # Energy function declarations
@@ -422,11 +449,8 @@ function render_jepa_certificate(D::Diagram; module_name::Union{Nothing, String}
             push!(extra_lines, "")
         end
 
-        push!(extra_lines, "/-- Energy functions are non-negative for L2 and cosine types. -/")
-        push!(extra_lines, "theorem energy_nonneg (e : EnergyDecl)")
-        push!(extra_lines, "    (h : e.energyType ∈ [\"l2\", \"cosine\"]) :")
-        push!(extra_lines, "    0 ≤ e.evaluate := by")
-        push!(extra_lines, "  exact EnergyDecl.nonneg_of_standard h")
+        push!(extra_lines, "/-- Recorded energy magnitudes are non-negative. -/")
+        push!(extra_lines, "theorem energy_nonneg (e : EnergyDecl) : 0 ≤ e.evaluate := EnergyDecl.nonneg e")
         push!(extra_lines, "")
     end
 

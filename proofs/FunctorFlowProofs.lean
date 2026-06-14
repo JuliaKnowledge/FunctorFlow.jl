@@ -2,3 +2,11 @@ import FunctorFlowProofs.Core
 import FunctorFlowProofs.Construction
 import FunctorFlowProofs.Coalgebra
 import FunctorFlowProofs.Energy
+import FunctorFlowProofs.Cat
+import FunctorFlowProofs.Limits
+import FunctorFlowProofs.Learn
+import FunctorFlowProofs.Automata
+import FunctorFlowProofs.Enriched
+import FunctorFlowProofs.Optics
+import FunctorFlowProofs.Heyting
+import FunctorFlowProofs.Galois
