@@ -256,6 +256,7 @@ include("optics.jl")
 include("heyting.jl")
 include("galois.jl")
 include("grothendieck.jl")
+include("sheaf.jl")
 include("rel.jl")
 include("poly.jl")
 include("falgebra.jl")
@@ -305,6 +306,11 @@ export HeytingAlgebra, hle, hmeet, hjoin, htop, hbot, himply, hneg, is_heyting_a
 export Poset, ple, is_poset, is_galois_connection, formal_concepts, is_formal_concept
 # Grothendieck construction (category of elements)
 export category_of_elements, elements_projection
+# Grothendieck (co)topologies, sheaf condition, sheafification (sheaf.jl)
+export Coverage, covering_sieves, is_grothendieck_topology
+export matching_families, amalgamations, is_separated, is_sheaf
+export separated_reflection
+export span_site, span_sheaf, span_non_sheaf
 # Rel + powerset (nondeterminism) monad
 export RelMap, rel_id, rel_compose, rel_dagger, rel_laws
 export powerset_unit, powerset_mult, kleisli_to_rel
