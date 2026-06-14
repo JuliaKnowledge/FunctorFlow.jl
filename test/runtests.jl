@@ -640,6 +640,9 @@ end
     # Subobject classifier of the presheaf topos
     include("test_topos_classifier.jl")
 
+    # Grothendieck (co)topologies, sheaf condition, sheafification
+    include("test_sheaf.jl")
+
     # Categorical deep learning: backpropagation as a functor
     include("test_learn.jl")
 
