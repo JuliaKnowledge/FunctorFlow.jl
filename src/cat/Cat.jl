@@ -260,6 +260,7 @@ include("rel.jl")
 include("poly.jl")
 include("falgebra.jl")
 include("coend.jl")
+include("operad.jl")
 
 # Finitely-presented categories (with relations)
 export FinPresentedCat, normalize, commutative_square
@@ -317,5 +318,9 @@ export Signature, Term, terms_upto, FAlgebra, cata, cata_is_homomorphism, arithm
 export Profunctor, profunctor_diag
 export CoendCocone, coend, coend_class, verify_coend
 export EndCone, end_
+# Operads / multicategories (compositional architectures & wiring)
+export Operad, operad_ops, operad_arity, operad_id, operad_compose, operad_laws
+export operad_act, operad_symmetry_laws, unary_monoid
+export commutative_operad, associative_operad, wiring_operad, little_intervals_operad
 
 end # module Cat

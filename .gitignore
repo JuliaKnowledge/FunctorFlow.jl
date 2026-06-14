@@ -5,3 +5,6 @@ docs/Manifest.toml
 # Lean build artifacts
 proofs/.lake/
 proofs/**/*.olean
+
+# Local agent worktrees / session data
+.claude/
