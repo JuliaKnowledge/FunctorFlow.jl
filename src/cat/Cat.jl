@@ -259,6 +259,7 @@ include("grothendieck.jl")
 include("rel.jl")
 include("poly.jl")
 include("falgebra.jl")
+include("coend.jl")
 
 # Finitely-presented categories (with relations)
 export FinPresentedCat, normalize, commutative_square
@@ -312,5 +313,9 @@ export powerset_unit, powerset_mult, kleisli_to_rel
 export Poly, monomial, PolyMap, is_poly_morphism, poly_id, poly_compose, moore_to_poly
 # F-algebras & catamorphisms (folds / recursion schemes)
 export Signature, Term, terms_upto, FAlgebra, cata, cata_is_homomorphism, arithmetic_signature
+# Coends & profunctors (attention-as-a-coend; coend = coequalizer of dinaturality)
+export Profunctor, profunctor_diag
+export CoendCocone, coend, coend_class, verify_coend
+export EndCone, end_
 
 end # module Cat

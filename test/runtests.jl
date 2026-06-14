@@ -634,6 +634,9 @@ end
     include("test_monads.jl")
     include("test_kan_general.jl")
 
+    # Coends & profunctors (coend = coequalizer of dinaturality; attention-as-coend)
+    include("test_coend.jl")
+
     # Subobject classifier of the presheaf topos
     include("test_topos_classifier.jl")
 
