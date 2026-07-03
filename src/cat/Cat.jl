@@ -299,7 +299,7 @@ export left_kan_along_terminal, right_kan_along_terminal
 # Kan extensions along an arbitrary functor
 export left_kan, right_kan
 # Monads / Kleisli
-export Monad, is_monad, kleisli_hom, kleisli_id, kleisli_compose, check_kleisli_laws
+export Monad, KleisliMor, is_monad, kleisli_hom, kleisli_id, kleisli_compose, check_kleisli_laws
 export monad_from_adjunction, identity_monad, closure_monad
 # Comonads (context-dependent computation)
 export Comonad, is_comonad, identity_comonad, comonad_from_adjunction

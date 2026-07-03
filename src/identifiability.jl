@@ -186,11 +186,13 @@ Symbolic algebra for post-intervention distributions produced by the ID
 algorithm. Concrete subtypes:
 
 - `Joint(vars)`               — original joint P over `vars`
-- `CondP(vars, conds)`        — conditional P(vars | conds)
+- `CondP(vars, conds)`        — conditional P(vars | conds), optionally
+                                relative to a recursively derived current P
 - `Marginal(margin, expr)`    — Σ_{margin} expr
 - `Product(factors)`          — ∏ factors
 - `QFactor(subset, order)`    — Q[subset] in topological `order`:
-                                ∏_{v ∈ subset} P(v | π_<v)
+                                ∏_{v ∈ subset} P(v | π_<v), optionally
+                                derived from a recursively threaded current P
 """
 abstract type IDExpression end
 
@@ -201,6 +203,11 @@ end
 struct CondP <: IDExpression
     vars::Vector{Symbol}
     conds::Vector{Symbol}
+    base::Union{Nothing, IDExpression}
+end
+
+function CondP(vars, conds; base::Union{Nothing, IDExpression}=nothing)
+    CondP(Symbol.(collect(vars)), Symbol.(collect(conds)), base)
 end
 
 struct Marginal <: IDExpression
@@ -215,6 +222,11 @@ end
 struct QFactor <: IDExpression
     subset::Vector{Symbol}
     order::Vector{Symbol}
+    base::Union{Nothing, IDExpression}
+end
+
+function QFactor(subset, order; base::Union{Nothing, IDExpression}=nothing)
+    QFactor(Symbol.(collect(subset)), Symbol.(collect(order)), base)
 end
 
 # ---- Helpers ----
@@ -223,6 +235,13 @@ _set(xs) = Set(xs)
 _setdiff(a, b) = [x for x in a if !(x in _set(b))]
 _intersect(a, b) = [x for x in a if x in _set(b)]
 _union_sorted(order, a, b) = [x for x in order if x in _set(a) || x in _set(b)]
+_restrict_order(order, subset) = [x for x in order if x in _set(subset)]
+
+_conditional_from(P::Joint, vars::Vector{Symbol}, conds::Vector{Symbol}) = CondP(vars, conds)
+_conditional_from(P::IDExpression, vars::Vector{Symbol}, conds::Vector{Symbol}) = CondP(vars, conds; base=P)
+
+_qfactor_from(P::Joint, subset::Vector{Symbol}, order::Vector{Symbol}) = QFactor(subset, order)
+_qfactor_from(P::IDExpression, subset::Vector{Symbol}, order::Vector{Symbol}) = QFactor(subset, order; base=P)
 
 function _make_marginal(margin::Vector{Symbol}, expr::IDExpression)
     isempty(margin) && return expr
@@ -247,7 +266,13 @@ function pretty_print(io::IO, e::Joint)
     print(io, "P(", join(e.vars, ", "), ")")
 end
 function pretty_print(io::IO, e::CondP)
-    print(io, "P(", join(e.vars, ", "))
+    if e.base === nothing
+        print(io, "P(", join(e.vars, ", "))
+    else
+        print(io, "P[")
+        pretty_print(io, e.base)
+        print(io, "](", join(e.vars, ", "))
+    end
     isempty(e.conds) || print(io, " | ", join(e.conds, ", "))
     print(io, ")")
 end
@@ -267,7 +292,12 @@ function pretty_print(io::IO, e::Product)
     end
 end
 function pretty_print(io::IO, e::QFactor)
-    print(io, "Q[", join(e.subset, ","), "]")
+    print(io, "Q[", join(e.subset, ","))
+    if e.base !== nothing
+        print(io, " | ")
+        pretty_print(io, e.base)
+    end
+    print(io, "]")
 end
 
 pretty_print(e::IDExpression) = sprint(pretty_print, e)
@@ -451,16 +481,17 @@ function _id(y::Vector{Symbol}, x::Vector{Symbol},
     if Set(S) == Set(T)
         # Σ_{S \ Y} ∏_{Vi ∈ S} P(vi | π_<vi)
         factors = IDExpression[]
+        current_order = _restrict_order(π, V)
         for v in S
-            π_lt = _prefix(π, v)
-            push!(factors, CondP([v], π_lt))
+            π_lt = _prefix(current_order, v)
+            push!(factors, _conditional_from(P, [v], π_lt))
         end
         return _make_marginal(_setdiff(S, y), _make_product(factors))
     end
 
     # 5c: S ⊊ T → recurse with Q[T] as the new P, restricted to G[T].
     GT = subgraph(G, T)
-    QT = QFactor(copy(T), copy(π))
+    QT = _qfactor_from(P, copy(T), _restrict_order(π, V))
     return _id(y, _intersect(x, T), QT, GT, π)
 end
 

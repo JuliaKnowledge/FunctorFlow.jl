@@ -623,9 +623,14 @@ self-contained Lake project under `proofs/` (no Mathlib dependency).
 using FunctorFlow
 
 D = ket_block()
-cert = render_lean_certificate(D; module_name="MyKET")
+cert = render_lean_certificate(D; module_name="MyKET")  # structural only
 write("proofs/FunctorFlowProofs/Generated/MyKET.lean",
       "import FunctorFlowProofs\n\n" * cert)
+
+# Verified exactness requires a real execution result with zero obstruction loss.
+DB = db_square(; first_impl=identity, second_impl=identity)
+result = FunctorFlow.run(DB, Dict(:State => 3.0))
+exact_cert = render_lean_certificate(DB, result; module_name="MyExactDB")
 ```
 
 Then verify with [elan / lake](https://leanprover-community.github.io/install/):
@@ -645,15 +650,18 @@ The certificates carry **decidable, falsifiable** content (verified by
   diagram. A malformed emission fails to type-check.
 - **Zero obstruction** — `CommutingSquare`, `UniversalCone`/`Cocone`,
   `ParallelAgreement`, `QuotientAgreement`, and JEPA `CoalgebraExact` are
-  proven *from* the obstruction-loss values the certificate records. The
-  emitter records these (default `0` = "claimed exact"; override with
-  `render_lean_certificate(D; loss_values=Dict(:my_loss => v))`).
+  proven *only* for **verified** certificates emitted from a real
+  `ExecutionResult.losses` (or explicitly supplied `loss_values`) whose
+  recorded obstruction losses are all zero.
+- **Structural-only fallback** — `render_lean_certificate(D)` and
+  `render_construction_certificate(uc)` still emit well-formed structural
+  certificates, but they intentionally omit exactness theorems unless real
+  zero-loss evidence is supplied.
 
-Because the categorical properties are derived from the recorded loss values,
-a certificate emitted with a **nonzero** obstruction loss will *not* compile —
-its exactness claim is genuinely unprovable. (Real ℝ-valued energies are out
-of scope for this Mathlib-free project; loss/energy magnitudes are modelled as
-`Nat`.)
+Because the categorical properties are derived from recorded real loss
+observations, `render_lean_certificate(D, result)` throws if any obstruction
+loss is nonzero or missing; callers must then emit a structural certificate
+instead.
 
 The full Julia → Lean roundtrip — including a negative-control certificate
 that must be *rejected* — lives in `test/test_lean_certificates.jl` and is

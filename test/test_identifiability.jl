@@ -5,6 +5,103 @@
 using FunctorFlow
 using Test
 
+struct FactorTable
+    vars::Vector{Symbol}
+    values::Dict{Tuple, Float64}
+end
+
+function _project_assignment(vars_from::Vector{Symbol}, assign::Tuple, vars_to::Vector{Symbol})
+    idxs = [findfirst(==(v), vars_from) for v in vars_to]
+    Tuple(assign[i] for i in idxs)
+end
+
+function _marginalize(tbl::FactorTable, drop::Vector{Symbol})
+    keep = [v for v in tbl.vars if !(v in Set(drop))]
+    vals = Dict{Tuple, Float64}()
+    for (assign, p) in tbl.values
+        key = _project_assignment(tbl.vars, assign, keep)
+        vals[key] = get(vals, key, 0.0) + p
+    end
+    FactorTable(keep, vals)
+end
+
+function _multiply_tables(a::FactorTable, b::FactorTable)
+    vars = vcat(a.vars, [v for v in b.vars if !(v in Set(a.vars))])
+    shared = [v for v in a.vars if v in Set(b.vars)]
+    vals = Dict{Tuple, Float64}()
+    for (assign_a, pa) in a.values, (assign_b, pb) in b.values
+        matches = all(assign_a[findfirst(==(v), a.vars)] == assign_b[findfirst(==(v), b.vars)] for v in shared)
+        matches || continue
+        merged = Tuple(begin
+            if v in Set(a.vars)
+                assign_a[findfirst(==(v), a.vars)]
+            else
+                assign_b[findfirst(==(v), b.vars)]
+            end
+        end for v in vars)
+        vals[merged] = get(vals, merged, 0.0) + pa * pb
+    end
+    FactorTable(vars, vals)
+end
+
+function _conditional_table(tbl::FactorTable, vars::Vector{Symbol}, conds::Vector{Symbol})
+    target = unique(vcat(vars, conds))
+    joint = _marginalize(tbl, [v for v in tbl.vars if !(v in Set(target))])
+    isempty(conds) && return joint
+    denom = _marginalize(joint, vars)
+    vals = Dict{Tuple, Float64}()
+    for (assign, p) in joint.values
+        cond_assign = _project_assignment(joint.vars, assign, conds)
+        vals[assign] = p / denom.values[cond_assign]
+    end
+    FactorTable(joint.vars, vals)
+end
+
+function _eval_expr(expr::IDExpression, full::FactorTable)
+    if expr isa Joint
+        return _marginalize(full, [v for v in full.vars if !(v in Set(expr.vars))])
+    elseif expr isa CondP
+        base = expr.base === nothing ? full : _eval_expr(expr.base, full)
+        return _conditional_table(base, expr.vars, expr.conds)
+    elseif expr isa Marginal
+        return _marginalize(_eval_expr(expr.expr, full), expr.margin)
+    elseif expr isa Product
+        tables = [_eval_expr(f, full) for f in expr.factors]
+        return reduce(_multiply_tables, tables)
+    elseif expr isa QFactor
+        base = expr.base === nothing ? full : _eval_expr(expr.base, full)
+        factors = FactorTable[]
+        for v in expr.subset
+            idx = findfirst(==(v), expr.order)
+            conds = Symbol[expr.order[i] for i in 1:(idx - 1)]
+            push!(factors, _conditional_table(base, [v], conds))
+        end
+        return reduce(_multiply_tables, factors)
+    else
+        error("Unsupported IDExpression $(typeof(expr))")
+    end
+end
+
+function _table_prob(tbl::FactorTable; kwargs...)
+    assignment = Dict{Symbol, Int}(k => Int(v) for (k, v) in kwargs)
+    idxs = [findfirst(==(v), tbl.vars) for v in keys(assignment)]
+    sum(p for (assign, p) in tbl.values if all(assign[idx] == assignment[var] for (idx, var) in zip(idxs, keys(assignment))))
+end
+
+function _napkin_observational_table()
+    vars = [:Z, :W, :X, :Y]
+    vals = Dict{Tuple, Float64}()
+    for u1 in 0:1, u2 in 0:1
+        z = (u1 == 1 || u2 == 1) ? 1 : 0
+        w = z
+        x = xor(w == 1, u1 == 1) ? 1 : 0
+        y = (x == 1 || u2 == 1) ? 1 : 0
+        key = (z, w, x, y)
+        vals[key] = get(vals, key, 0.0) + 0.25
+    end
+    FactorTable(vars, vals)
+end
+
 @testset "CausalDAG primitives" begin
     G = CausalDAG(nodes=[:Z, :X, :Y], directed=[(:Z,:X),(:X,:Y),(:Z,:Y)])
     @test G.nodes == [:Z, :X, :Y]
@@ -119,6 +216,20 @@ end
         r = identify_effect(G, [:Y], [:X])
         @test r.identifiable
         @test r.expression !== nothing
+        @test pretty_print(r.expression) == "P[[Σ_{Z} Q[Z,X,Y]]](Y | X)"
+
+        full = _napkin_observational_table()
+        actual = _eval_expr(r.expression, full)
+        expected = _conditional_table(
+            _marginalize(_eval_expr(QFactor([:Z, :X, :Y], [:Z, :W, :X, :Y]), full), [:Z]),
+            [:Y], [:X]
+        )
+
+        @test actual.vars == [:X, :Y]
+        @test actual.vars == expected.vars
+        @test actual.values == expected.values
+        @test _table_prob(actual; X=0, Y=1) ≈ 1 / 3
+        @test _table_prob(actual; X=1, Y=1) ≈ 1.0
     end
 
     # ---- 7. Sequential do on a chain -----------------------------------

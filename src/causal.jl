@@ -134,11 +134,11 @@ for each observation.
 """
 function interventional_expectation(cd::CausalDiagram, obs_data::Dict;
                                     density_ratio_fn::Union{Nothing, Function}=nothing)
-    compiled = compile_to_callable(cd.base_diagram)
+    diagram = density_ratio_fn === nothing ? cd.base_diagram : deepcopy(cd.base_diagram)
 
     # Bind density ratio as the intervention reducer if provided
     if density_ratio_fn !== nothing
-        bind_reducer!(cd.base_diagram, :sum,
+        bind_reducer!(diagram, :sum,
             function(data, relation, meta)
                 if data isa Dict
                     result = Dict{Any, Any}()
@@ -151,9 +151,9 @@ function interventional_expectation(cd::CausalDiagram, obs_data::Dict;
                     data
                 end
             end)
-        compiled = compile_to_callable(cd.base_diagram)
     end
 
+    compiled = compile_to_callable(diagram)
     result = FunctorFlow.run(compiled, obs_data)
 
     Dict{Symbol, Any}(
@@ -177,39 +177,57 @@ function is_identifiable(cd::CausalDiagram, target::Symbol;
                          observed::Vector{Symbol}=Symbol[])
     D = cd.base_diagram
 
+    haskey(D.objects, target) || return (
+        identifiable=false,
+        rule=:invalid_target,
+        reasoning="Target $target is not a declared object in diagram :$(D.name); " *
+                  "this high-level API only reasons structurally over declared diagram objects."
+    )
+
     # Check if the target is reachable from interventional state
     has_intervention = haskey(D.operations, cd.intervention_kan)
-    has_conditioning = haskey(D.operations, cd.conditioning_kan)
 
     if !has_intervention
         return (identifiable=false, rule=:none, reasoning="No intervention Kan extension in diagram")
     end
 
-    # Rule 1 (Insertion/deletion): if target is d-separated from intervention
-    # given observed, the do-operator can be removed
     intervene_op = D.operations[cd.intervention_kan]
-    condition_op = has_conditioning ? D.operations[cd.conditioning_kan] : nothing
 
-    # Simple identifiability: if we have both conditioning and intervention
-    # paths through the same causal structure, the effect is identifiable
-    # via the adjustment formula (back-door criterion analogue)
-    if has_conditioning && has_intervention
-        shared_source = intervene_op.source == condition_op.source
-        shared_along = intervene_op.along == condition_op.along
-        if shared_source && shared_along
-            return (identifiable=true, rule=:adjustment,
-                    reasoning="Both Kan extensions share source and causal structure; " *
-                              "adjustment formula applies via back-door criterion")
+    adjacency = Dict{Symbol, Vector{Symbol}}()
+    function add_edge!(src::Union{Nothing, Symbol}, dst::Union{Nothing, Symbol})
+        src === nothing && return
+        dst === nothing && return
+        push!(get!(adjacency, src, Symbol[]), dst)
+    end
+    for op in values(D.operations)
+        if op isa Morphism || op isa Composition
+            add_edge!(op.source, op.target)
+        elseif op isa KanExtension
+            add_edge!(op.source, op.target)
+            add_edge!(op.along, op.target)
         end
     end
 
-    # Rule 2: if intervention and target share no causal path
-    if target in keys(D.objects) && !any(
-        op.target == target for op in values(D.operations) if op isa KanExtension && op.direction == LEFT)
+    reachable = Set{Symbol}()
+    frontier = Symbol[]
+    intervene_op.target !== nothing && push!(frontier, intervene_op.target)
+    push!(frontier, intervene_op.source)
+    while !isempty(frontier)
+        node = pop!(frontier)
+        node in reachable && continue
+        push!(reachable, node)
+        for nxt in get(adjacency, node, Symbol[])
+            nxt in reachable || push!(frontier, nxt)
+        end
+    end
+
+    if !(target in reachable)
         return (identifiable=true, rule=:no_causal_path,
                 reasoning="No left-Kan (interventional) path reaches target $target")
     end
 
-    (identifiable=false, rule=:unknown,
-     reasoning="Could not determine identifiability from diagram structure alone")
+    (identifiable=false, rule=:structural_stub,
+     reasoning="This CausalDiagram method is only a structural heuristic and does not run " *
+               "the Shpitser-Pearl ID algorithm. Build an explicit CausalDAG and call " *
+               "`identify_effect`/`is_identifiable(::CausalDAG, ...)` for sound identifiability results.")
 end

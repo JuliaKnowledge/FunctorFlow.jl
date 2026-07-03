@@ -58,11 +58,33 @@ end
 # Kleisli category
 # ----------------------------------------------------------------------------
 
+"""
+    KleisliMor(base, source, target)
+
+A Kleisli morphism `source → target`, represented by its underlying
+`base : source → T(target)` arrow in the base category together with the
+explicit Kleisli codomain `target`.
+"""
+struct KleisliMor
+    base::PathMor
+    source::Symbol
+    target::Symbol
+end
+
+Base.:(==)(a::KleisliMor, b::KleisliMor) =
+    a.base == b.base && a.source == b.source && a.target == b.target
+Base.:(==)(a::KleisliMor, b::PathMor) = a.base == b
+Base.:(==)(a::PathMor, b::KleisliMor) = a == b.base
+Base.hash(k::KleisliMor, h::UInt) = hash((k.base, k.source, k.target), h)
+Base.show(io::IO, k::KleisliMor) =
+    print(io, "KleisliMor(", k.source, "→", k.target, "; base=", k.base, ")")
+
 """`kleisli_hom(m, a, b)` — Kleisli morphisms `a → b`, i.e. `Hom_C(a, T(b))`."""
-kleisli_hom(m::Monad, a, b) = homset(m.functor.dom, Symbol(a), m.functor.ob_map[Symbol(b)])
+kleisli_hom(m::Monad, a, b) =
+    [KleisliMor(f, Symbol(a), Symbol(b)) for f in homset(m.functor.dom, Symbol(a), m.functor.ob_map[Symbol(b)])]
 
 """`kleisli_id(m, a)` — the Kleisli identity at `a`, i.e. `η_a : a → T(a)`."""
-kleisli_id(m::Monad, a) = m.unit.components[Symbol(a)]
+kleisli_id(m::Monad, a) = KleisliMor(m.unit.components[Symbol(a)], Symbol(a), Symbol(a))
 
 """
     kleisli_compose(m, f, g)
@@ -70,14 +92,14 @@ kleisli_id(m::Monad, a) = m.unit.components[Symbol(a)]
 Kleisli composition of `f : a → T(b)` and `g : b → T(c)`:
 `a →f→ T(b) →T(g)→ T²(c) →μ_c→ T(c)`.
 """
-function kleisli_compose(m::Monad, f::PathMor, g::PathMor)
+function kleisli_compose(m::Monad, f::KleisliMor, g::KleisliMor)
     C = m.functor.dom
-    # g : b → T(c); recover c as the object whose T-image is g.cod
-    objs = objects(C)
-    k = findfirst(o -> m.functor.ob_map[o] == g.cod, objs)
-    k === nothing && throw(ArgumentError("kleisli_compose: cod $(g.cod) of g is not in the image of T (g is not a Kleisli morphism for this monad)"))
-    cobj = objs[k]
-    compose(C, f, compose(C, m.functor(g), m.mult.components[cobj]))
+    f.target == g.source ||
+        throw(ArgumentError("kleisli_compose: not composable, cod $(f.target) ≠ dom $(g.source)"))
+    g.target in objects(C) ||
+        throw(ArgumentError("kleisli_compose: codomain $(g.target) is not an object of the base category"))
+    composed = compose(C, f.base, compose(C, m.functor(g.base), m.mult.components[g.target]))
+    KleisliMor(composed, f.source, g.target)
 end
 
 """

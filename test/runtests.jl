@@ -181,6 +181,26 @@ end
         @test result3.values[:fg] == 7.0   # (3*2)+1 = 7
         @test result3.values[:gf] == 8.0   # (3+1)*2 = 8
         @test result3.losses[:obs] > 0.0   # non-commutative
+
+        # Composition execution respects the declared operation graph, including
+        # implementation keys and nested compositions.
+        D4 = Diagram(:NestedCompositionExec)
+        add_object!(D4, :A; kind=:input)
+        add_object!(D4, :B; kind=:hidden)
+        add_object!(D4, :C; kind=:hidden)
+        add_object!(D4, :D; kind=:output)
+        add_morphism!(D4, :double, :A, :B; implementation_key=:double_impl)
+        add_morphism!(D4, :inc, :B, :C; implementation=x -> x + 1)
+        add_morphism!(D4, :negate, :C, :D; implementation=x -> -x)
+        bind_morphism!(D4, :double_impl, x -> x * 2)
+        compose!(D4, :double, :inc; name=:double_then_inc)
+        compose!(D4, :double_then_inc, :negate; name=:nested_pipeline)
+
+        result4 = FunctorFlow.run(D4, Dict(:A => 3))
+        @test result4.values[:double_then_inc] == 7
+        @test result4.values[:nested_pipeline] == -7
+        @test result4.values[:C] == 7
+        @test result4.values[:D] == -7
     end
 
     if HAS_LUX
@@ -409,6 +429,8 @@ end
         @test occursin("FunctorFlowProofs.Generated", lean)
         @test occursin("exportedDiagram", lean)
         @test occursin("exportedArtifact", lean)
+        @test occursin("Structural-only certificate", lean)
+        @test !occursin("exportedArtifact_lossesZero", lean)
     end
 
     @testset "Universal Constructions" begin

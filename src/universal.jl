@@ -354,10 +354,12 @@ end
 """
     verify(uc::PullbackResult; test_data=nothing) -> NamedTuple
 
-Verify the pullback universal property:
+Perform heuristic structural/numerical checks for a pullback candidate:
 1. The cone diagram is well-formed (has both factors + shared object)
-2. Interface morphisms exist connecting factors to shared base
-3. If test_data provided, check the commuting square numerically
+2. Interface morphisms exist connecting factors to the shared base
+3. If `test_data` is provided, the recorded commuting loss is numerically small
+
+This is **not** a full proof of the universal property.
 """
 function verify(pb::PullbackResult; test_data::Union{Nothing, Dict}=nothing)
     checks = Dict{Symbol, Bool}()
@@ -390,9 +392,11 @@ end
 """
     verify(po::PushoutResult; test_data=nothing) -> NamedTuple
 
-Verify the pushout universal property:
+Perform heuristic structural checks for a pushout candidate:
 1. The cocone has both factors + shared sub-object
-2. Injection morphisms exist from shared into factors
+2. Injection morphisms exist from the shared object into each factor
+
+This is **not** a full proof of the universal property.
 """
 function verify(po::PushoutResult; test_data::Union{Nothing, Dict}=nothing)
     checks = Dict{Symbol, Bool}()
@@ -417,7 +421,7 @@ end
 """
     verify(prod::ProductResult) -> NamedTuple
 
-Verify the product has all factor projections.
+Perform a structural sanity check that the product includes all factor namespaces.
 """
 function verify(prod::ProductResult)
     checks = Dict{Symbol, Bool}()
@@ -432,7 +436,7 @@ end
 """
     verify(coprod::CoproductResult) -> NamedTuple
 
-Verify the coproduct has all summand injections.
+Perform a structural sanity check that the coproduct includes all summand namespaces.
 """
 function verify(coprod::CoproductResult)
     checks = Dict{Symbol, Bool}()
@@ -447,7 +451,7 @@ end
 """
     verify(eq::EqualizerResult) -> NamedTuple
 
-Verify the equalizer has a constraining obstruction loss.
+Perform a structural sanity check that the equalizer carries its map and agreement loss.
 """
 function verify(eq::EqualizerResult)
     checks = Dict{Symbol, Bool}()
@@ -460,7 +464,8 @@ end
 """
     verify(coeq::CoequalizerResult) -> NamedTuple
 
-Verify the coequalizer has a quotient object, coequalizer map, and constraining loss.
+Perform a structural sanity check that the coequalizer carries its quotient object,
+coequalizer map, and constraining loss.
 """
 function verify(coeq::CoequalizerResult)
     checks = Dict{Symbol, Bool}()

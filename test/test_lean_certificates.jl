@@ -37,16 +37,21 @@ using FunctorFlow
     emit(name, body) = write(joinpath(gen_dir, "$name.lean"),
                              "import FunctorFlowProofs\n\n" * body)
     lakebuild(target=nothing) = begin
+        io = IOBuffer()
         cmd = target === nothing ? `$lake build` : `$lake build $target`
-        run(pipeline(ignorestatus(setenv(cmd, ENV; dir=proofs_dir));
-                     stdout=stdout, stderr=stderr)).exitcode
+        exitcode = run(pipeline(ignorestatus(setenv(cmd, ENV; dir=proofs_dir));
+                                stdout=io, stderr=io)).exitcode
+        output = String(take!(io))
+        exitcode == 0 || print(stderr, output)
+        (exitcode=exitcode, output=output)
     end
 
     try
         # ---- Genuine certificates (must all type-check) ----
         emit("CITestDiagram", render_lean_certificate(ket_block(); module_name="CITestDiagram"))
-        emit("CITestDb",      render_lean_certificate(db_square(; first_impl=x->x, second_impl=x->x);
-                                                      module_name="CITestDb"))
+        D_db = db_square(; first_impl=x->x, second_impl=x->x)
+        exact_db = FunctorFlow.run(D_db, Dict(:State => 3.0))
+        emit("CITestDb", render_lean_certificate(D_db, exact_db; module_name="CITestDb"))
 
         ket1 = ket_block(; name=:CITest1); ket2 = ket_block(; name=:CITest2)
         emit("CITestPullback",  render_construction_certificate(pullback(ket1, ket2; over=:CIShared);  module_name="CITestPullback"))
@@ -57,8 +62,13 @@ using FunctorFlow
         add_object!(P, :A; kind=:state); add_object!(P, :B; kind=:state)
         add_morphism!(P, :f, :A, :B; implementation=x->x)
         add_morphism!(P, :g, :A, :B; implementation=x->x)
-        emit("CITestEqualizer",   render_construction_certificate(equalizer(P, :f, :g);   module_name="CITestEqualizer"))
-        emit("CITestCoequalizer", render_construction_certificate(coequalizer(P, :f, :g); module_name="CITestCoequalizer"))
+        eq = equalizer(P, :f, :g)
+        eq_result = FunctorFlow.run(eq.equalizer_diagram, Dict(:base__A => 5.0))
+        emit("CITestEqualizer", render_construction_certificate(eq, eq_result; module_name="CITestEqualizer"))
+        coeq = coequalizer(P, :f, :g)
+        bind_morphism!(coeq.coequalizer_diagram, coeq.coequalizer_map, identity)
+        coeq_result = FunctorFlow.run(coeq.coequalizer_diagram, Dict(:base__A => 5.0))
+        emit("CITestCoequalizer", render_construction_certificate(coeq, coeq_result; module_name="CITestCoequalizer"))
 
         J = jepa_block()
         add_bisimulation!(J, :b1; coalgebra_a=:jepa_dynamics, coalgebra_b=:jepa_dynamics, relation=:behavioral_eq)
@@ -115,15 +125,17 @@ using FunctorFlow
             Dict(x => x for x in 0:2), Dict(x => x for x in 0:2); module_name="CITestGalois"))
 
         @info "Running `lake build` on genuine certificates (may download the toolchain on first run)"
-        @test lakebuild() == 0
+        good = lakebuild()
+        @test good.exitcode == 0
 
-        # ---- Negative control: a nonzero obstruction loss must be REJECTED ----
-        D = db_square(; first_impl=x->x, second_impl=x->x)
-        lossname = first(keys(D.losses))
-        emit("CITestNonzero", render_lean_certificate(D; module_name="CITestNonzero",
-                                                      loss_values=Dict(lossname => 7)))
-        @info "Building the nonzero-obstruction certificate (expected to FAIL — proving the exactness proof is falsifiable)"
-        @test lakebuild("FunctorFlowProofs.Generated.CITestNonzero") != 0
+        # ---- Negative control: corrupt a verified exact certificate so the exactness theorem fails. ----
+        broken_exact = replace(render_lean_certificate(D_db, exact_db; module_name="CITestNonzero"),
+                               "zeroValue := true" => "zeroValue := false"; count=1)
+        emit("CITestNonzero", broken_exact)
+        @info "Building the corrupted exact certificate (expected to FAIL at exportedArtifact_lossesZero)"
+        bad_exact = lakebuild("FunctorFlowProofs.Generated.CITestNonzero")
+        @test bad_exact.exitcode != 0
+        @test occursin("exportedArtifact_lossesZero", bad_exact.output)
         rm(joinpath(gen_dir, "CITestNonzero.lean"); force=true)
 
         # Negative control 2: a corrupted category table (empty composition) must
@@ -132,7 +144,9 @@ using FunctorFlow
                          r"comp := \[[^\]]*\]" => "comp := []")
         emit("CITestCatBroken", broken)
         @info "Building the corrupted category certificate (expected to FAIL)"
-        @test lakebuild("FunctorFlowProofs.Generated.CITestCatBroken") != 0
+        bad_cat = lakebuild("FunctorFlowProofs.Generated.CITestCatBroken")
+        @test bad_cat.exitcode != 0
+        @test occursin("isCategory", bad_cat.output) || occursin("CITestCatBroken", bad_cat.output)
         rm(joinpath(gen_dir, "CITestCatBroken.lean"); force=true)
 
         # Negative control 3: a corrupted colimit apex must fail isColimit.
@@ -140,7 +154,9 @@ using FunctorFlow
                               r"apex := \[[^\]]*\]" => "apex := [\"merged\"]")
         emit("CITestColimBroken", brokenColim)
         @info "Building the corrupted colimit certificate (expected to FAIL)"
-        @test lakebuild("FunctorFlowProofs.Generated.CITestColimBroken") != 0
+        bad_colim = lakebuild("FunctorFlowProofs.Generated.CITestColimBroken")
+        @test bad_colim.exitcode != 0
+        @test occursin("isColimit", bad_colim.output) || occursin("CITestColimBroken", bad_colim.output)
         rm(joinpath(gen_dir, "CITestColimBroken.lean"); force=true)
     finally
         rm(gen_dir; force=true, recursive=true)

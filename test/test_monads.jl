@@ -26,6 +26,14 @@ end
     # η_a : a → T(a) = b is the generator f
     @test Cat.kleisli_id(m, :a) == PathMor(:a, :b, [:f])
 
+    # T is not injective on objects (T(a) = T(b) = b), so Kleisli codomains
+    # must be tracked explicitly instead of reconstructed from g.cod alone.
+    kaa = only(Cat.kleisli_hom(m, :a, :a))
+    kab = only(Cat.kleisli_hom(m, :a, :b))
+    @test kaa != kab
+    @test kaa == PathMor(:a, :b, [:f])
+    @test kab == PathMor(:a, :b, [:f])
+
     # a non-monotone "closure" is rejected (T can't be a functor)
     @test_throws ArgumentError Cat.closure_monad(chain, Dict(:a => :c, :b => :a, :c => :c))
 end

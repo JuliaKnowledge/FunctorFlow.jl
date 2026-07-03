@@ -55,21 +55,39 @@ end
 
 function _execute_morphism(compiled::CompiledDiagram, m::Morphism, env::Dict{Symbol, Any})
     haskey(env, m.source) || error("Missing source value :$(m.source) for morphism :$(m.name)")
+    fn = _resolve_morphism_impl(compiled, m)
+    fn === nothing && error("No implementation bound for morphism :$(m.name)")
+    fn(env[m.source])
+end
+
+function _resolve_morphism_impl(compiled::CompiledDiagram, m::Morphism)
     fn = get(compiled.morphisms, m.name, nothing)
     if fn === nothing && m.implementation_key !== nothing
         fn = get(compiled.morphisms, m.implementation_key, nothing)
     end
-    fn === nothing && error("No implementation bound for morphism :$(m.name)")
-    fn(env[m.source])
+    fn
+end
+
+function _execute_chain_link(compiled::CompiledDiagram, op::Morphism, current)
+    fn = _resolve_morphism_impl(compiled, op)
+    fn === nothing && error("No implementation bound for morphism :$(op.name)")
+    fn(current)
+end
+
+function _execute_chain_link(compiled::CompiledDiagram, op::Composition, current)
+    env = Dict{Symbol, Any}(op.source => current)
+    _execute_composition(compiled, op, env)
 end
 
 function _execute_composition(compiled::CompiledDiagram, comp::Composition, env::Dict{Symbol, Any})
     haskey(env, comp.source) || error("Missing source value :$(comp.source) for composition :$(comp.name)")
     current = env[comp.source]
-    for morph_name in comp.chain
-        fn = get(compiled.morphisms, morph_name, nothing)
-        fn === nothing && error("No implementation bound for morphism :$(morph_name) in composition :$(comp.name)")
-        current = fn(current)
+    for op_name in comp.chain
+        op = get(compiled.diagram.operations, op_name, nothing)
+        op === nothing && error("Operation :$(op_name) not found in composition :$(comp.name)")
+        (op isa Morphism || op isa Composition) ||
+            error("Composition :$(comp.name) can only execute morphisms or nested compositions (got $(typeof(op)) for :$(op_name))")
+        current = _execute_chain_link(compiled, op, current)
     end
     current
 end
@@ -137,7 +155,11 @@ function run(compiled::CompiledDiagram, inputs::AbstractDict;
                 env[op.target] = val
             end
         elseif op isa Composition
-            env[op.name] = _execute_composition(temp_compiled, op, env)
+            result = _execute_composition(temp_compiled, op, env)
+            env[op.name] = result
+            if op.target != op.source
+                env[op.target] = result
+            end
         elseif op isa KanExtension
             result = _execute_kan(temp_compiled, op, env)
             env[op.name] = result

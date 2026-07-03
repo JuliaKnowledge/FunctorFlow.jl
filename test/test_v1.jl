@@ -838,6 +838,10 @@ print(json.dumps(summary, sort_keys=True))
             result = interventional_expectation(cd, obs_data)
             @test result isa Dict
             @test haskey(result, :all_values)
+
+            weighted = interventional_expectation(cd, obs_data; density_ratio_fn=x -> 2x)
+            @test weighted isa Dict
+            @test !haskey(cd.base_diagram.reducers, :sum)
         end
 
         @testset "is_identifiable" begin
@@ -848,6 +852,8 @@ print(json.dumps(summary, sort_keys=True))
             @test haskey(result, :identifiable)
             @test haskey(result, :rule)
             @test haskey(result, :reasoning)
+            @test !result.identifiable
+            @test result.rule == :invalid_target
         end
     end
 
@@ -1028,6 +1034,7 @@ print(json.dumps(summary, sort_keys=True))
             @test occursin("ConstructionKind.equalizer", cert)
             @test occursin("ConstructionDecl", cert)
             @test occursin("parallelPair", cert)
+            @test occursin("equalizer_structural", cert)
         end
 
         @testset "coequalizer certificate" begin
@@ -1051,6 +1058,16 @@ print(json.dumps(summary, sort_keys=True))
             cert = render_lean_certificate(D)
             @test cert isa String
             @test occursin("structure", cert) || occursin("def", cert)
+            @test occursin("Structural-only certificate", cert)
+
+            exact = db_square(; first_impl=identity, second_impl=identity)
+            exact_result = FunctorFlow.run(exact, Dict(:State => 3.0))
+            exact_cert = render_lean_certificate(exact, exact_result)
+            @test occursin("exportedArtifact_lossesZero", exact_cert)
+
+            inexact = db_square(; first_impl=x -> x * 2, second_impl=x -> x + 1)
+            inexact_result = FunctorFlow.run(inexact, Dict(:State => 3.0))
+            @test_throws ArgumentError render_lean_certificate(inexact, inexact_result)
         end
     end
 end

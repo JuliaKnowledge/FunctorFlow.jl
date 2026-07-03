@@ -94,6 +94,9 @@ carried diagram. -/
 def ConstructionDecl.StructurallyValid (cd : ConstructionDecl) : Prop :=
   cd.structurallyValidCheck = true
 
+theorem ConstructionDecl.structurally_valid_of_check {cd : ConstructionDecl}
+    (h : cd.structurallyValidCheck = true) : cd.StructurallyValid := h
+
 /-! ## Certificate properties: structural validity + zero obstruction. -/
 
 def ConstructionDecl.CommutingSquare (cd : ConstructionDecl) (a : LoweringArtifact) : Prop :=
